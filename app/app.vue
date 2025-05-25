@@ -110,6 +110,7 @@ const problems = [
           />
         </div>
       </div>
+      <Footer />
     </Body>
   </Html>
 </template>
