@@ -19,17 +19,24 @@ To empower communities globally by:
 
 ## 🤝 How to Contribute
 
-1. Fork the repo and create a feature branch
-2. Open an issue to discuss your idea
-3. Submit a pull request with tests and documentation
-4. Join our community calls and forums for ongoing collaboration
+### Using CommunityFix
+
+1. **Explore**: Browse existing challenges and projects
+2. **Join**: Sign up to participate in discussions and initiatives
+3. **Contribute**: Share your skills, resources, or ideas
+
+### Developing CommunityFix
+
+1. **Fork** the repository and create a feature branch.
+2. **Open an issue** to discuss your idea or improvement.
+3. **Submit a pull request** with clear tests and documentation.
+4. **Engage** in our community calls and forums for ongoing collaboration.
 
 ## 🛠️ Setup
 
 Install dependencies with bun:
 
 ```bash
-# bun
 bun install
 ```
 
@@ -38,7 +45,6 @@ bun install
 Start the dev server with bun:
 
 ```bash
-# bun
 bun run dev
 ```
 
@@ -47,10 +53,8 @@ bun run dev
 Build and preview with bun:
 
 ```bash
-# bun
 bun run build
-
-# bun
+# Then
 bun run preview
 ```
 
