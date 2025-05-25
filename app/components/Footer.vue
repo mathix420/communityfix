@@ -6,7 +6,7 @@ const links = [
 ]
 
 const socials = [
-  { name: 'Bluesky', icon: 'fa6-brands:bluesky', url: 'https://twitter.com/communityfix' },
+  { name: 'Bluesky', icon: 'fa6-brands:bluesky', url: 'https://bsky.app/profile/communityfix.org' },
   { name: 'GitHub', icon: 'fa6-brands:github', url: 'https://github.com/mathix420/communityfix' },
 ]
 </script>
