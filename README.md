@@ -1,75 +1,59 @@
-# Nuxt Minimal Starter
+# CommunityFix
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+CommunityFix is an open-source platform dedicated to **solving the world’s problems together**. I believe everyone—whether armed with a skill, a unique perspective, or a spark of an idea—can tackle small challenges that compound into global impact. By uniting individuals, organizations, and experts, we coordinate efforts, share resources, and transform ideas into sustainable ventures.
 
-## Setup
+## 🌍 The Mission
 
-Make sure to install dependencies:
+To empower communities globally by:
+- Crowdsourcing ideas and resources
+- Coordinating collaborative projects
+- Facilitating funding and incubation to turn ideas into action
+
+## 🚀 Key Features
+
+- Problem Catalog: Browse and propose global challenges
+- Project Hub: Create, manage, and join initiatives
+- Resource Exchange: Share data, funding, and expertise
+- Collaboration Tools: Messaging, task boards, and progress tracking
+- Impact Dashboard: Visualize results and metrics
+
+## 🤝 How to Contribute
+
+1. Fork the repo and create a feature branch
+2. Open an issue to discuss your idea
+3. Submit a pull request with tests and documentation
+4. Join our community calls and forums for ongoing collaboration
+
+## 🛠️ Setup
+
+Install dependencies with bun:
 
 ```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
 # bun
 bun install
 ```
 
-## Development Server
+## 📦 Development
 
-Start the development server on `http://localhost:3000`:
+Start the dev server with bun:
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
 # bun
 bun run dev
 ```
 
-## Production
+## 🚧 Production
 
-Build the application for production:
+Build and preview with bun:
 
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
 # bun
 bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
 
 # bun
 bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## 📄 License
+
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
