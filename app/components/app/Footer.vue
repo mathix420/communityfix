@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const links = [
+  { name: 'Whitepaper', to: '/whitepaper' },
   { name: 'Privacy', to: '/privacy' },
   { name: 'Terms', to: '/terms' },
-  { name: 'Contact', to: '/contact' },
 ]
 
 const socials = [
