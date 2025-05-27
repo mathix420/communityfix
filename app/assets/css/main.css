@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+html,body, #__nuxt {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 @theme static {
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'Oswald', monospace;

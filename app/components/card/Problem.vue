@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   problem: {
     id: number
     title: string
@@ -10,6 +10,44 @@ defineProps<{
     subProblemCount?: number
   }
 }>()
+
+const toast = useToast()
+
+function handleShare() {
+  const url = `${window.location.origin}/problem/${props.problem.id}`
+  const title = props.problem.title
+  const text = props.problem.description
+
+  // Try to use Web Share API if available
+  if (navigator.share) {
+    navigator.share({
+      title,
+      text,
+      url,
+    }).catch(() => {})
+  }
+  else {
+    // Fallback to clipboard copy
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        // Show success toast
+        toast.add({
+          title: 'Link copied!',
+          description: 'Problem URL has been copied to clipboard',
+          color: 'success',
+        })
+      })
+      .catch((error) => {
+        console.error('Failed to copy:', error)
+        // Show error toast
+        toast.add({
+          title: 'Copy failed',
+          description: 'Unable to copy link to clipboard',
+          color: 'error',
+        })
+      })
+  }
+}
 </script>
 
 <template>
@@ -21,7 +59,7 @@ defineProps<{
         </span>
         <NuxtLink
           class="interactive-underline"
-          :to="`/problems/${problem.id}`"
+          :to="`/problem/${problem.id}`"
         >
           {{ problem.title }}
         </NuxtLink>
@@ -49,15 +87,15 @@ defineProps<{
           <UButton
             leading-icon="lucide:share-2"
             variant="subtle"
-            :to="`/problems/${problem.id}`"
             class="text-primary-600"
+            @click="handleShare"
           >
             Share
           </UButton>
           <UButton
             leading-icon="lucide:plus"
             variant="subtle"
-            :to="`/problems/${problem.id}/new-solution`"
+            :to="`/problem/${problem.id}`"
             class="w-full sm:w-auto text-primary-600"
           >
             Propose Solution

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const links = [
-  { name: 'Privacy', to: '/privacy-policy' },
-  { name: 'Terms', to: '/terms-of-service' },
+  { name: 'Privacy', to: '/privacy' },
+  { name: 'Terms', to: '/terms' },
   { name: 'Contact', to: '/contact' },
 ]
 
