@@ -14,11 +14,11 @@ const tabs = [
 
 <template>
   <AppContainer v-if="issue">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex sm:items-center justify-between mb-4 sm:flex-row flex-col-reverse">
       <h1 :class="underlinedTitle">
         {{ issue.title }}
       </h1>
-      <p class="text-5xl text-black/10 font-mono">
+      <p class="text-5xl text-black/10 font-mono sm:mt-0 -mt-5">
         #{{ issue.id.toString().padStart(5, '0') }}
       </p>
     </div>
