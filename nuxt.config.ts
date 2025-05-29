@@ -24,6 +24,10 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-05-15',
 
+  hub: {
+    database: true,
+  },
+
   eslint: {
     config: {
       stylistic: true,
