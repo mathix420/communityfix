@@ -95,7 +95,7 @@ function handleShare() {
           <UButton
             leading-icon="lucide:plus"
             variant="subtle"
-            :to="`/issue/${issue.id}`"
+            :to="`/issue/${issue.id}/solutions`"
             class="w-full sm:w-auto text-primary-600"
           >
             Propose Solution

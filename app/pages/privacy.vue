@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { data: privacy } = await useAsyncData(() => queryCollection('content').path('/privacy').first())
+const { data: privacy } = await useAsyncData('/privacy', () => queryCollection('content').path('/privacy').first())
 
 useSeoMeta({
   title: privacy.value?.title,
