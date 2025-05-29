@@ -1,3 +1,12 @@
+<script setup lang="ts">
+useScript({
+  'src': 'https://cloud.umami.dev/script.js',
+  'defer': true,
+  'async': true,
+  'data-website-id': 'a04836b7-0c67-401d-8c45-f072fdc2e221',
+}, { trigger: onMounted })
+</script>
+
 <template>
   <Html>
     <Body class="grainy">
