@@ -18,22 +18,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
 
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v3
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: doppler run -- bun install --frozen-lockfile
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: bun install --frozen-lockfile
 
       - name: Build application
-        run: doppler run -- bun run build
+        run: bun run build
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
 
       - name: Deploy to NuxtHub
         uses: nuxt-hub/action@v1
