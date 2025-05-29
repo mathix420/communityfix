@@ -29,6 +29,13 @@ function updateHighlight() {
         height: height + 'px',
         transform: `translate(${left - 4}px, ${top - 4}px)`,
       }
+
+      // Scroll the active tab into view with smooth behavior
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
     }
   })
 }
@@ -38,9 +45,9 @@ watch(() => route.path, updateHighlight)
 </script>
 
 <template>
-  <nav
+  <div
     ref="tabsContainer"
-    class="relative bg-black/10 rounded-lg p-1 mb-8 w-fit flex gap-1"
+    class="relative bg-black/10 rounded-lg p-1 flex w-fit max-w-full gap-1 text-sm overflow-x-scroll scrollbar-hide"
   >
     <!-- animated highlight -->
     <div
@@ -52,10 +59,10 @@ watch(() => route.path, updateHighlight)
       v-for="tab in computedTabs"
       :key="tab.name"
       :to="tab.path"
-      class="tab-item select-none text-toned z-10 hover:text-black/80 transition-colors py-2 px-4 rounded-lg"
+      class="tab-item select-none z-10 text-toned hover:text-black/80 transition-colors py-2 px-4 rounded-lg"
       :class="{ 'hover:bg-black/5': !tab.active }"
     >
       {{ tab.name }}
     </NuxtLink>
-  </nav>
+  </div>
 </template>

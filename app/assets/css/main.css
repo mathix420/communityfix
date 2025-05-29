@@ -27,4 +27,28 @@ html,body, #__nuxt {
   .interactive-underline {
     @apply hover:underline active:underline decoration-2 decoration-primary;
   }
+  
+  .scrollbar-hide {
+    /* IE and Edge */
+    -ms-overflow-style: none;
+
+    /* Firefox */
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .scrollbar-default {
+    /* IE and Edge */
+    -ms-overflow-style: auto;
+
+    /* Firefox */
+    scrollbar-width: auto;
+
+    &::-webkit-scrollbar {
+      display: block;
+    }
+  }
 }
