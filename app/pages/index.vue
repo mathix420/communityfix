@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const problems = [
+const issues = [
   {
     id: 1,
     title: 'Reduce household waste',
@@ -7,7 +7,7 @@ const problems = [
     author: 'Jane Doe',
     date: '2023-10-01',
     solutionCount: 523,
-    subProblemCount: 212,
+    subIssueCount: 212,
   },
   {
     id: 2,
@@ -16,7 +16,7 @@ const problems = [
     author: 'John Smith',
     date: '2023-10-02',
     solutionCount: 312,
-    subProblemCount: 145,
+    subIssueCount: 145,
   },
   {
     id: 3,
@@ -25,7 +25,7 @@ const problems = [
     author: 'Alice Johnson',
     date: '2023-10-03',
     solutionCount: 198,
-    subProblemCount: 87,
+    subIssueCount: 87,
   },
   {
     id: 4,
@@ -34,7 +34,7 @@ const problems = [
     author: 'Bob Brown',
     date: '2023-10-04',
     solutionCount: 410,
-    subProblemCount: 175,
+    subIssueCount: 175,
   },
   {
     id: 5,
@@ -43,7 +43,7 @@ const problems = [
     author: 'Charlie Green',
     date: '2023-10-05',
     solutionCount: 256,
-    subProblemCount: 98,
+    subIssueCount: 98,
   },
   {
     id: 6,
@@ -52,7 +52,7 @@ const problems = [
     author: 'Diana White',
     date: '2023-10-06',
     solutionCount: 678,
-    subProblemCount: 300,
+    subIssueCount: 300,
   },
 ]
 </script>
@@ -69,13 +69,13 @@ const problems = [
     </div>
 
     <p class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8">
-      Here are some of the problems we are currently working on:
+      Here are some of the issues we are currently working on:
     </p>
     <div class="flex flex-col max-w-3xl mx-auto gap-6">
-      <CardProblem
-        v-for="problem in problems"
-        :key="problem.id"
-        :problem="problem"
+      <CardIssue
+        v-for="issue in issues"
+        :key="issue.id"
+        :issue="issue"
       />
     </div>
   </div>

@@ -1,6 +1,6 @@
 # CommunityFix
 
-CommunityFix is an open-source platform dedicated to **solving the world’s problems together**. I believe everyone—whether armed with a skill, a unique perspective, or a spark of an idea—can tackle small challenges that compound into global impact. By uniting individuals, organizations, and experts, we coordinate efforts, share resources, and transform ideas into sustainable ventures.
+CommunityFix is an open-source platform dedicated to **solving the world’s issues together**. I believe everyone—whether armed with a skill, a unique perspective, or a spark of an idea—can tackle small challenges that compound into global impact. By uniting individuals, organizations, and experts, we coordinate efforts, share resources, and transform ideas into sustainable ventures.
 
 ## 🌍 The Mission
 
@@ -11,7 +11,7 @@ To empower communities globally by:
 
 ## 🚀 Key Features
 
-- Problem Catalog: Browse and propose global challenges
+- Issue Catalog: Browse and propose global challenges
 - Project Hub: Create, manage, and join initiatives
 - Resource Exchange: Share data, funding, and expertise
 - Collaboration Tools: Messaging, task boards, and progress tracking

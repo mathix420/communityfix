@@ -12,12 +12,12 @@ const socials = [
 </script>
 
 <template>
-  <div class="flex mt-16 select-none w-full items-center">
-    <div class="border-t w-full border-gray-200" />
+  <div class="flex mt-16 select-none gap-1 w-full items-center">
+    <hr class="w-full text-gray-200 mt-1">
     <p class="font-mono">
       communityfix.org
     </p>
-    <div class="border-t w-full border-gray-200" />
+    <hr class="w-full text-gray-200 mt-1">
   </div>
   <footer class="flex w-full sm:flex-row flex-col-reverse justify-between gap-3 items-center p-6 *:w-full">
     <UButton

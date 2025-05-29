@@ -1,22 +1,22 @@
 <script setup lang="ts">
 const props = defineProps<{
-  problem: {
+  issue: {
     id: number
     title: string
     description: string
     author: string
     date: string
     solutionCount?: number
-    subProblemCount?: number
+    subIssueCount?: number
   }
 }>()
 
 const toast = useToast()
 
 function handleShare() {
-  const url = `${window.location.origin}/problem/${props.problem.id}`
-  const title = props.problem.title
-  const text = props.problem.description
+  const url = `${window.location.origin}/issue/${props.issue.id}`
+  const title = props.issue.title
+  const text = props.issue.description
 
   // Try to use Web Share API if available
   if (navigator.share) {
@@ -33,7 +33,7 @@ function handleShare() {
         // Show success toast
         toast.add({
           title: 'Link copied!',
-          description: 'Problem URL has been copied to clipboard',
+          description: 'Issue URL has been copied to clipboard',
           color: 'success',
         })
       })
@@ -55,33 +55,33 @@ function handleShare() {
     <div class="flex flex-col gap-4 p-4">
       <h2 class="font-title text-xl">
         <span class="text-gray-400 select-none text-base font-light font-mono mr-1">
-          #{{ problem.id.toString().padStart(5, '0') }}
+          #{{ issue.id.toString().padStart(5, '0') }}
         </span>
         <NuxtLink
           class="interactive-underline"
-          :to="`/problem/${problem.id}`"
+          :to="`/issue/${issue.id}`"
         >
-          {{ problem.title }}
+          {{ issue.title }}
         </NuxtLink>
       </h2>
       <p class="text-gray-700">
-        {{ problem.description }}
+        {{ issue.description }}
       </p>
       <div class="flex gap-4 my-2">
         <div class="flex items-center flex-wrap gap-1 text-sm">
           <span class="px-2 py-1 bg-gray-100 whitespace-nowrap text-gray-700 font-mono rounded-md">
-            {{ problem.solutionCount || 0 }} Solutions
+            {{ issue.solutionCount || 0 }} Solutions
           </span>
         </div>
         <div class="flex items-center gap-1 text-sm">
           <span class="px-2 py-1 bg-gray-100 whitespace-nowrap text-gray-700 font-mono rounded-md">
-            {{ problem.subProblemCount || 0 }} Sub-problems
+            {{ issue.subIssueCount || 0 }} Sub-issues
           </span>
         </div>
       </div>
 
       <div class="flex sm:items-center justify-between flex-col sm:flex-row gap-2">
-        <span class="text-sm text-gray-500">Posted by {{ problem.author }}</span>
+        <span class="text-sm text-gray-500">Posted by {{ issue.author }}</span>
 
         <div class="flex ml-auto gap-1 sm:justify-baseline w-full sm:w-auto">
           <UButton
@@ -95,7 +95,7 @@ function handleShare() {
           <UButton
             leading-icon="lucide:plus"
             variant="subtle"
-            :to="`/problem/${problem.id}`"
+            :to="`/issue/${issue.id}`"
             class="w-full sm:w-auto text-primary-600"
           >
             Propose Solution

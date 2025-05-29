@@ -15,7 +15,7 @@ CommunityFix is an open-source, community-driven platform built on the belief th
 4. **Transparency and Openness**: All processes, analytics, and decisions are open and visible to foster trust and accountability.
 
 ## 4. Platform Overview
-- **Problem Catalog**: Community members submit global challenges and vote on priorities.
+- **Issue Catalog**: Community members submit global challenges and vote on priorities.
 - **Collaborative Workspaces**: Dedicated spaces for research, discussion, and prototyping.
 - **Resource Exchange**: A repository for open datasets, funding leads, and expert connections.
 - **Incubator Hub**: Support for promising projects—business modeling, mentorship, and seed resources—to launch as startups.
