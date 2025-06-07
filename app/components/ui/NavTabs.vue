@@ -59,6 +59,7 @@ watch(() => route.path, updateHighlight)
       v-for="tab in computedTabs"
       :key="tab.name"
       :to="tab.path"
+      replace
       class="tab-item select-none z-10 text-toned hover:text-black/80 transition-colors py-2 px-4 rounded-lg"
       :class="{ 'hover:bg-black/5': !tab.active }"
     >
