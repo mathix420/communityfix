@@ -17,13 +17,14 @@ const { data: issue } = await useFetch(`/api/issue/${issueId}`)
           Tags
         </h2>
         <div class="flex flex-wrap gap-2">
-          <span
+          <NuxtLink
             v-for="tag in issue.tags"
             :key="tag"
-            class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm"
+            :to="`/tag/${tag}`"
+            class="px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-sm"
           >
             {{ tag }}
-          </span>
+          </NuxtLink>
         </div>
       </div>
 
