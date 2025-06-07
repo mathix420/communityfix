@@ -7,6 +7,12 @@ export const issues = [
     date: '2023-10-01',
     solutionCount: 523,
     subIssueCount: 212,
+    detailedDescription: 'Reducing household waste requires community engagement and sustainable practices. Innovative solutions such as improved recycling programs and waste management technologies are essential.',
+    tags: ['environment', 'waste management', 'recycling'],
+    sustainableDevelopmentGoals: [
+      allSustainableDevelopmentGoals[12],
+      allSustainableDevelopmentGoals[11],
+    ],
   },
   {
     id: 2,
@@ -16,6 +22,12 @@ export const issues = [
     date: '2023-10-02',
     solutionCount: 312,
     subIssueCount: 145,
+    detailedDescription: 'Improving local public transport involves upgrading infrastructure, integrating technology, and increasing service frequency to meet community needs.',
+    tags: ['transport', 'infrastructure', 'urban mobility'],
+    sustainableDevelopmentGoals: [
+      allSustainableDevelopmentGoals[11],
+      allSustainableDevelopmentGoals[9],
+    ],
   },
   {
     id: 3,
@@ -25,6 +37,12 @@ export const issues = [
     date: '2023-10-03',
     solutionCount: 198,
     subIssueCount: 87,
+    detailedDescription: 'This initiative focuses on providing affordable and reliable access to clean water through innovative filtration and distribution solutions.',
+    tags: ['water', 'health', 'sustainability'],
+    sustainableDevelopmentGoals: [
+      allSustainableDevelopmentGoals[6],
+      allSustainableDevelopmentGoals[3],
+    ],
   },
   {
     id: 4,
@@ -34,6 +52,12 @@ export const issues = [
     date: '2023-10-04',
     solutionCount: 410,
     subIssueCount: 175,
+    detailedDescription: 'Developing affordable housing solutions involves innovative design, efficient use of space, and sustainable construction to meet growing demands.',
+    tags: ['housing', 'affordability', 'innovation'],
+    sustainableDevelopmentGoals: [
+      allSustainableDevelopmentGoals[11],
+      allSustainableDevelopmentGoals[1],
+    ],
   },
   {
     id: 5,
@@ -43,6 +67,12 @@ export const issues = [
     date: '2023-10-05',
     solutionCount: 256,
     subIssueCount: 98,
+    detailedDescription: 'Accessible hydroponics systems can transform urban agriculture by reducing costs and increasing efficiency in growing food in limited spaces.',
+    tags: ['agriculture', 'hydroponics', 'urban farming'],
+    sustainableDevelopmentGoals: [
+      allSustainableDevelopmentGoals[2],
+      allSustainableDevelopmentGoals[11],
+    ],
   },
   {
     id: 6,
@@ -52,5 +82,11 @@ export const issues = [
     date: '2023-10-06',
     solutionCount: 678,
     subIssueCount: 300,
+    detailedDescription: 'Innovative strategies to curb greenhouse gas emissions include transitioning to renewable energy sources and enhancing energy efficiency across industries.',
+    tags: ['climate', 'sustainability', 'energy'],
+    sustainableDevelopmentGoals: [
+      allSustainableDevelopmentGoals[13],
+      allSustainableDevelopmentGoals[7],
+    ],
   },
 ]
