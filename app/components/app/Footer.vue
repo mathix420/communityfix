@@ -6,6 +6,11 @@ const links = [
 ]
 
 const socials = [
+  {
+    name: 'Umami Analytics',
+    icon: 'simple-icons:umami',
+    url: 'https://cloud.umami.is/share/gv1yqQGUVb1AsbKy/communityfix.org',
+  },
   { name: 'Bluesky', icon: 'fa6-brands:bluesky', url: 'https://bsky.app/profile/communityfix.org' },
   { name: 'GitHub', icon: 'fa6-brands:github', url: 'https://github.com/mathix420/communityfix' },
 ]
