@@ -4,7 +4,7 @@ const issueId = computed(() => route.params.issueId)
 const { data: issue } = await useFetch(() => `/api/issue/${issueId.value}`)
 
 const tabs = [
-  { name: 'Details', path: `/issue/${issueId.value}` },
+  { name: 'Overview', path: `/issue/${issueId.value}` },
   { name: 'Issues', path: `/issue/${issueId.value}/issues` },
   { name: 'Solutions', path: `/issue/${issueId.value}/solutions` },
   { name: 'Studies', path: `/issue/${issueId.value}/studies` },
