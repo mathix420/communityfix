@@ -3,7 +3,7 @@ const { data: issues } = await useFetch('/api/issues')
 </script>
 
 <template>
-  <div class="container overflow-x-clip h-full mx-auto p-4">
+  <AppContainer class="container overflow-x-clip h-fit mx-auto p-4">
     <div class="w-full my-28 gap-4 sm:gap-6 text-center flex flex-col items-center justify-center">
       <h1 class="font-mono text-4xl sm:text-7xl underline decoration-primary">
         communityfix.org
@@ -23,5 +23,5 @@ const { data: issues } = await useFetch('/api/issues')
         :issue="issue"
       />
     </div>
-  </div>
+  </AppContainer>
 </template>
