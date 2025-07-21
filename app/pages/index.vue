@@ -14,7 +14,7 @@ const { data: issues } = await useFetch('/api/issues')
     </div>
 
     <p class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8">
-      Here are some of the issues we are currently working on:
+      The community is actively working on these issues:
     </p>
     <div class="flex flex-col max-w-3xl mx-auto gap-6">
       <CardIssue

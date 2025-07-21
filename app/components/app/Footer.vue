@@ -14,14 +14,22 @@ const socials = [
   { name: 'Bluesky', icon: 'fa6-brands:bluesky', url: 'https://bsky.app/profile/communityfix.org' },
   { name: 'GitHub', icon: 'fa6-brands:github', url: 'https://github.com/mathix420/communityfix' },
 ]
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <template>
   <div class="flex mt-16 select-none gap-1 w-full items-center">
     <hr class="w-full text-gray-200 mt-1">
-    <p class="font-mono">
+    <NuxtLink
+      class="font-mono"
+      to="/"
+      @click="scrollToTop"
+    >
       communityfix.org
-    </p>
+    </NuxtLink>
     <hr class="w-full text-gray-200 mt-1">
   </div>
   <footer class="flex w-full sm:flex-row flex-col-reverse justify-between gap-3 items-center p-6 *:w-full">
