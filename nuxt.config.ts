@@ -12,12 +12,35 @@ export default defineNuxtConfig({
   ],
   devtools: { enabled: true },
 
+  app: {
+    head: {
+      htmlAttrs: {
+        lang: 'en',
+      },
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon-96x96.png', sizes: '96x96' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+      ],
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'format-detection', content: 'telephone=no' },
+      ],
+    },
+  },
+
   css: [
     '@/assets/css/main.css',
   ],
 
   ui: {
     colorMode: false,
+  },
+
+  routeRules: {
+    '/umami/**': { proxy: 'https://cloud.umami.is/**' },
   },
 
   future: {
