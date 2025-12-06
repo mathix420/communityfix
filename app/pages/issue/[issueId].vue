@@ -20,6 +20,16 @@ if (issue.value) {
     ogDescription: issue.value.description || `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
     keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
   })
+
+  defineOgImageComponent('CommunityFix', {
+    title: issue.value.title,
+    description: issue.value.description,
+    number: issue.value.id,
+    solutionCount: issue.value.solutionCount,
+    subIssueCount: issue.value.subIssueCount,
+    commentCount: issue.value.commentCount,
+    sourceCount: issue.value.sourceCount,
+  })
 }
 </script>
 

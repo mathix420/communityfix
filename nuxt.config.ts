@@ -61,7 +61,9 @@ export default defineNuxtConfig({
 
   ogImage: {
     fonts: [
+      'Inter:400',
       'Oswald:400',
+      'Oswald:500',
     ],
   },
 })

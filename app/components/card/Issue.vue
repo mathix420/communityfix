@@ -55,7 +55,7 @@ function handleShare() {
     <div class="flex flex-col gap-4 p-4">
       <h2 class="font-title text-xl">
         <span class="text-gray-400 select-none text-base font-light font-mono mr-1">
-          #{{ issue.id.toString().padStart(5, '0') }}
+          {{ formatNumber(issue.id) }}
         </span>
         <NuxtLink
           class="interactive-underline"
