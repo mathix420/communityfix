@@ -7,6 +7,8 @@ export const issues = [
     date: '2023-10-01',
     solutionCount: 523,
     subIssueCount: 212,
+    commentCount: 45,
+    sourceCount: 12,
     detailedDescription: 'Reducing household waste requires community engagement and sustainable practices. Innovative solutions such as improved recycling programs and waste management technologies are essential.',
     tags: ['environment', 'waste management', 'recycling'],
     sustainableDevelopmentGoals: [
@@ -22,6 +24,8 @@ export const issues = [
     date: '2023-10-02',
     solutionCount: 312,
     subIssueCount: 145,
+    commentCount: 32,
+    sourceCount: 8,
     detailedDescription: 'Improving local public transport involves upgrading infrastructure, integrating technology, and increasing service frequency to meet community needs.',
     tags: ['transport', 'infrastructure', 'urban mobility'],
     sustainableDevelopmentGoals: [
@@ -37,6 +41,8 @@ export const issues = [
     date: '2023-10-03',
     solutionCount: 198,
     subIssueCount: 87,
+    commentCount: 15,
+    sourceCount: 5,
     detailedDescription: 'This initiative focuses on providing affordable and reliable access to clean water through innovative filtration and distribution solutions.',
     tags: ['water', 'health', 'sustainability'],
     sustainableDevelopmentGoals: [
@@ -52,6 +58,8 @@ export const issues = [
     date: '2023-10-04',
     solutionCount: 410,
     subIssueCount: 175,
+    commentCount: 67,
+    sourceCount: 23,
     detailedDescription: 'Developing affordable housing solutions involves innovative design, efficient use of space, and sustainable construction to meet growing demands.',
     tags: ['housing', 'affordability', 'innovation'],
     sustainableDevelopmentGoals: [
@@ -67,6 +75,8 @@ export const issues = [
     date: '2023-10-05',
     solutionCount: 256,
     subIssueCount: 98,
+    commentCount: 21,
+    sourceCount: 9,
     detailedDescription: 'Accessible hydroponics systems can transform urban agriculture by reducing costs and increasing efficiency in growing food in limited spaces.',
     tags: ['agriculture', 'hydroponics', 'urban farming'],
     sustainableDevelopmentGoals: [
@@ -82,6 +92,8 @@ export const issues = [
     date: '2023-10-06',
     solutionCount: 678,
     subIssueCount: 300,
+    commentCount: 112,
+    sourceCount: 34,
     detailedDescription: 'Innovative strategies to curb greenhouse gas emissions include transitioning to renewable energy sources and enhancing energy efficiency across industries.',
     tags: ['climate', 'sustainability', 'energy'],
     sustainableDevelopmentGoals: [

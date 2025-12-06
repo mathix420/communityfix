@@ -10,6 +10,27 @@ const tabs = [
   { name: 'Studies', path: `/issue/${issueId.value}/studies` },
   { name: 'Funding', path: `/issue/${issueId.value}/funding` },
 ]
+
+// SEO Meta Tags for Issue Page
+if (issue.value) {
+  useSeoMeta({
+    title: issue.value.title,
+    description: issue.value.description || `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
+    ogTitle: `${issue.value.title} - CommunityFix`,
+    ogDescription: issue.value.description || `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
+    keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
+  })
+
+  defineOgImageComponent('CommunityFix', {
+    title: issue.value.title,
+    description: issue.value.description,
+    number: issue.value.id,
+    solutionCount: issue.value.solutionCount,
+    subIssueCount: issue.value.subIssueCount,
+    commentCount: issue.value.commentCount,
+    sourceCount: issue.value.sourceCount,
+  })
+}
 </script>
 
 <template>
