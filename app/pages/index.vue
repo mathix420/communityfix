@@ -1,5 +1,14 @@
 <script setup lang="ts">
 const { data: issues } = await useFetch('/api/issues')
+
+// SEO Meta Tags for Homepage
+useSeoMeta({
+  title: 'Community Solutions Hub',
+  description: 'Find and co-create solutions to local and global issues. Join CommunityFix to share skills, back ideas, and collaborate on impact projects.',
+  ogTitle: 'CommunityFix – Put Your Skills to Work',
+  ogDescription: 'Discover community-driven solutions and collaborate on projects that matter. Join CommunityFix to contribute skills, knowledge, and support.',
+  keywords: 'community solutions, collaborative projects, skill sharing, social impact, CommunityFix platform',
+})
 </script>
 
 <template>

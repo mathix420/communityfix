@@ -9,6 +9,7 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/ui',
     '@nuxt/scripts',
+    'nuxt-og-image',
   ],
   devtools: { enabled: true },
 
@@ -56,5 +57,11 @@ export default defineNuxtConfig({
     config: {
       stylistic: true,
     },
+  },
+
+  ogImage: {
+    fonts: [
+      'Oswald:400',
+    ],
   },
 })

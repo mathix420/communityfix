@@ -14,17 +14,19 @@ useHead({
 })
 
 useSeoMeta({
-  description: 'CommunityFix is a community-driven platform for sharing skills, knowledge, and collaborative solutions to local and global challenges.',
-  ogTitle: 'CommunityFix - Community-Driven Solutions Platform',
-  ogDescription: 'Join our community to share skills, knowledge, and work together on solutions to local and global challenges.',
-  ogImage: '/og-image.png',
+  description: 'CommunityFix connects neighbors, experts, and funders to co-create solutions for local and global challenges.',
+  ogTitle: 'CommunityFix | Community-Driven Solutions Platform',
+  ogDescription: 'Join a community where people pool skills, knowledge, and resources to solve real-world issues together.',
+  ogImage: '/web-app-manifest-512x512.png',
   ogType: 'website',
   ogSiteName: 'CommunityFix',
   twitterCard: 'summary_large_image',
-  twitterTitle: 'CommunityFix - Community-Driven Solutions Platform',
-  twitterDescription: 'Join our community to share skills, knowledge, and work together on solutions to local and global challenges.',
-  twitterImage: '/og-image.png',
+  twitterTitle: 'CommunityFix | Community-Driven Solutions Platform',
+  twitterDescription: 'Collaborate on community issues, share solutions, and support impact projects on CommunityFix.',
+  twitterImage: '/web-app-manifest-512x512.png',
 })
+
+defineOgImageComponent('CommunityFix')
 </script>
 
 <template>

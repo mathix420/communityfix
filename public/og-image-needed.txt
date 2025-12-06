@@ -1,0 +1,12 @@
+OG Image Recommendation
+=======================
+
+Default social image currently points to `/web-app-manifest-512x512.png`, so links no longer 404. For richer sharing previews, add a dedicated OG image and update the paths in `app/app.vue`.
+
+Recommended specifications:
+- Dimensions: 1200x630 pixels (standard OG image size)
+- Format: PNG
+- Content: Should include the CommunityFix branding and tagline
+- Suggested file location: `/public/social-share.png`
+
+This image will be used when sharing CommunityFix links on social media platforms.

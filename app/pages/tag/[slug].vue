@@ -3,6 +3,19 @@ const route = useRoute()
 const tagSlug = computed(() => route.params.slug)
 const { data: issues } = await useFetch(() => `/api/issues?tag=${tagSlug.value}`)
 
+// SEO Meta tags
+useSeoMeta({
+  title: () => `${tagSlug.value} - CommunityFix Tags`,
+  description: () => `Explore community issues tagged with #${tagSlug.value}. Find ${issues.value?.length || 0} issues related to ${tagSlug.value} and join the discussion.`,
+  keywords: () => `${tagSlug.value}, community issues, community fix, ${tagSlug.value} problems, local solutions, collaborative problem solving`,
+  ogTitle: () => `#${tagSlug.value} - Community Issues`,
+  ogDescription: () => `Browse ${issues.value?.length || 0} community issues tagged with #${tagSlug.value} on CommunityFix.`,
+  ogType: 'website',
+  twitterCard: 'summary',
+  twitterTitle: () => `#${tagSlug.value} - CommunityFix`,
+  twitterDescription: () => `Discover community issues and solutions related to ${tagSlug.value}.`,
+})
+
 const allTags = computed(() => {
   if (!issues.value) return []
 
