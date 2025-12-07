@@ -29,6 +29,9 @@
     "vue": "^3.5.25",
     "vue-router": "^4.6.3"
   },
+  "overrides": {
+    "satori": "link:satori"
+  },
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.2.6",
     "@iconify-json/lucide": "^1.2.79",
