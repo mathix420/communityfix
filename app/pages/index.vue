@@ -9,6 +9,8 @@ useSeoMeta({
   ogDescription: 'Discover community-driven solutions and collaborate on projects that matter. Join CommunityFix to contribute skills, knowledge, and support.',
   keywords: 'community solutions, collaborative projects, skill sharing, social impact, CommunityFix platform',
 })
+
+defineOgImageComponent('Home')
 </script>
 
 <template>
