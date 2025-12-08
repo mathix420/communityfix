@@ -30,7 +30,7 @@
     "vue-router": "^4.6.3"
   },
   "overrides": {
-    "satori": "link:satori"
+			"satori": "npm:@mathix420/satori@0.0.0"
   },
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.2.6",
