@@ -18,7 +18,7 @@
     "@nuxt/image": "^2.0.0",
     "@nuxt/scripts": "0.13.0",
     "@nuxt/ui": "^4.2.1",
-    "@nuxthub/core": "0.9.1",
+    "@nuxthub/core": "^0.9",
     "@unhead/vue": "^2.0.19",
     "better-sqlite3": "^12.5.0",
     "eslint": "^9.39.1",
@@ -30,7 +30,7 @@
     "vue-router": "^4.6.3"
   },
   "overrides": {
-			"satori": "npm:@mathix420/satori@0.0.0"
+    "satori": "npm:@mathix420/satori@0.0.0"
   },
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.2.6",
@@ -38,6 +38,6 @@
     "@iconify-json/simple-icons": "^1.2.63",
     "@tailwindcss/typography": "^0.5.19",
     "get-tsconfig": "^4.13.0",
-    "wrangler": "^4.53.0"
+    "wrangler": "^4.56.0"
   }
 }
