@@ -26,6 +26,7 @@
       "devDependencies": {
         "@iconify-json/fa6-brands": "^1.2.6",
         "@iconify-json/lucide": "^1.2.79",
+        "@iconify-json/simple-icons": "^1.2.63",
         "@tailwindcss/typography": "^0.5.19",
         "get-tsconfig": "^4.13.0",
         "wrangler": "^4.53.0",
@@ -229,6 +230,8 @@
     "@iconify-json/fa6-brands": ["@iconify-json/fa6-brands@1.2.6", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-twL3X4KWcxAhbc1vz/mIDsVr+CAItk1/EIfxKUVQtpv6O4eydk5KNYqTZWdvJNHGInUgd6vKg21aWfVgb5DXEg=="],
 
     "@iconify-json/lucide": ["@iconify-json/lucide@1.2.79", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-CcwoXfC2Y7UVW0PXopmXtB4Do/eUJkhAqQqOnVENEiw3FwU707TK4uyIUqdo9tlvBaFBl95wnJf3smqsTnSyKA=="],
+
+    "@iconify-json/simple-icons": ["@iconify-json/simple-icons@1.2.63", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-xZl2UWCwE58VlqZ+pDPmaUhE2tq8MVSTJRr4/9nzzHlDdjJ0Ud1VxNXPrwTSgESKY29iCQw3S0r2nJTSNNngHw=="],
 
     "@iconify/collections": ["@iconify/collections@1.0.626", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-HIQE2F+ZkMALAXha7LjXXG9Mdz3f5YTVqEu57mHbJavtpxUXuLeNdqCHTIq5Dm2DZjsy72Sy4U0N/StTM2o4iQ=="],
 
