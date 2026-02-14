@@ -1,5 +1,13 @@
+import type { Nitro } from 'nitropack'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  hooks: {
+    'nitro:build:before': (nitro: Nitro) => {
+      nitro.options.moduleSideEffects.push('reflect-metadata')
+    },
+  },
+
   modules: [
     '@nuxthub/core',
     '@nuxt/content',
