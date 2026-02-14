@@ -7,10 +7,16 @@ defineOptions({
 
 <template>
   <div class="h-full w-full flex flex-col items-center justify-center bg-gray-50 text-center">
-    <h1 style="font-family: Oswald" class="text-9xl font-normal text-black/80 underline decoration-blue-500 mb-10">
+    <h1
+      style="font-family: Oswald"
+      class="text-9xl font-normal text-black/80 underline decoration-blue-500 mb-10"
+    >
       communityfix.org
     </h1>
-    <p style="font-family: Oswald" class="text-6xl text-black/80">
+    <p
+      style="font-family: Oswald"
+      class="text-6xl text-black/80"
+    >
       Let's put our skills to work.
     </p>
 

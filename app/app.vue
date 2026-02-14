@@ -23,7 +23,7 @@ useSeoMeta({
   twitterDescription: 'Collaborate on community issues, share solutions, and support impact projects on CommunityFix.',
 })
 
-defineOgImageComponent('CommunityFix')
+defineOgImage('CommunityFix')
 </script>
 
 <template>
