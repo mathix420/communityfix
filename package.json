@@ -44,6 +44,7 @@
     "@iconify-json/lucide": "^1.2.90",
     "@iconify-json/simple-icons": "^1.2.70",
     "@tailwindcss/typography": "^0.5.19",
+    "@takumi-rs/wasm": "^0.68.2",
     "get-tsconfig": "^4.13.6",
     "wrangler": "^4.65.0"
   }

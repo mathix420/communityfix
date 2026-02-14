@@ -1,27 +1,27 @@
 <script setup lang="ts">
-// inherited attrs can mess up the satori parser
 defineOptions({
   inheritAttrs: false,
 })
 </script>
 
 <template>
-  <div class="h-full w-full flex flex-col items-center justify-center bg-gray-50 text-center">
+  <div class="h-full w-full flex flex-col items-center justify-center bg-gray-50 p-10">
     <h1
       style="font-family: Oswald"
-      class="text-9xl font-normal text-black/80 underline decoration-blue-500 mb-10"
+      class="text-8xl font-normal text-gray-800 mb-6"
     >
       communityfix.org
     </h1>
+    <div class="w-64 h-2 bg-blue-500 mb-6" />
     <p
       style="font-family: Oswald"
-      class="text-6xl text-black/80"
+      class="text-5xl text-gray-600"
     >
       Let's put our skills to work.
     </p>
 
-    <!-- Decorative elements to fill space/add context -->
-    <div class="absolute bottom-10 right-10 flex gap-4">
+    <!-- Decorative dots -->
+    <div class="flex flex-row gap-4 mt-10">
       <div class="w-4 h-4 rounded-full bg-blue-500" />
       <div class="w-4 h-4 rounded-full bg-blue-400" />
       <div class="w-4 h-4 rounded-full bg-blue-300" />
