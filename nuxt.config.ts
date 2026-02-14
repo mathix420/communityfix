@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/scripts',
     'nuxt-og-image',
+    'nuxt-auth-utils',
   ],
   devtools: { enabled: true },
 
@@ -51,6 +52,10 @@ export default defineNuxtConfig({
 
   hub: {
     database: true,
+  },
+
+  auth: {
+    webAuthn: true,
   },
 
   eslint: {

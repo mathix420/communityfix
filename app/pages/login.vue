@@ -14,6 +14,6 @@ useSeoMeta({
 
 <template>
   <AppContainer>
-    login
+    <AuthForm mode="login" />
   </AppContainer>
 </template>
