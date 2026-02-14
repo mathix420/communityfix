@@ -38,8 +38,9 @@
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.2.6",
     "@iconify-json/lucide": "^1.2.79",
+    "@iconify-json/simple-icons": "^1.2.63",
     "@tailwindcss/typography": "^0.5.19",
     "get-tsconfig": "^4.13.0",
-    "wrangler": "^4.53.0"
+    "wrangler": "^4.56.0"
   }
 }
