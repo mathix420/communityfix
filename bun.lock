@@ -35,6 +35,7 @@
         "@iconify-json/lucide": "^1.2.90",
         "@iconify-json/simple-icons": "^1.2.70",
         "@tailwindcss/typography": "^0.5.19",
+        "@takumi-rs/wasm": "^0.68.2",
         "get-tsconfig": "^4.13.6",
         "wrangler": "^4.65.0",
       },
@@ -749,6 +750,8 @@
     "@tailwindcss/typography": ["@tailwindcss/typography@0.5.19", "", { "dependencies": { "postcss-selector-parser": "6.0.10" }, "peerDependencies": { "tailwindcss": ">=3.0.0 || insiders || >=4.0.0-alpha.20 || >=4.0.0-beta.1" } }, "sha512-w31dd8HOx3k9vPtcQh5QHP9GwKcgbMp87j58qi6xgiBnFFtKEAgCWnDw4qUT8aHwkCp8bKvb/KGKWWHedP0AAg=="],
 
     "@tailwindcss/vite": ["@tailwindcss/vite@4.1.18", "", { "dependencies": { "@tailwindcss/node": "4.1.18", "@tailwindcss/oxide": "4.1.18", "tailwindcss": "4.1.18" }, "peerDependencies": { "vite": "^5.2.0 || ^6 || ^7" } }, "sha512-jVA+/UpKL1vRLg6Hkao5jldawNmRo7mQYrZtNHMIVpLfLhDml5nMRUo/8MwoX2vNXvnaXNNMedrMfMugAVX1nA=="],
+
+    "@takumi-rs/wasm": ["@takumi-rs/wasm@0.68.2", "", {}, "sha512-JFDn9wLolqt4PdeBKpOV/lYQkoRF+MSJ7S5PzWUO4F8wl9UdSAGPOdB7u4yBz6F8Cn7rNjaa+5zVv4NYbgk76g=="],
 
     "@tanstack/table-core": ["@tanstack/table-core@8.21.3", "", {}, "sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg=="],
 
