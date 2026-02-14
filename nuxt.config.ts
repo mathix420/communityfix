@@ -64,6 +64,9 @@ export default defineNuxtConfig({
       deployConfig: true,
       nodeCompat: true,
     },
+    experimental: {
+      wasm: true,
+    },
   },
 
   hub: {
