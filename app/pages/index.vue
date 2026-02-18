@@ -10,7 +10,7 @@ useSeoMeta({
   keywords: 'community solutions, collaborative projects, skill sharing, social impact, CommunityFix platform',
 })
 
-defineOgImageComponent('Home')
+defineOgImage('Home')
 </script>
 
 <template>

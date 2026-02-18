@@ -21,7 +21,7 @@ if (issue.value) {
     keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
   })
 
-  defineOgImageComponent('CommunityFix', {
+  defineOgImage('CommunityFix', {
     title: issue.value.title,
     description: issue.value.description,
     number: issue.value.id,

@@ -2,7 +2,7 @@
   "name": "nuxt-app",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.3.3",
+  "packageManager": "bun@1.3.9",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -11,33 +11,41 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/content": "3.9.0",
-    "@nuxt/eslint": "1.11.0",
-    "@nuxt/fonts": "0.12.1",
-    "@nuxt/icon": "2.1.0",
+    "@nuxt/content": "3.11.2",
+    "@nuxt/eslint": "1.15.1",
+    "@nuxt/fonts": "0.14.0",
+    "@nuxt/icon": "2.2.1",
     "@nuxt/image": "^2.0.0",
-    "@nuxt/scripts": "0.13.0",
-    "@nuxt/ui": "^4.2.1",
-    "@nuxthub/core": "^0.9",
-    "@unhead/vue": "^2.0.19",
-    "better-sqlite3": "^12.5.0",
+    "@nuxt/scripts": "0.13.2",
+    "@nuxt/ui": "^4.4.0",
+    "@nuxthub/core": "0.9.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "@resvg/resvg-wasm": "^2.6.2",
+    "@simplewebauthn/browser": "^13.2.2",
+    "@simplewebauthn/server": "^13.2.2",
+    "@unhead/vue": "^2.1.4",
+    "better-sqlite3": "^12.6.2",
     "eslint": "^9.39.1",
-    "nuxt": "^4.2.1",
-    "nuxt-og-image": "5.1.12",
+    "nuxt": "^4.3.1",
+    "nuxt-auth-utils": "0.5.28",
+    "nuxt-og-image": "^6.0.0-beta.29",
+    "satori": "^0.19.2",
     "typescript": "^5.9.3",
-    "unstorage": "^1.17.3",
-    "vue": "^3.5.25",
-    "vue-router": "^4.6.3"
+    "unstorage": "^1.17.4",
+    "vue": "^3.5.28",
+    "vue-router": "^4.6.3",
+    "yoga-wasm-web": "^0.3.3"
   },
   "overrides": {
-    "satori": "npm:@mathix420/satori@0.0.0"
+    "satori": "0.19.2"
   },
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.2.6",
-    "@iconify-json/lucide": "^1.2.79",
-    "@iconify-json/simple-icons": "^1.2.63",
+    "@iconify-json/lucide": "^1.2.90",
+    "@iconify-json/simple-icons": "^1.2.70",
     "@tailwindcss/typography": "^0.5.19",
-    "get-tsconfig": "^4.13.0",
-    "wrangler": "^4.56.0"
+    "@takumi-rs/wasm": "^0.68.2",
+    "get-tsconfig": "^4.13.6",
+    "wrangler": "^4.65.0"
   }
 }

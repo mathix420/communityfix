@@ -1,5 +1,13 @@
+import type { Nitro } from 'nitropack'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  hooks: {
+    'nitro:build:before': (nitro: Nitro) => {
+      nitro.options.moduleSideEffects.push('reflect-metadata')
+    },
+  },
+
   modules: [
     '@nuxthub/core',
     '@nuxt/content',
@@ -10,6 +18,7 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/scripts',
     'nuxt-og-image',
+    'nuxt-auth-utils',
   ],
   devtools: { enabled: true },
 
@@ -55,10 +64,17 @@ export default defineNuxtConfig({
       deployConfig: true,
       nodeCompat: true,
     },
+    experimental: {
+      wasm: true,
+    },
   },
 
   hub: {
     database: true,
+  },
+
+  auth: {
+    webAuthn: true,
   },
 
   eslint: {
