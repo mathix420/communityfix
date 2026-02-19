@@ -1,5 +1,7 @@
 import { eq } from 'drizzle-orm'
+import type { H3Event } from 'h3'
 import { users, credentials } from '../database/schema'
+import type { Provider } from '../database/schema'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -26,7 +28,7 @@ export async function getUserById(id: string) {
   }) ?? null
 }
 
-export async function ensureUser(email: string, name?: string, provider?: string) {
+export async function ensureUser(email: string, name?: string, provider?: Provider) {
   const db = useDB()
   const normalized = normalizeEmail(email)
   const existing = await db.query.users.findFirst({
@@ -88,4 +90,21 @@ export async function updateCredentialCounter(id: string, counter: number) {
   await db.update(credentials)
     .set({ counter })
     .where(eq(credentials.id, id))
+}
+
+export async function handleOAuthLogin(event: H3Event, email: string, name: string | undefined, provider: Provider) {
+  const existing = await getUserByEmail(email)
+  const dbUser = await ensureUser(email, name, provider)
+
+  await setUserSession(event, {
+    user: {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      provider,
+    },
+    loggedInAt: Date.now(),
+  })
+
+  return { isNew: !existing }
 }

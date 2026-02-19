@@ -68,9 +68,6 @@ export default defineNuxtConfig({
       wasm: true,
       tasks: true,
     },
-    scheduledTasks: {
-      '*/5 * * * *': ['review:pending'],
-    },
   },
 
   runtimeConfig: {

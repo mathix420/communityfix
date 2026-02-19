@@ -42,7 +42,11 @@ export async function assertNotBanned(userId: string) {
     columns: { bannedUntil: true, banReason: true, banAppealStatus: true },
   })
 
-  if (user?.bannedUntil && new Date(user.bannedUntil) > new Date()) {
+  if (!user) {
+    throw createError({ statusCode: 401, statusMessage: 'User account not found. Please log in again.' })
+  }
+
+  if (user.bannedUntil && new Date(user.bannedUntil) > new Date()) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Your account is temporarily banned.',

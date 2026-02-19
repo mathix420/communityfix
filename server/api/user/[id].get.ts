@@ -22,7 +22,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'User not found' })
   }
 
-  // Check if the viewer is the profile owner
   const session = await getUserSession(event)
   const isOwner = session.user?.id === user.id
 
@@ -30,23 +29,18 @@ export default defineEventHandler(async (event) => {
     where: isOwner
       ? and(eq(issues.authorId, user.id), isNull(issues.parentId))
       : and(eq(issues.authorId, user.id), isNull(issues.parentId), ne(issues.status, 'rejected')),
-    with: {
-      issueTags: { with: { tag: true } },
-      issueSdgs: { with: { sdg: true } },
-    },
+    with: issueWithRelations,
   })
 
   const userSolutions = await db.query.issues.findMany({
     where: isOwner
       ? and(eq(issues.authorId, user.id), eq(issues.type, 'solution'))
       : and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), ne(issues.status, 'rejected')),
-    with: {
-      issueTags: { with: { tag: true } },
-      issueSdgs: { with: { sdg: true } },
-    },
+    with: issueWithRelations,
   })
 
-  // Filter out spam even for the owner
+  // Spam issues are hidden even from the owner.
+  // Non-owner queries already exclude rejected items (which includes spam) via the WHERE clause above.
   const filterSpam = (items: typeof userIssues) =>
     isOwner ? items.filter(i => !i.isSpam) : items
 
@@ -54,7 +48,7 @@ export default defineEventHandler(async (event) => {
     id: user.id,
     name: user.name,
     createdAt: user.createdAt,
-    issues: filterSpam(userIssues).map(transformIssue),
-    solutions: filterSpam(userSolutions).map(transformIssue),
+    issues: filterSpam(userIssues).map(i => transformIssue(i, { includeModeration: isOwner })),
+    solutions: filterSpam(userSolutions).map(i => transformIssue(i, { includeModeration: isOwner })),
   }
 })

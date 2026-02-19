@@ -8,10 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const result = await db.query.issues.findFirst({
     where: eq(issues.id, parseInt(issueId, 10)),
-    with: {
-      issueTags: { with: { tag: true } },
-      issueSdgs: { with: { sdg: true } },
-    },
+    with: issueWithRelations,
   })
 
   if (!result) return null
@@ -23,5 +20,5 @@ export default defineEventHandler(async (event) => {
     if (!session.user || session.user.id !== result.authorId) return null
   }
 
-  return transformIssue(result)
+  return transformIssue(result, { includeModeration: true })
 })

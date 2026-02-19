@@ -6,7 +6,12 @@ type DbIssue = InferSelectModel<typeof issues> & {
   issueSdgs: { sdg: InferSelectModel<typeof sdgs> }[]
 }
 
-export function transformIssue(issue: DbIssue) {
+export const issueWithRelations = {
+  issueTags: { with: { tag: true } },
+  issueSdgs: { with: { sdg: true } },
+} as const
+
+export function transformIssue(issue: DbIssue, { includeModeration = false } = {}) {
   return {
     id: issue.id,
     parentId: issue.parentId,
@@ -22,12 +27,6 @@ export function transformIssue(issue: DbIssue) {
     sourceCount: issue.sourceCount,
     status: issue.status,
     type: issue.type,
-    rejectionReason: issue.rejectionReason,
-    rejectedAt: issue.rejectedAt,
-    isSpam: issue.isSpam,
-    appealReason: issue.appealReason,
-    appealStatus: issue.appealStatus,
-    appealedAt: issue.appealedAt,
     tags: issue.issueTags.map(it => it.tag.slug),
     sustainableDevelopmentGoals: issue.issueSdgs.map(is => ({
       id: is.sdg.id,
@@ -35,5 +34,13 @@ export function transformIssue(issue: DbIssue) {
       iconUrl: is.sdg.iconUrl,
       link: is.sdg.link,
     })),
+    ...(includeModeration && {
+      rejectionReason: issue.rejectionReason,
+      rejectedAt: issue.rejectedAt,
+      isSpam: issue.isSpam,
+      appealReason: issue.appealReason,
+      appealStatus: issue.appealStatus,
+      appealedAt: issue.appealedAt,
+    }),
   }
 }

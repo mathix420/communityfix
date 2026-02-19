@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Description is required' })
   }
 
-  // If this is a solution, verify the parent exists
+  // If this has a parent (sub-issue or solution), verify the parent exists
   if (body.parentId) {
     const parent = await db.query.issues.findFirst({
       where: eq(issues.id, body.parentId),
@@ -62,8 +62,10 @@ export default defineEventHandler(async (event) => {
       .where(eq(issues.id, body.parentId))
   }
 
-  // Trigger AI review as a Nitro task (decoupled from request lifecycle)
+  // Trigger AI review as a Nitro task (decoupled from request lifecycle).
+  // waitUntil() prevents Cloudflare Workers from terminating the task after the response is sent.
   const promise = runTask('review:issue', { payload: { issueId: created.id } })
+    .catch(err => console.error(`[review:issue] Background review failed for issue ${created.id}:`, err))
   event.context.cloudflare?.context?.waitUntil(promise)
 
   return created

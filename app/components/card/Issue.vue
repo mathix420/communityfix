@@ -15,42 +15,36 @@ const props = defineProps<{
 
 const toast = useToast()
 
-function handleShare() {
+async function handleShare() {
   const url = `${window.location.origin}/issue/${props.issue.id}`
   const title = props.issue.title
   const text = props.issue.description
 
-  // Try to use Web Share API if available
   if (navigator.share) {
-    navigator.share({
-      title,
-      text,
-      url,
-    }).then(() => {
+    try {
+      await navigator.share({ title, text, url })
       umami.track('Share issue', { issueId: props.issue.id, method: 'native' })
-    }).catch(() => {})
+    }
+    catch {}
   }
   else {
-    // Fallback to clipboard copy
-    navigator.clipboard.writeText(url)
-      .then(() => {
-        umami.track('Share issue', { issueId: props.issue.id, method: 'clipboard' })
-        // Show success toast
-        toast.add({
-          title: 'Link copied!',
-          description: 'Issue URL has been copied to clipboard',
-          color: 'success',
-        })
+    try {
+      await navigator.clipboard.writeText(url)
+      umami.track('Share issue', { issueId: props.issue.id, method: 'clipboard' })
+      toast.add({
+        title: 'Link copied!',
+        description: 'Issue URL has been copied to clipboard',
+        color: 'success',
       })
-      .catch((error) => {
-        console.error('Failed to copy:', error)
-        // Show error toast
-        toast.add({
-          title: 'Copy failed',
-          description: 'Unable to copy link to clipboard',
-          color: 'error',
-        })
+    }
+    catch (error) {
+      console.error('Failed to copy:', error)
+      toast.add({
+        title: 'Copy failed',
+        description: 'Unable to copy link to clipboard',
+        color: 'error',
       })
+    }
   }
 }
 </script>
@@ -68,14 +62,12 @@ function handleShare() {
         >
           {{ issue.title }}
         </NuxtLink>
-        <span
-          v-if="issue.status === 'rejected'"
-          class="text-xs font-mono px-2 py-0.5 rounded bg-red-100 text-red-700"
-        >Rejected</span>
-        <span
-          v-else-if="issue.status === 'pending'"
-          class="text-xs font-mono px-2 py-0.5 rounded bg-yellow-100 text-yellow-700"
-        >Pending</span>
+        <UiBadge v-if="issue.status === 'rejected'" variant="error">
+          Rejected
+        </UiBadge>
+        <UiBadge v-else-if="issue.status === 'pending'" variant="warning">
+          Pending
+        </UiBadge>
       </h2>
       <p class="text-gray-700">
         {{ issue.description }}
@@ -101,21 +93,6 @@ function handleShare() {
             </span>
           </NuxtLink>
         </div>
-        <!-- <div class="flex sm:items-center justify-between flex-col sm:flex-row gap-2"> -->
-        <!-- <div class="flex ml-auto gap-1 sm:justify-baseline w-full sm:w-auto"> -->
-        <!--
-              <UButton
-              leading-icon="lucide:share-2"
-              variant="subtle"
-              class="text-primary-600"
-              @click="handleShare"
-            />
-            <UButton
-              leading-icon="lucide:plus"
-              variant="subtle"
-              :to="`/issue/${issue.id}/solutions`"
-              class="w-full sm:w-auto text-primary-600"
-            /> -->
         <NuxtLink
           v-if="issue.authorId"
           :to="`/user/${issue.authorId}`"
@@ -143,8 +120,6 @@ function handleShare() {
             {{ issue.author }}
           </span>
         </span>
-        <!-- </div> -->
-        <!-- </div> -->
       </div>
     </div>
   </article>

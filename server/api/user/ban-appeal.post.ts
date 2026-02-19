@@ -18,11 +18,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<{ reason?: string }>(event)
+  if (!body.reason?.trim()) {
+    throw createError({ statusCode: 400, statusMessage: 'Appeal reason is required' })
+  }
 
   await db.update(users)
     .set({
       banAppealedAt: new Date().toISOString(),
       banAppealStatus: 'pending',
+      banAppealReason: body.reason.trim(),
     })
     .where(eq(users.id, session.user.id))
 

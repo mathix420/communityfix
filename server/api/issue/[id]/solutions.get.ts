@@ -14,11 +14,8 @@ export default defineEventHandler(async (event) => {
       eq(issues.status, 'approved'),
       eq(issues.type, 'solution'),
     ),
-    with: {
-      issueTags: { with: { tag: true } },
-      issueSdgs: { with: { sdg: true } },
-    },
+    with: issueWithRelations,
   })
 
-  return results.map(transformIssue)
+  return results.map(i => transformIssue(i))
 })
