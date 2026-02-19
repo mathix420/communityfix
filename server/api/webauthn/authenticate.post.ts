@@ -1,3 +1,4 @@
+import type { AuthenticatorTransportFuture } from '@simplewebauthn/server'
 import {
   getCredentialById,
   getUserByEmail,
@@ -9,7 +10,7 @@ import {
 
 export default defineWebAuthnAuthenticateEventHandler({
   async allowCredentials(event, userName) {
-    if (!userName) { return }
+    if (!userName) { return [] }
     const email = normalizeEmail(userName)
     const user = await getUserByEmail(email)
     if (!user) {
@@ -23,7 +24,7 @@ export default defineWebAuthnAuthenticateEventHandler({
 
     return credentials.map(c => ({
       id: c.id,
-      transports: c.transports,
+      transports: c.transports as AuthenticatorTransportFuture[],
     }))
   },
 
@@ -70,6 +71,7 @@ export default defineWebAuthnAuthenticateEventHandler({
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         provider: 'passkey',
       },
       loggedInAt: Date.now(),

@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1771343096998,
+      "tag": "0000_daffy_leo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1771344973332,
+      "tag": "0001_shiny_cable",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1771349466705,
+      "tag": "0002_fast_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1771350855450,
+      "tag": "0003_mysterious_wrecker",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1771351314986,
+      "tag": "0004_flashy_dark_phoenix",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1771354886011,
+      "tag": "0005_wooden_tyrannus",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1771501015009,
+      "tag": "0006_melodic_millenium_guard",
+      "breakpoints": true
+    }
+  ]
+}

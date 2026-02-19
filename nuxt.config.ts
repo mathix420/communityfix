@@ -9,7 +9,6 @@ export default defineNuxtConfig({
   },
 
   modules: [
-    '@nuxthub/core',
     '@nuxt/content',
     '@nuxt/eslint',
     '@nuxt/fonts',
@@ -65,12 +64,14 @@ export default defineNuxtConfig({
       nodeCompat: true,
     },
     experimental: {
+      asyncContext: true,
       wasm: true,
+      tasks: true,
     },
   },
 
-  hub: {
-    database: true,
+  runtimeConfig: {
+    openaiApiKey: '',
   },
 
   auth: {
@@ -83,11 +84,10 @@ export default defineNuxtConfig({
     },
   },
 
-  ogImage: {
-    fonts: [
-      'Inter:400',
-      'Oswald:400',
-      'Oswald:500',
+  fonts: {
+    families: [
+      { name: 'Inter', weights: [400] },
+      { name: 'Oswald', weights: [400, 500] },
     ],
   },
 })
