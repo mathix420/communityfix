@@ -12,7 +12,7 @@ withDefaults(defineProps<{
 const sizeClasses = {
   sm: 'text-xl sm:text-2xl',
   md: 'text-2xl sm:text-3xl',
-  lg: 'text-3xl sm:text-4xl',
+  lg: 'text-4xl sm:text-5xl',
   xl: 'text-4xl sm:text-5xl',
 }
 </script>
@@ -21,7 +21,7 @@ const sizeClasses = {
   <component
     :is="as"
     :class="[
-      'font-mono font-medium underline decoration-primary decoration-2',
+      'font-mono font-medium underline decoration-primary',
       sizeClasses[size],
       center && 'text-center',
     ]"

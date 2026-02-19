@@ -16,7 +16,7 @@ defineOgImage('Home')
 <template>
   <AppContainer class="container overflow-x-clip h-fit mx-auto p-4">
     <div class="w-full my-28 gap-4 sm:gap-6 text-center flex flex-col items-center justify-center">
-      <h1 class="font-mono text-4xl sm:text-7xl underline decoration-primary">
+      <h1 class="font-mono text-4xl sm:text-5xl underline decoration-primary">
         communityfix.org
       </h1>
       <p class="text-lg sm:text-2xl font-title text-primary-950">
@@ -27,6 +27,23 @@ defineOgImage('Home')
     <p class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8">
       The community is actively working on these issues:
     </p>
+
+    <AuthState v-slot="{ loggedIn }">
+      <div
+        v-if="loggedIn"
+        class="flex justify-center mb-8"
+      >
+        <UButton
+          to="/new"
+          color="primary"
+          size="lg"
+          data-umami-event="Homepage new issue"
+        >
+          New Issue
+        </UButton>
+      </div>
+    </AuthState>
+
     <div class="flex flex-col max-w-3xl mx-auto gap-6">
       <CardIssue
         v-for="issue in issues"

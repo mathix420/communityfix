@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePageMeta({
+  middleware: ['guest'],
+})
+
 useSeoMeta({
   title: 'Login - CommunityFix',
   description: 'Sign in to CommunityFix to engage in community-driven problem solving, share solutions, and collaborate on local issues.',

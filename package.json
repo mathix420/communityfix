@@ -8,7 +8,14 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 execute DB --local --file",
+    "db:migrate:remote": "wrangler d1 execute DB --remote --file",
+    "db:push": "drizzle-kit push",
+    "db:seed": "scripts/db-seed.sh --local",
+    "db:seed:remote": "scripts/db-seed.sh --remote",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@nuxt/content": "3.11.2",
@@ -18,34 +25,29 @@
     "@nuxt/image": "^2.0.0",
     "@nuxt/scripts": "0.13.2",
     "@nuxt/ui": "^4.4.0",
-    "@nuxthub/core": "0.9.1",
-    "@resvg/resvg-js": "^2.6.2",
-    "@resvg/resvg-wasm": "^2.6.2",
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.2",
     "@unhead/vue": "^2.1.4",
     "better-sqlite3": "^12.6.2",
+    "drizzle-orm": "^0.45.1",
     "eslint": "^9.39.1",
     "nuxt": "^4.3.1",
-    "nuxt-auth-utils": "0.5.28",
-    "nuxt-og-image": "^6.0.0-beta.29",
-    "satori": "^0.19.2",
+    "nuxt-auth-utils": "0.5.29",
+    "nuxt-og-image": "^6.0.0-beta.32",
+    "openai": "^6.22.0",
     "typescript": "^5.9.3",
     "unstorage": "^1.17.4",
     "vue": "^3.5.28",
-    "vue-router": "^4.6.3",
-    "yoga-wasm-web": "^0.3.3"
-  },
-  "overrides": {
-    "satori": "0.19.2"
+    "vue-router": "^4.6.3"
   },
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.2.6",
-    "@iconify-json/lucide": "^1.2.90",
-    "@iconify-json/simple-icons": "^1.2.70",
+    "@iconify-json/lucide": "^1.2.91",
+    "@iconify-json/simple-icons": "^1.2.71",
     "@tailwindcss/typography": "^0.5.19",
-    "@takumi-rs/wasm": "^0.68.2",
+    "@takumi-rs/wasm": "^0.68.4",
+    "drizzle-kit": "^0.31.9",
     "get-tsconfig": "^4.13.6",
-    "wrangler": "^4.65.0"
+    "wrangler": "^4.66.0"
   }
 }

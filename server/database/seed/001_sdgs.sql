@@ -1,0 +1,18 @@
+INSERT OR IGNORE INTO sdgs (id, name, icon_url, link) VALUES
+  (1, 'No Poverty', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-01.png', 'https://www.un.org/sustainabledevelopment/poverty/'),
+  (2, 'Zero Hunger', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-02.png', 'https://www.un.org/sustainabledevelopment/hunger/'),
+  (3, 'Good Health and Well-being', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-03.png', 'https://www.un.org/sustainabledevelopment/health/'),
+  (4, 'Quality Education', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-04.png', 'https://www.un.org/sustainabledevelopment/education'),
+  (5, 'Gender Equality', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-05.png', 'https://www.un.org/sustainabledevelopment/gender-equality'),
+  (6, 'Clean Water and Sanitation', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-06.png', 'https://www.un.org/sustainabledevelopment/water-and-sanitation/'),
+  (7, 'Affordable and Clean Energy', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-07.png', 'https://www.un.org/sustainabledevelopment/energy'),
+  (8, 'Decent Work and Economic Growth', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-08.png', 'https://www.un.org/sustainabledevelopment/economic-growth'),
+  (9, 'Industry, Innovation and Infrastructure', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-09.png', 'https://www.un.org/sustainabledevelopment/infrastructure-industrialization'),
+  (10, 'Reduced Inequalities', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-10.png', 'https://www.un.org/sustainabledevelopment/inequality'),
+  (11, 'Sustainable Cities and Communities', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-11.png', 'https://www.un.org/sustainabledevelopment/cities'),
+  (12, 'Responsible Consumption and Production', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-12.png', 'https://www.un.org/sustainabledevelopment/sustainable-consumption-production'),
+  (13, 'Climate Action', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-13.png', 'https://www.un.org/sustainabledevelopment/climate-change'),
+  (14, 'Life Below Water', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-14.png', 'https://www.un.org/sustainabledevelopment/oceans'),
+  (15, 'Life on Land', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-15.png', 'https://www.un.org/sustainabledevelopment/biodiversity'),
+  (16, 'Peace, Justice and Strong Institutions', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-16.png', 'https://www.un.org/sustainabledevelopment/peace-justice'),
+  (17, 'Partnerships for the Goals', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-17.png', 'https://www.un.org/sustainabledevelopment/globalpartnerships');

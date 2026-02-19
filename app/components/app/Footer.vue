@@ -39,6 +39,7 @@ function scrollToTop() {
       variant="link"
       color="neutral"
       class="sm:justify-start justify-center"
+      data-umami-event="Footer license link"
     >
       Published under <span class="font-bold">MIT License</span>
     </UButton>
@@ -51,6 +52,8 @@ function scrollToTop() {
         :to="link.to"
         variant="link"
         color="neutral"
+        data-umami-event="Footer nav"
+        :data-umami-event-page="link.name"
       >
         {{ link.name }}
       </UButton>
@@ -67,6 +70,8 @@ function scrollToTop() {
         variant="link"
         size="xl"
         color="neutral"
+        data-umami-event="Footer social"
+        :data-umami-event-name="social.name"
       />
     </nav>
   </footer>

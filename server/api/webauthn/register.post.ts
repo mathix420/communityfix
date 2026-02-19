@@ -5,8 +5,17 @@ import {
 } from '../../utils/auth-store'
 
 export default defineWebAuthnRegisterEventHandler({
+  getOptions() {
+    return {
+      authenticatorSelection: {
+        residentKey: 'required',
+        userVerification: 'preferred',
+      },
+    }
+  },
+
   async validateUser(userBody, event) {
-    const email = normalizeEmail(userBody?.userName || userBody?.email || '')
+    const email = normalizeEmail(userBody?.userName || '')
 
     const session = await getUserSession(event)
     if (session.user?.email && session.user.email !== email) {
@@ -49,6 +58,7 @@ export default defineWebAuthnRegisterEventHandler({
       user: {
         id: dbUser.id,
         email,
+        name: dbUser.name,
         provider: 'passkey',
       },
       loggedInAt: Date.now(),

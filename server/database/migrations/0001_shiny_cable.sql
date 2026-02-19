@@ -1,0 +1,1 @@
+ALTER TABLE `issues` ADD `parent_id` integer REFERENCES issues(id);

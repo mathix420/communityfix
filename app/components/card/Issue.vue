@@ -4,10 +4,12 @@ const props = defineProps<{
     id: number
     title: string
     description: string
+    authorId?: string | null
     author: string
     date: string
     solutionCount?: number
     subIssueCount?: number
+    status?: string
   }
 }>()
 
@@ -24,12 +26,15 @@ function handleShare() {
       title,
       text,
       url,
+    }).then(() => {
+      umami.track('Share issue', { issueId: props.issue.id, method: 'native' })
     }).catch(() => {})
   }
   else {
     // Fallback to clipboard copy
     navigator.clipboard.writeText(url)
       .then(() => {
+        umami.track('Share issue', { issueId: props.issue.id, method: 'clipboard' })
         // Show success toast
         toast.add({
           title: 'Link copied!',
@@ -53,7 +58,7 @@ function handleShare() {
 <template>
   <article class="bg-white rounded-lg">
     <div class="flex flex-col gap-4 p-4">
-      <h2 class="font-title text-xl">
+      <h2 class="font-title text-xl flex items-center gap-2 flex-wrap">
         <span class="text-gray-400 select-none text-base font-light font-mono mr-1">
           {{ formatNumber(issue.id) }}
         </span>
@@ -63,6 +68,14 @@ function handleShare() {
         >
           {{ issue.title }}
         </NuxtLink>
+        <span
+          v-if="issue.status === 'rejected'"
+          class="text-xs font-mono px-2 py-0.5 rounded bg-red-100 text-red-700"
+        >Rejected</span>
+        <span
+          v-else-if="issue.status === 'pending'"
+          class="text-xs font-mono px-2 py-0.5 rounded bg-yellow-100 text-yellow-700"
+        >Pending</span>
       </h2>
       <p class="text-gray-700">
         {{ issue.description }}
@@ -72,6 +85,7 @@ function handleShare() {
           <NuxtLink
             :to="`/issue/${issue.id}/solutions`"
             class="flex items-center flex-wrap gap-1 text-sm"
+            data-umami-event="View solutions"
           >
             <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
               {{ issue.solutionCount || 0 }} Solutions
@@ -80,6 +94,7 @@ function handleShare() {
           <NuxtLink
             :to="`/issue/${issue.id}/issues`"
             class="flex items-center gap-1 text-sm"
+            data-umami-event="View sub-issues"
           >
             <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
               {{ issue.subIssueCount || 0 }} Sub-issues
@@ -102,7 +117,8 @@ function handleShare() {
               class="w-full sm:w-auto text-primary-600"
             /> -->
         <NuxtLink
-          :to="`/user/${issue.author}`"
+          v-if="issue.authorId"
+          :to="`/user/${issue.authorId}`"
           class="flex items-center hover:bg-gray-100 transition-colors px-2 py-1 flex-wrap gap-2 text-sm rounded-md"
         >
           <img
@@ -114,6 +130,19 @@ function handleShare() {
             {{ issue.author }}
           </span>
         </NuxtLink>
+        <span
+          v-else
+          class="flex items-center px-2 py-1 flex-wrap gap-2 text-sm rounded-md"
+        >
+          <img
+            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
+            alt="Author Avatar"
+            class="size-4 rounded-full"
+          >
+          <span class="whitespace-nowrap text-gray-700 font-mono">
+            {{ issue.author }}
+          </span>
+        </span>
         <!-- </div> -->
         <!-- </div> -->
       </div>

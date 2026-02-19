@@ -40,7 +40,7 @@ const allTags = computed(() => {
 <template>
   <AppContainer class="container overflow-x-clip h-fit mx-auto p-4">
     <div class="w-full my-28 gap-4 sm:gap-6 text-center flex flex-col items-center justify-center">
-      <h1 class="font-mono text-4xl sm:text-7xl underline decoration-primary">
+      <h1 class="font-mono text-4xl sm:text-5xl underline decoration-primary">
         #{{ tagSlug }}
       </h1>
       <p class="text-lg sm:text-2xl font-title text-primary-950">
@@ -67,6 +67,8 @@ const allTags = computed(() => {
           v-for="{ tag, count } in allTags"
           :key="tag"
           :to="`/tag/${tag}`"
+          data-umami-event="Related tag click"
+          :data-umami-event-tag="tag"
           class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-full transition-colors"
           :class="{
             'text-sm': count < 3,

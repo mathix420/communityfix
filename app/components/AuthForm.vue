@@ -16,11 +16,11 @@ const { register: registerPasskey, authenticate } = useWebAuthn({
   authenticateEndpoint: '/api/webauthn/authenticate',
 })
 
-const title = computed(() => props.mode === 'login' ? 'Sign in' : 'Create account')
+const title = computed(() => props.mode === 'login' ? 'Welcome back' : 'Create account')
 const lead = computed(() => props.mode === 'login'
-  ? 'Email only. Use a passkey or single-tap social login.'
-  : 'No passwords. Register with email + passkey or OAuth.')
-const passkeyLabel = computed(() => props.mode === 'login' ? 'Continue with passkey' : 'Create passkey')
+  ? 'Sign in to pick up where you left off.'
+  : 'Join thousands fixing their communities. It takes seconds.')
+const passkeyLabel = computed(() => props.mode === 'login' ? 'Sign in with passkey' : 'Create passkey')
 
 const trimmedEmail = computed(() => email.value.trim())
 
@@ -28,29 +28,30 @@ function ensureEmail() {
   if (trimmedEmail.value) { return true }
   toast.add({
     title: 'Add your email',
-    description: 'We bind your passkey to this email.',
+    description: 'We need your email to create your account.',
     color: 'warning',
   })
   return false
 }
 
 async function handlePasskey() {
-  if (!ensureEmail()) { return }
+  if (props.mode === 'register' && !ensureEmail()) { return }
 
   isPasskeyLoading.value = true
   try {
     if (props.mode === 'login') {
-      await authenticate(trimmedEmail.value)
-      toast.add({ title: 'Passkey verified', color: 'success' })
+      await authenticate()
     }
     else {
       await registerPasskey({ userName: trimmedEmail.value })
-      toast.add({ title: 'Passkey created', color: 'success' })
     }
     await fetchUserSession()
+    umami.track(props.mode === 'login' ? 'Sign in with passkey' : 'Register with passkey')
+    await navigateTo(props.mode === 'register' ? '/settings' : '/')
   }
   catch (error: any) {
     console.error(error)
+    umami.track('Passkey failed', { mode: props.mode })
     toast.add({
       title: 'Passkey failed',
       description: error?.message || 'Try again or use social login.',
@@ -63,6 +64,7 @@ async function handlePasskey() {
 }
 
 async function startOAuth(provider: 'google' | 'apple') {
+  umami.track(`Sign in with ${provider}`)
   activeProvider.value = provider
   const route = `/auth/${provider}`
 
@@ -104,7 +106,8 @@ async function startOAuth(provider: 'google' | 'apple') {
         class="grid gap-4"
         @submit.prevent="handlePasskey"
       >
-        <UFormGroup
+        <UFormField
+          v-if="props.mode === 'register'"
           label="Email"
           name="email"
         >
@@ -114,9 +117,10 @@ async function startOAuth(provider: 'google' | 'apple') {
             placeholder="you@example.com"
             autocomplete="email"
             size="lg"
+            class="w-full"
             required
           />
-        </UFormGroup>
+        </UFormField>
 
         <UButton
           type="submit"
@@ -165,6 +169,7 @@ async function startOAuth(provider: 'google' | 'apple') {
       <NuxtLink
         :to="props.mode === 'login' ? '/register' : '/login'"
         class="text-primary-600 hover:underline font-medium"
+        :data-umami-event="props.mode === 'login' ? 'Switch to register' : 'Switch to login'"
       >
         {{ props.mode === 'login' ? 'Create one' : 'Sign in' }}
       </NuxtLink>
