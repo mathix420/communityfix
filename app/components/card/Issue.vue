@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { track } = useUmami()
 const props = defineProps<{
   issue: {
     id: number
@@ -77,7 +78,7 @@ async function handleShare() {
           <NuxtLink
             :to="`/issue/${issue.id}/solutions`"
             class="flex items-center flex-wrap gap-1 text-sm"
-            data-umami-event="View solutions"
+            @click="track('View solutions')"
           >
             <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
               {{ issue.solutionCount || 0 }} Solutions
@@ -86,7 +87,7 @@ async function handleShare() {
           <NuxtLink
             :to="`/issue/${issue.id}/issues`"
             class="flex items-center gap-1 text-sm"
-            data-umami-event="View sub-issues"
+            @click="track('View sub-issues')"
           >
             <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
               {{ issue.subIssueCount || 0 }} Sub-issues

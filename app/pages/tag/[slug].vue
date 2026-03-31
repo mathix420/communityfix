@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { track } = useUmami()
 const route = useRoute()
 const tagSlug = computed(() => route.params.slug)
 const { data: issues } = await useFetch(() => `/api/issues?tag=${tagSlug.value}`)
@@ -67,8 +68,7 @@ const allTags = computed(() => {
           v-for="{ tag, count } in allTags"
           :key="tag"
           :to="`/tag/${tag}`"
-          data-umami-event="Related tag click"
-          :data-umami-event-tag="tag"
+          @click="track('Related tag click', { tag })"
           class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-full transition-colors"
           :class="{
             'text-sm': count < 3,

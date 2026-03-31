@@ -40,13 +40,18 @@
 - Add analytics events to meaningful user interactions — don't track everything, focus on actions that inform product decisions
 - **When to add events**: form submissions, auth actions (login, register, logout), issue creation, solution submissions, upvotes/endorsements, external link clicks, navigation to key pages, CTA button clicks
 - **When NOT to add events**: routine navigation, scrolling, hover states, every single click
-- **Prefer data attributes** in templates for simple interactions:
+- **Known issue**: `data-umami-event` attributes do not work on `<NuxtLink>` components — use the `useUmami()` composable with a `@click` handler instead
+- **Data attributes** work on non-NuxtLink elements (e.g., `<UButton>`) for simple interactions:
   ```html
   <UButton data-umami-event="Create issue" data-umami-event-page="new">Submit</UButton>
   ```
-- **Use JS tracking** (`umami.track()`) for programmatic events (e.g., after async operations succeed):
+- **Use `useUmami()` composable** for NuxtLinks and programmatic events:
   ```ts
-  umami.track('Issue created', { issueId: issue.id })
+  const { track } = useUmami()
+  track('Issue created', { issueId: issue.id })
+  ```
+  ```html
+  <NuxtLink to="/page" @click="track('Nav click')">Link</NuxtLink>
   ```
 - Event names: max 50 characters, use sentence case (e.g., `"Sign up with Google"`, `"Submit solution"`)
 - Include relevant context as event data properties (e.g., issue ID, auth provider, tag slug) but never send PII (emails, names)

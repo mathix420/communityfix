@@ -1,3 +1,7 @@
+<script setup lang="ts">
+const { track } = useUmami()
+</script>
+
 <template>
   <header class="flex sm:text-lg z-10 fixed top-0 inset-x-0 bg-white/5 backdrop-blur-md px-4 py-2">
     <AppLogo />
@@ -7,7 +11,7 @@
           v-if="loggedIn"
           to="/settings"
           class="interactive-underline"
-          data-umami-event="Nav settings"
+          @click="track('Nav settings')"
         >
           {{ user?.name || user?.email }}
         </NuxtLink>
@@ -15,14 +19,14 @@
           <NuxtLink
             to="/login"
             class="interactive-underline"
-            data-umami-event="Nav login"
+            @click="track('Nav login')"
           >
             login
           </NuxtLink>
           <NuxtLink
             to="/register"
             class="interactive-underline"
-            data-umami-event="Nav register"
+            @click="track('Nav register')"
           >
             register
           </NuxtLink>

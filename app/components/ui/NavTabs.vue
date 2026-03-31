@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { track } = useUmami()
 const props = defineProps<{
   tabs: { name: string, path: string }[]
 }>()
@@ -57,13 +58,12 @@ watch(() => route.path, updateHighlight)
     <!-- tabs -->
     <NuxtLink
       v-for="tab in computedTabs"
-      :key="tab.name"
+      :key="tab.path"
       :to="tab.path"
       replace
       class="tab-item select-none z-10 text-toned hover:text-black/80 transition-colors py-2 px-4 rounded-lg"
       :class="{ 'hover:bg-black/5': !tab.active }"
-      data-umami-event="Tab click"
-      :data-umami-event-tab="tab.name"
+      @click="track('Tab click', { tab: tab.name })"
     >
       {{ tab.name }}
     </NuxtLink>

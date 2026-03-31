@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { track } = useUmami()
 const route = useRoute()
 const issueId = route.params.issueId as string
 const toast = useToast()
@@ -111,8 +112,7 @@ async function submitAppeal() {
               v-for="tag in issue.tags"
               :key="tag"
               :to="`/tag/${tag}`"
-              data-umami-event="Issue tag click"
-              :data-umami-event-tag="tag"
+              @click="track('Issue tag click', { tag })"
             >
               <UiTag>{{ tag }}</UiTag>
             </NuxtLink>
@@ -130,8 +130,7 @@ async function submitAppeal() {
               :key="goal.id"
               :href="goal.link"
               target="_blank"
-              data-umami-event="SDG link click"
-              :data-umami-event-goal="goal.name"
+              @click="track('SDG link click', { goal: goal.name })"
             >
               <img
                 :src="goal.iconUrl"

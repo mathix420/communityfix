@@ -5,6 +5,7 @@ const props = withDefaults(defineProps<{
   mode: 'login',
 })
 
+const { track } = useUmami()
 const email = ref('')
 const toast = useToast()
 const activeProvider = ref<string | null>(null)
@@ -169,7 +170,7 @@ async function startOAuth(provider: 'google' | 'apple') {
       <NuxtLink
         :to="props.mode === 'login' ? '/register' : '/login'"
         class="text-primary-600 hover:underline font-medium"
-        :data-umami-event="props.mode === 'login' ? 'Switch to register' : 'Switch to login'"
+        @click="track(props.mode === 'login' ? 'Switch to register' : 'Switch to login')"
       >
         {{ props.mode === 'login' ? 'Create one' : 'Sign in' }}
       </NuxtLink>

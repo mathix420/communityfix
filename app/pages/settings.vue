@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { track } = useUmami()
 const { user, fetch: fetchUserSession, clear } = useUserSession()
 const toast = useToast()
 const saving = ref(false)
@@ -115,7 +116,7 @@ definePageMeta({
       <NuxtLink
         :to="`/user/${user?.id}`"
         class="block text-center text-primary-600 hover:underline font-mono mt-4"
-        data-umami-event="View own profile"
+        @click="track('View own profile')"
       >
         View profile
       </NuxtLink>
