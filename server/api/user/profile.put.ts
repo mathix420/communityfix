@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB()
   await db.update(users)
-    .set({ name, updatedAt: new Date().toISOString() })
+    .set({ name, updatedAt: new Date() })
     .where(eq(users.id, session.user.id))
 
   // Update the session with the new name

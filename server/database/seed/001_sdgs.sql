@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO sdgs (id, name, icon_url, link) VALUES
+INSERT INTO sdgs (id, name, icon_url, link) VALUES
   (1, 'No Poverty', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-01.png', 'https://www.un.org/sustainabledevelopment/poverty/'),
   (2, 'Zero Hunger', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-02.png', 'https://www.un.org/sustainabledevelopment/hunger/'),
   (3, 'Good Health and Well-being', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-03.png', 'https://www.un.org/sustainabledevelopment/health/'),
@@ -15,4 +15,5 @@ INSERT OR IGNORE INTO sdgs (id, name, icon_url, link) VALUES
   (14, 'Life Below Water', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-14.png', 'https://www.un.org/sustainabledevelopment/oceans'),
   (15, 'Life on Land', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-15.png', 'https://www.un.org/sustainabledevelopment/biodiversity'),
   (16, 'Peace, Justice and Strong Institutions', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-16.png', 'https://www.un.org/sustainabledevelopment/peace-justice'),
-  (17, 'Partnerships for the Goals', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-17.png', 'https://www.un.org/sustainabledevelopment/globalpartnerships');
+  (17, 'Partnerships for the Goals', 'https://www.un.org/sustainabledevelopment/wp-content/uploads/2018/05/E_SDG-goals_icons-individual-rgb-17.png', 'https://www.un.org/sustainabledevelopment/globalpartnerships')
+ON CONFLICT DO NOTHING;

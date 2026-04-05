@@ -58,20 +58,15 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-12-22',
 
   nitro: {
-    preset: 'cloudflare_module',
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: true,
-    },
     experimental: {
       asyncContext: true,
-      wasm: true,
       tasks: true,
     },
   },
 
   runtimeConfig: {
     openaiApiKey: '',
+    databaseUrl: '',
   },
 
   auth: {

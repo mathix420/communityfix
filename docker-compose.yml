@@ -1,0 +1,22 @@
+services:
+  db:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: communityfix
+      POSTGRES_USER: communityfix
+      POSTGRES_PASSWORD: communityfix
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U communityfix"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

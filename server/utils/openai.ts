@@ -2,6 +2,10 @@ import OpenAI from 'openai'
 
 let client: OpenAI | null = null
 
+export function getOpenAIClient(): OpenAI {
+  return getClient()
+}
+
 function getClient(): OpenAI {
   if (!client) {
     const { openaiApiKey } = useRuntimeConfig()

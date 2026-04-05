@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'User not found' })
   }
 
-  const isBanned = !!user.bannedUntil && new Date(user.bannedUntil) > new Date()
+  const isBanned = !!user.bannedUntil && user.bannedUntil > new Date()
 
   return {
     banned: isBanned,
