@@ -143,3 +143,93 @@ ON CONFLICT DO NOTHING;
 -- Beech/Ash — Sundgau (45): SDG 15 (Life on Land), SDG 13 (Climate Action)
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (45, 15), (45, 13)
 ON CONFLICT DO NOTHING;
+
+-- ── Urban Carbon Neutrality and sub-issues (46-67) ─────────────
+
+-- Urban Carbon Neutrality (46): SDG 13 (Climate Action), 11 (Sustainable Cities), 7 (Clean Energy)
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (46, 13), (46, 11), (46, 7)
+ON CONFLICT DO NOTHING;
+
+-- Fossil Heating Phase-Out (47): SDG 13, 7, 11
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (47, 13), (47, 7), (47, 11)
+ON CONFLICT DO NOTHING;
+
+-- Basel: Fossil Heating (48): SDG 13, 7, 11
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (48, 13), (48, 7), (48, 11)
+ON CONFLICT DO NOTHING;
+
+-- District Heating Zones (49): SDG 13, 7
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (49, 13), (49, 7)
+ON CONFLICT DO NOTHING;
+
+-- Retrofit Accelerator (50): SDG 13, 7, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (50, 13), (50, 7), (50, 9)
+ON CONFLICT DO NOTHING;
+
+-- Urban Transport Decarbonization (51): SDG 13, 11, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (51, 13), (51, 11), (51, 9)
+ON CONFLICT DO NOTHING;
+
+-- Basel: Transport (52): SDG 13, 11, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (52, 13), (52, 11), (52, 9)
+ON CONFLICT DO NOTHING;
+
+-- Right-to-Charge (53): SDG 13, 11
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (53, 13), (53, 11)
+ON CONFLICT DO NOTHING;
+
+-- Car Deregistration (54): SDG 13, 11
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (54, 13), (54, 11)
+ON CONFLICT DO NOTHING;
+
+-- Embodied Carbon (55): SDG 13, 12, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (55, 13), (55, 12), (55, 9)
+ON CONFLICT DO NOTHING;
+
+-- Basel: Embodied Carbon (56): SDG 13, 12, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (56, 13), (56, 12), (56, 9)
+ON CONFLICT DO NOTHING;
+
+-- Whole-Life Carbon Limits (57): SDG 13, 12
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (57, 13), (57, 12)
+ON CONFLICT DO NOTHING;
+
+-- Demolition Tax (58): SDG 13, 12, 11
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (58, 13), (58, 12), (58, 11)
+ON CONFLICT DO NOTHING;
+
+-- Residual Emissions (59): SDG 13, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (59, 13), (59, 9)
+ON CONFLICT DO NOTHING;
+
+-- Basel: Residual Emissions (60): SDG 13, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (60, 13), (60, 9)
+ON CONFLICT DO NOTHING;
+
+-- CCS at Waste-to-Energy (61): SDG 13, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (61, 13), (61, 9)
+ON CONFLICT DO NOTHING;
+
+-- Carbon Mineralization (62): SDG 13, 9, 12
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (62, 13), (62, 9), (62, 12)
+ON CONFLICT DO NOTHING;
+
+-- Diversified NETs Portfolio (63): SDG 13, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (63, 13), (63, 9)
+ON CONFLICT DO NOTHING;
+
+-- Small Business Viability (64): SDG 13, 8, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (64, 13), (64, 8), (64, 9)
+ON CONFLICT DO NOTHING;
+
+-- Basel: Small Business (65): SDG 13, 8, 9
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (65, 13), (65, 8), (65, 9)
+ON CONFLICT DO NOTHING;
+
+-- SME Climate Platform (66): SDG 13, 8, 17
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (66, 13), (66, 8), (66, 17)
+ON CONFLICT DO NOTHING;
+
+-- Sector Roadmaps (67): SDG 13, 8
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (67, 13), (67, 8)
+ON CONFLICT DO NOTHING;

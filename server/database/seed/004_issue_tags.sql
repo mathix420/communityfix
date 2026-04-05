@@ -202,3 +202,163 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (45, (SELECT id FROM tags WHERE slug = 'environment')),
   (45, (SELECT id FROM tags WHERE slug = 'biodiversity'))
 ON CONFLICT DO NOTHING;
+
+-- ── Urban Carbon Neutrality (46) ──────────────────────────────
+
+-- Urban Carbon Neutrality (46): climate, energy, sustainability, infrastructure
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (46, (SELECT id FROM tags WHERE slug = 'climate')),
+  (46, (SELECT id FROM tags WHERE slug = 'energy')),
+  (46, (SELECT id FROM tags WHERE slug = 'sustainability')),
+  (46, (SELECT id FROM tags WHERE slug = 'infrastructure'))
+ON CONFLICT DO NOTHING;
+
+-- Fossil Heating Phase-Out (47): energy, housing, climate, infrastructure
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (47, (SELECT id FROM tags WHERE slug = 'energy')),
+  (47, (SELECT id FROM tags WHERE slug = 'housing')),
+  (47, (SELECT id FROM tags WHERE slug = 'climate')),
+  (47, (SELECT id FROM tags WHERE slug = 'infrastructure'))
+ON CONFLICT DO NOTHING;
+
+-- Basel: Fossil Heating (48): energy, housing, climate
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (48, (SELECT id FROM tags WHERE slug = 'energy')),
+  (48, (SELECT id FROM tags WHERE slug = 'housing')),
+  (48, (SELECT id FROM tags WHERE slug = 'climate'))
+ON CONFLICT DO NOTHING;
+
+-- District Heating Zones (49): energy, infrastructure, climate
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (49, (SELECT id FROM tags WHERE slug = 'energy')),
+  (49, (SELECT id FROM tags WHERE slug = 'infrastructure')),
+  (49, (SELECT id FROM tags WHERE slug = 'climate'))
+ON CONFLICT DO NOTHING;
+
+-- Retrofit Accelerator (50): energy, housing, innovation
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (50, (SELECT id FROM tags WHERE slug = 'energy')),
+  (50, (SELECT id FROM tags WHERE slug = 'housing')),
+  (50, (SELECT id FROM tags WHERE slug = 'innovation'))
+ON CONFLICT DO NOTHING;
+
+-- Urban Transport Decarbonization (51): transport, urban-mobility, climate, energy
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (51, (SELECT id FROM tags WHERE slug = 'transport')),
+  (51, (SELECT id FROM tags WHERE slug = 'urban-mobility')),
+  (51, (SELECT id FROM tags WHERE slug = 'climate')),
+  (51, (SELECT id FROM tags WHERE slug = 'energy'))
+ON CONFLICT DO NOTHING;
+
+-- Basel: Transport (52): transport, urban-mobility, climate
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (52, (SELECT id FROM tags WHERE slug = 'transport')),
+  (52, (SELECT id FROM tags WHERE slug = 'urban-mobility')),
+  (52, (SELECT id FROM tags WHERE slug = 'climate'))
+ON CONFLICT DO NOTHING;
+
+-- Right-to-Charge (53): transport, housing, innovation
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (53, (SELECT id FROM tags WHERE slug = 'transport')),
+  (53, (SELECT id FROM tags WHERE slug = 'housing')),
+  (53, (SELECT id FROM tags WHERE slug = 'innovation'))
+ON CONFLICT DO NOTHING;
+
+-- Car Deregistration (54): transport, urban-mobility, sustainability
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (54, (SELECT id FROM tags WHERE slug = 'transport')),
+  (54, (SELECT id FROM tags WHERE slug = 'urban-mobility')),
+  (54, (SELECT id FROM tags WHERE slug = 'sustainability'))
+ON CONFLICT DO NOTHING;
+
+-- Embodied Carbon (55): climate, housing, sustainability, construction
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (55, (SELECT id FROM tags WHERE slug = 'climate')),
+  (55, (SELECT id FROM tags WHERE slug = 'housing')),
+  (55, (SELECT id FROM tags WHERE slug = 'sustainability')),
+  (55, (SELECT id FROM tags WHERE slug = 'construction'))
+ON CONFLICT DO NOTHING;
+
+-- Basel: Embodied Carbon (56): climate, housing, construction
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (56, (SELECT id FROM tags WHERE slug = 'climate')),
+  (56, (SELECT id FROM tags WHERE slug = 'housing')),
+  (56, (SELECT id FROM tags WHERE slug = 'construction'))
+ON CONFLICT DO NOTHING;
+
+-- Whole-Life Carbon Limits (57): climate, housing, construction
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (57, (SELECT id FROM tags WHERE slug = 'climate')),
+  (57, (SELECT id FROM tags WHERE slug = 'housing')),
+  (57, (SELECT id FROM tags WHERE slug = 'construction'))
+ON CONFLICT DO NOTHING;
+
+-- Demolition Tax (58): climate, housing, sustainability
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (58, (SELECT id FROM tags WHERE slug = 'climate')),
+  (58, (SELECT id FROM tags WHERE slug = 'housing')),
+  (58, (SELECT id FROM tags WHERE slug = 'sustainability'))
+ON CONFLICT DO NOTHING;
+
+-- Residual Emissions (59): climate, innovation, energy
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (59, (SELECT id FROM tags WHERE slug = 'climate')),
+  (59, (SELECT id FROM tags WHERE slug = 'innovation')),
+  (59, (SELECT id FROM tags WHERE slug = 'energy'))
+ON CONFLICT DO NOTHING;
+
+-- Basel: Residual Emissions (60): climate, innovation, energy
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (60, (SELECT id FROM tags WHERE slug = 'climate')),
+  (60, (SELECT id FROM tags WHERE slug = 'innovation')),
+  (60, (SELECT id FROM tags WHERE slug = 'energy'))
+ON CONFLICT DO NOTHING;
+
+-- CCS at Waste-to-Energy (61): climate, innovation, infrastructure
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (61, (SELECT id FROM tags WHERE slug = 'climate')),
+  (61, (SELECT id FROM tags WHERE slug = 'innovation')),
+  (61, (SELECT id FROM tags WHERE slug = 'infrastructure'))
+ON CONFLICT DO NOTHING;
+
+-- Carbon Mineralization (62): climate, innovation, construction
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (62, (SELECT id FROM tags WHERE slug = 'climate')),
+  (62, (SELECT id FROM tags WHERE slug = 'innovation')),
+  (62, (SELECT id FROM tags WHERE slug = 'construction'))
+ON CONFLICT DO NOTHING;
+
+-- Diversified NETs Portfolio (63): climate, innovation, sustainability
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (63, (SELECT id FROM tags WHERE slug = 'climate')),
+  (63, (SELECT id FROM tags WHERE slug = 'innovation')),
+  (63, (SELECT id FROM tags WHERE slug = 'sustainability'))
+ON CONFLICT DO NOTHING;
+
+-- Small Business Viability (64): climate, sustainability, innovation
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (64, (SELECT id FROM tags WHERE slug = 'climate')),
+  (64, (SELECT id FROM tags WHERE slug = 'sustainability')),
+  (64, (SELECT id FROM tags WHERE slug = 'innovation'))
+ON CONFLICT DO NOTHING;
+
+-- Basel: Small Business (65): climate, sustainability, innovation
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (65, (SELECT id FROM tags WHERE slug = 'climate')),
+  (65, (SELECT id FROM tags WHERE slug = 'sustainability')),
+  (65, (SELECT id FROM tags WHERE slug = 'innovation'))
+ON CONFLICT DO NOTHING;
+
+-- SME Climate Platform (66): climate, innovation, sustainability
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (66, (SELECT id FROM tags WHERE slug = 'climate')),
+  (66, (SELECT id FROM tags WHERE slug = 'innovation')),
+  (66, (SELECT id FROM tags WHERE slug = 'sustainability'))
+ON CONFLICT DO NOTHING;
+
+-- Sector Roadmaps (67): climate, sustainability, innovation
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (67, (SELECT id FROM tags WHERE slug = 'climate')),
+  (67, (SELECT id FROM tags WHERE slug = 'sustainability')),
+  (67, (SELECT id FROM tags WHERE slug = 'innovation'))
+ON CONFLICT DO NOTHING;

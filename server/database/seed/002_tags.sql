@@ -18,6 +18,7 @@ INSERT INTO tags (slug, name) VALUES
   ('energy', 'energy'),
   ('forestry', 'forestry'),
   ('biodiversity', 'biodiversity'),
-  ('drought', 'drought')
+  ('drought', 'drought'),
+  ('construction', 'construction')
 ON CONFLICT DO NOTHING;
 SELECT setval('tags_id_seq', (SELECT MAX(id) FROM tags));
