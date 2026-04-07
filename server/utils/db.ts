@@ -1,24 +1,15 @@
-import { drizzle } from 'drizzle-orm/d1'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
 import * as schema from '../database/schema'
 
+let _db: ReturnType<typeof drizzle<typeof schema>> | null = null
+
 export function useDB() {
-  let d1: D1Database | undefined
-
-  try {
-    const event = useEvent()
-    d1 = event.context.cloudflare?.env?.DB
+  if (!_db) {
+    const url = useRuntimeConfig().databaseUrl
+    if (!url) throw new Error('DATABASE_URL is not set. Add NUXT_DATABASE_URL to your environment.')
+    const client = postgres(url)
+    _db = drizzle(client, { schema })
   }
-  catch (err) {
-    // useEvent() throws when called outside a request context (e.g., cron tasks).
-    // Only fall back for that specific case; re-throw unexpected errors.
-    if (err instanceof Error && /no.*event|no.*context/i.test(err.message)) {
-      d1 = (globalThis as Record<string, any>).__env__?.DB
-    }
-    else {
-      throw err
-    }
-  }
-
-  if (!d1) throw new Error('D1 database binding not found')
-  return drizzle(d1, { schema })
+  return _db
 }

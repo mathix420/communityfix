@@ -6,6 +6,29 @@ const toast = useToast()
 
 const { data: issue, refresh } = await useFetch(`/api/issue/${issueId}`)
 
+const { data: parentIssue } = await useFetch(
+  () => `/api/issue/${issue.value?.parentId}`,
+  { immediate: !!issue.value?.parentId, watch: false },
+)
+
+const mapExpanded = ref(false)
+const mapVisible = ref(false)
+const locationMapRef = ref<{ invalidateSize: () => void }>()
+const hasCoords = computed(() => !!issue.value?.location)
+
+function toggleMap() {
+  mapExpanded.value = !mapExpanded.value
+  if (mapExpanded.value && !mapVisible.value) {
+    mapVisible.value = true
+  }
+}
+
+function onMapTransitionEnd(e: TransitionEvent) {
+  if (e.propertyName === 'height' && mapExpanded.value) {
+    locationMapRef.value?.invalidateSize()
+  }
+}
+
 const appealReason = ref('')
 const appealSubmitting = ref(false)
 
@@ -38,6 +61,25 @@ async function submitAppeal() {
     v-if="issue"
     class="mt-3 space-y-4"
   >
+    <!-- Parent issue reference -->
+    <NuxtLink
+      v-if="parentIssue"
+      :to="`/issue/${parentIssue.id}`"
+      class="group flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 transition-colors hover:border-primary hover:bg-primary-50"
+      @click="track('Parent issue click', { from: Number(issueId), to: parentIssue.id })"
+    >
+      <UIcon name="lucide:corner-left-up" class="size-4 shrink-0 text-gray-400 group-hover:text-primary" />
+      <div class="min-w-0">
+        <p class="text-xs font-mono uppercase tracking-wide text-gray-400 group-hover:text-primary">
+          Parent issue
+        </p>
+        <p class="truncate text-sm font-medium text-gray-700 group-hover:text-primary-700">
+          <span class="text-gray-400 font-light font-mono mr-1">{{ formatNumber(parentIssue.id) }}</span>
+          {{ parentIssue.title }}
+        </p>
+      </div>
+    </NuxtLink>
+
     <div
       v-if="issue.status === 'pending'"
       class="bg-yellow-50 text-yellow-700 rounded-lg px-4 py-3 text-sm font-mono text-center"
@@ -97,16 +139,23 @@ async function submitAppeal() {
       </div>
     </div>
 
-    <div class="bg-white rounded-lg p-6 space-y-6">
+    <div class="space-y-3">
+      <!-- Tags & SDGs -->
       <div
         v-if="issue.tags?.length || issue.sustainableDevelopmentGoals?.length"
-        class="grid grid-cols-1 md:grid-cols-2 gap-8"
+        class="grid grid-cols-1 md:grid-cols-2 gap-3"
       >
         <!-- Tags Section -->
-        <div v-if="issue.tags?.length">
-          <h2 class="text-lg font-semibold text-gray-700 mb-3">
-            Tags
-          </h2>
+        <div
+          v-if="issue.tags?.length"
+          class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+        >
+          <div class="flex items-center gap-2 mb-2.5">
+            <UIcon name="lucide:tags" class="size-4 text-gray-400" />
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+              Tags
+            </p>
+          </div>
           <div class="flex flex-wrap gap-2">
             <NuxtLink
               v-for="tag in issue.tags"
@@ -114,16 +163,22 @@ async function submitAppeal() {
               :to="`/tag/${tag}`"
               @click="track('Issue tag click', { tag })"
             >
-              <UiTag>{{ tag }}</UiTag>
+              <UiTag rounded="md">{{ tag }}</UiTag>
             </NuxtLink>
           </div>
         </div>
 
         <!-- Sustainable Development Goals Section -->
-        <div v-if="issue.sustainableDevelopmentGoals?.length">
-          <h2 class="text-lg font-semibold text-gray-700 mb-3">
-            Sustainable Development Goals
-          </h2>
+        <div
+          v-if="issue.sustainableDevelopmentGoals?.length"
+          class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+        >
+          <div class="flex items-center gap-2 mb-2.5">
+            <UIcon name="lucide:globe" class="size-4 text-gray-400" />
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+              Sustainable Development Goals
+            </p>
+          </div>
           <div class="flex flex-wrap gap-3">
             <NuxtLink
               v-for="goal in issue.sustainableDevelopmentGoals"
@@ -136,19 +191,78 @@ async function submitAppeal() {
                 :src="goal.iconUrl"
                 :alt="goal.name"
                 :title="goal.name"
-                class="size-20"
+                class="size-16"
               >
             </NuxtLink>
           </div>
         </div>
       </div>
 
+      <!-- Location Section -->
+      <div
+        v-if="issue.locationName || issue.scale"
+        class="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden"
+      >
+        <component
+          :is="hasCoords ? 'button' : 'div'"
+          class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+          :class="[hasCoords && 'hover:bg-gray-100 cursor-pointer', mapExpanded && 'border-b border-gray-200']"
+          @click="hasCoords && toggleMap()"
+        >
+          <UIcon name="lucide:map-pin" class="size-4 shrink-0 text-gray-400" />
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+              Location
+            </p>
+            <div class="flex items-center gap-2 flex-wrap mt-1">
+              <span v-if="issue.locationName" class="text-sm font-medium text-gray-700">
+                {{ issue.locationName }}
+              </span>
+              <UiTag v-if="issue.scale" rounded="md" size="sm" variant="neutral" :interactive="false">
+                {{ issue.scale }}
+              </UiTag>
+              <span
+                v-if="issue.location"
+                class="text-xs text-gray-400 font-mono"
+              >
+                {{ issue.location.latitude.toFixed(4) }}, {{ issue.location.longitude.toFixed(4) }}
+              </span>
+            </div>
+          </div>
+          <UIcon
+            v-if="issue.location"
+            name="lucide:chevron-down"
+            class="size-4 shrink-0 text-gray-400 transition-transform duration-200"
+            :class="{ 'rotate-180': mapExpanded }"
+          />
+        </component>
+        <div
+          class="map-reveal"
+          :class="mapExpanded ? 'map-reveal--open' : ''"
+          @transitionend="onMapTransitionEnd"
+        >
+          <LocationMap
+            v-if="mapVisible && issue.location"
+            ref="locationMapRef"
+            :latitude="issue.location.latitude"
+            :longitude="issue.location.longitude"
+            :scale="issue.scale"
+          />
+        </div>
+      </div>
+
       <!-- Description Section -->
-      <div>
-        <h2 class="text-lg font-semibold text-gray-700 mb-3">
-          Description
-        </h2>
-        <div class="prose prose-sm max-w-none">
+      <div
+        v-if="issue.detailedDescription"
+        class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+      >
+        <div class="flex items-center gap-2 mb-2.5">
+          <UIcon name="lucide:file-text" class="size-4 text-gray-400" />
+          <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+            Description
+          </p>
+        </div>
+        <div class="prose prose-sm max-w-none text-gray-700">
           {{ issue.detailedDescription }}
         </div>
       </div>
@@ -163,3 +277,16 @@ async function submitAppeal() {
     </p>
   </div>
 </template>
+
+<style scoped>
+.map-reveal {
+  height: 0;
+  opacity: 0;
+  transition: height 0.3s ease, opacity 0.25s ease 0.05s;
+}
+
+.map-reveal--open {
+  height: 240px;
+  opacity: 1;
+}
+</style>

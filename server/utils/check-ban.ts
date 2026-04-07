@@ -22,7 +22,7 @@ export async function checkAndApplyBan(userId: string) {
 
     await db.update(users)
       .set({
-        bannedUntil: bannedUntil.toISOString(),
+        bannedUntil,
         banReason: `Automatically banned: ${rejectedCount} of your last ${recentPosts.length} posts were rejected by moderation.`,
         banAppealedAt: null,
         banAppealStatus: null,
@@ -46,7 +46,7 @@ export async function assertNotBanned(userId: string) {
     throw createError({ statusCode: 401, statusMessage: 'User account not found. Please log in again.' })
   }
 
-  if (user.bannedUntil && new Date(user.bannedUntil) > new Date()) {
+  if (user.bannedUntil && user.bannedUntil > new Date()) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Your account is temporarily banned.',

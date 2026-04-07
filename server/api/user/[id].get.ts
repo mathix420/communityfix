@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
     columns: {
       id: true,
       name: true,
+      trustScore: true,
       createdAt: true,
     },
   })
@@ -47,6 +48,7 @@ export default defineEventHandler(async (event) => {
   return {
     id: user.id,
     name: user.name,
+    trustScore: user.trustScore,
     createdAt: user.createdAt,
     issues: filterSpam(userIssues).map(i => transformIssue(i, { includeModeration: isOwner })),
     solutions: filterSpam(userSolutions).map(i => transformIssue(i, { includeModeration: isOwner })),

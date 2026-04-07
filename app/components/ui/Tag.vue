@@ -3,16 +3,24 @@ withDefaults(defineProps<{
   variant?: 'primary' | 'neutral' | 'outline'
   size?: 'sm' | 'md'
   rounded?: 'md' | 'full'
+  interactive?: boolean
 }>(), {
   variant: 'primary',
   size: 'md',
   rounded: 'full',
+  interactive: true,
 })
 
 const variantClasses = {
-  primary: 'bg-primary-50 text-primary-600 hover:bg-primary-100',
-  neutral: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-  outline: 'border border-gray-200 text-gray-600 hover:bg-gray-50',
+  primary: 'bg-primary-50 text-primary-600 border border-primary-200',
+  neutral: 'bg-gray-100 text-gray-600 border border-gray-200',
+  outline: 'border border-gray-200 text-gray-600',
+}
+
+const hoverClasses = {
+  primary: 'hover:bg-primary-100',
+  neutral: 'hover:bg-gray-200',
+  outline: 'hover:bg-gray-50',
 }
 
 const sizeClasses = {
@@ -29,8 +37,9 @@ const roundedClasses = {
 <template>
   <span
     :class="[
-      'inline-flex items-center font-medium transition-colors',
+      'inline-flex items-center font-normal font-mono transition-colors',
       variantClasses[variant],
+      interactive && hoverClasses[variant],
       sizeClasses[size],
       roundedClasses[rounded],
     ]"

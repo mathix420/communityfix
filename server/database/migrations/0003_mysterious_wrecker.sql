@@ -1,1 +1,0 @@
-ALTER TABLE `issues` ADD `type` text DEFAULT 'issue' NOT NULL;

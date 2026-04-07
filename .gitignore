@@ -25,3 +25,6 @@ logs
 
 # Wrangler
 .wrangler
+
+# Docker
+docker-compose.override.yml

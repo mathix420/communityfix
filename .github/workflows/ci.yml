@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [master, staging]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOPPLER_PROJECT: communityfix
+
+# Cloudflare Workers Builds handles the actual build + deploy on every push
+# (production for `master`, staging for any other branch via the `env.staging`
+# block in wrangler.jsonc). This workflow only handles the things CF Workers
+# Builds doesn't: typechecking PRs and running database migrations against
+# the right Neon branch before each push goes live.
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # TYPECHECK — vue-tsc against the project. Required check for PRs
+  # (see master/staging rulesets). Job name `typecheck` must match
+  # the `context` listed in the rulesets.
+  # ────────────────────────────────────────────────────────────────
+  typecheck:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx vue-tsc --noEmit
+
+  # ────────────────────────────────────────────────────────────────
+  # PRODUCTION MIGRATIONS — runs on every master push, before CF
+  # Workers Builds rolls out the new Worker. Uses Doppler `prd`
+  # which holds the Neon production direct (non-pooled) URL.
+  # ────────────────────────────────────────────────────────────────
+  migrate-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - uses: dopplerhq/cli-action@v4
+      - run: bun install --frozen-lockfile
+      - name: Run Drizzle + custom migrations against Neon production
+        run: doppler run -c prd -- bun run server/database/migrate.ts
+
+  # ────────────────────────────────────────────────────────────────
+  # STAGING MIGRATIONS — runs on every staging push, before CF
+  # Workers Builds rolls out the staging Worker. Uses Doppler `stg`
+  # which holds the Neon staging direct (non-pooled) URL.
+  # ────────────────────────────────────────────────────────────────
+  migrate-staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    environment: preview
+    env:
+      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - uses: dopplerhq/cli-action@v4
+      - run: bun install --frozen-lockfile
+      - name: Run Drizzle + custom migrations against Neon staging
+        run: doppler run -c stg -- bun run server/database/migrate.ts

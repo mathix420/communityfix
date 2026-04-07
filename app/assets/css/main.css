@@ -16,6 +16,21 @@ html,body, #__nuxt {
   --ui-text: black;
 }
 
+textarea {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Form labels — utilitarian display treatment matching Oswald headings */
+form label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
 @layer utilities {
   .grainy {
     background-color: transparent;
@@ -51,4 +66,5 @@ html,body, #__nuxt {
       display: block;
     }
   }
+
 }

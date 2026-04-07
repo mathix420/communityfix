@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { issues, tags, sdgs, issueTags, issueSdgs } from '../database/schema'
 import { chatJson } from './openai'
+import { generateEmbedding } from './embeddings'
 
 interface ModerationResult {
   approved: boolean
@@ -72,8 +73,8 @@ export async function reviewIssue(issueId: number) {
   if (!moderation.approved) {
     if (issue.parentId) {
       const counter = issue.type === 'solution'
-        ? { solutionCount: sql`MAX(${issues.solutionCount} - 1, 0)` }
-        : { subIssueCount: sql`MAX(${issues.subIssueCount} - 1, 0)` }
+        ? { solutionCount: sql`GREATEST(${issues.solutionCount} - 1, 0)` }
+        : { subIssueCount: sql`GREATEST(${issues.subIssueCount} - 1, 0)` }
       await db.update(issues)
         .set(counter)
         .where(eq(issues.id, issue.parentId))
@@ -82,12 +83,13 @@ export async function reviewIssue(issueId: number) {
       .set({
         status: 'rejected',
         rejectionReason: moderation.reason,
-        rejectedAt: new Date().toISOString(),
+        rejectedAt: new Date(),
         isSpam: moderation.isSpam ?? false,
       })
       .where(eq(issues.id, issueId))
     if (issue.authorId) {
       await checkAndApplyBan(issue.authorId)
+      await updateUserTrustScore(issue.authorId)
     }
     return
   }
@@ -109,13 +111,30 @@ export async function reviewIssue(issueId: number) {
   const validTagIds = allTagIds.filter(id => allTags.some(t => t.id === id) || newTagIds.includes(id))
   const validSdgIds = (sdgResult.sdgIds ?? []).filter(id => allSdgs.some(s => s.id === id))
 
-  await db.batch([
-    db.update(issues).set({ status: 'approved' }).where(eq(issues.id, issueId)),
-    ...(validTagIds.length
-      ? [db.insert(issueTags).values(validTagIds.map(tagId => ({ issueId, tagId })))]
-      : []),
-    ...(validSdgIds.length
-      ? [db.insert(issueSdgs).values(validSdgIds.map(sdgId => ({ issueId, sdgId })))]
-      : []),
-  ] as any)
+  // Generate embedding for approved issues
+  let embedding: number[] | null = null
+  try {
+    const embeddingText = `${issue.title}\n${issue.description}`
+    embedding = await generateEmbedding(embeddingText)
+  }
+  catch (err) {
+    console.error(`[review-issue] Embedding generation failed for issue ${issueId}:`, err)
+    // Non-fatal — issue still gets approved without embedding
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.update(issues)
+      .set({ status: 'approved', ...(embedding ? { embedding } : {}) })
+      .where(eq(issues.id, issueId))
+    if (validTagIds.length) {
+      await tx.insert(issueTags).values(validTagIds.map(tagId => ({ issueId, tagId })))
+    }
+    if (validSdgIds.length) {
+      await tx.insert(issueSdgs).values(validSdgIds.map(sdgId => ({ issueId, sdgId })))
+    }
+  })
+
+  if (issue.authorId) {
+    await updateUserTrustScore(issue.authorId)
+  }
 }

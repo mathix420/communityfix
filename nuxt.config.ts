@@ -58,20 +58,40 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-12-22',
 
   nitro: {
-    preset: 'cloudflare_module',
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: true,
-    },
     experimental: {
       asyncContext: true,
-      wasm: true,
       tasks: true,
+    },
+    scheduledTasks: {
+      // Recompute all trust scores daily at 3am UTC
+      '0 3 * * *': ['compute:trust-scores'],
+    },
+    cloudflare: {
+      // Let Nitro generate `.output/server/wrangler.json` and pick the right
+      // Hyperdrive binding based on the build-time branch. CF Workers Builds
+      // injects WORKERS_CI_BRANCH on every build; locally / on master we
+      // default to the production Hyperdrive config.
+      //
+      // We can't use `wrangler.jsonc` `env.<name>` blocks here because Nitro's
+      // cloudflare-module preset emits a "redirected" wrangler config and
+      // wrangler 4.x rejects redirected configs that contain env blocks.
+      deployConfig: true,
+      wrangler: {
+        hyperdrive: [
+          {
+            binding: 'HYPERDRIVE',
+            id: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+              ? 'd9a5e6878b9342b4ac96844524a59d05' // communityfix-staging → Neon staging branch
+              : '9cfe49d0e805462086e8365bd604a062', // communityfix-prod → Neon production branch
+          },
+        ],
+      },
     },
   },
 
   runtimeConfig: {
     openaiApiKey: '',
+    databaseUrl: '',
   },
 
   auth: {

@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     .set({
       appealReason: body.reason.trim(),
       appealStatus: 'pending',
-      appealedAt: new Date().toISOString(),
+      appealedAt: new Date(),
     })
     .where(eq(issues.id, issue.id))
 

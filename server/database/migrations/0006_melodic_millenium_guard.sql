@@ -1,1 +1,0 @@
-ALTER TABLE `users` ADD `ban_appeal_reason` text;
