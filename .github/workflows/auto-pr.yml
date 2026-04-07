@@ -1,0 +1,209 @@
+name: Auto-PR
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - main
+      - gh-readonly-queue/*
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # STAGING → MASTER release PR.
+  # On every push to staging, ensure there's an open PR from staging
+  # into master with an AI-generated description (or a fallback list
+  # of commits if ANTHROPIC_API_KEY is not configured).
+  # ────────────────────────────────────────────────────────────────
+  pull-request-master:
+    name: Create Pull Request to Master
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Check for existing PR
+        id: check_pr
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: .github/scripts/check-pr-exists.sh --base master --head staging
+
+      - name: Create PR to Master
+        if: steps.check_pr.outputs.result == '0'
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh pr create \
+            --title "🚀 Release: master ⬅️ staging" \
+            --body "🤖 Generating PR description..." \
+            --base master \
+            --head staging
+
+      - name: Collect changes
+        if: steps.check_pr.outputs.result == '0'
+        run: .github/scripts/collect-git-changes.sh --base origin/master --head staging --output-commits commits.txt --output-diff-stat diff_stat.txt
+
+      - name: Generate PR description with Claude
+        if: steps.check_pr.outputs.result == '0'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          COMMITS=$(cat commits.txt)
+          DIFF_STAT=$(cat diff_stat.txt)
+
+          cat > prompt.txt <<EOF
+          Write a release PR description for merging staging into master.
+
+          Based on the commits and changes below, write a clear description:
+          - Start with 1-2 sentences summarizing what's in this release
+          - List the main changes as bullet points grouped by type (features, fixes, improvements)
+          - Use relevant emojis to make the description more engaging (✨ for features, 🐛 for fixes, ⚡ for improvements, 📚 for docs, etc.)
+          - Keep it concise and readable
+
+          Commits:
+          ${COMMITS}
+
+          Files changed:
+          ${DIFF_STAT}
+
+          Write the PR description in markdown. No headers, just the content:
+          EOF
+
+          .github/scripts/call-claude-api.sh \
+            --prompt-file prompt.txt \
+            --output pr_body.md \
+            --fallback "Release PR from staging to master.
+
+          $(cat commits.txt | sed 's/^/- /')"
+
+      - name: Update PR description
+        if: steps.check_pr.outputs.result == '0'
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh pr edit staging --body-file pr_body.md
+
+  # ────────────────────────────────────────────────────────────────
+  # FEATURE BRANCH → STAGING draft PR.
+  # On every push to a non-staging, non-master branch, ensure there's
+  # an open draft PR from the branch into staging with an AI-generated
+  # description (or a fallback list of commits if ANTHROPIC_API_KEY is
+  # not configured).
+  # ────────────────────────────────────────────────────────────────
+  pull-request-staging:
+    name: Create Pull Request to Staging
+    if: github.ref != 'refs/heads/staging' && github.ref != 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Extract branch info
+        id: branch
+        run: .github/scripts/extract-branch-info.sh --branch "${GITHUB_REF#refs/heads/}"
+
+      - name: Set PR emoji
+        id: emoji
+        run: |
+          case "${{ steps.branch.outputs.pr_prefix }}" in
+            feat)
+              echo "emoji=✨" >> $GITHUB_OUTPUT
+              ;;
+            fix)
+              echo "emoji=🐛" >> $GITHUB_OUTPUT
+              ;;
+            chore)
+              echo "emoji=🔧" >> $GITHUB_OUTPUT
+              ;;
+            docs)
+              echo "emoji=📚" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "emoji=🔄" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Check for existing PR
+        id: check_pr
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: .github/scripts/check-pr-exists.sh --base staging --head ${{ github.ref_name }}
+
+      - name: Create PR to Staging
+        if: steps.check_pr.outputs.result == '0'
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh pr create \
+            --title "${{ steps.emoji.outputs.emoji }} ${{ steps.branch.outputs.pr_prefix }}: ${{ steps.branch.outputs.feature_name }}" \
+            --body "🤖 Generating PR description..." \
+            --base staging \
+            --head "${{ steps.branch.outputs.branch_name }}" \
+            --draft
+
+      - name: Collect changes
+        if: steps.check_pr.outputs.result == '0'
+        run: .github/scripts/collect-git-changes.sh --base origin/staging --head ${{ steps.branch.outputs.branch_name }} --output-commits commits.txt --output-diff-stat diff_stat.txt --output-diff-content diff_content.txt --diff-content-limit 15000 --allow-empty
+
+      - name: Generate PR description with Claude
+        if: steps.check_pr.outputs.result == '0'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          COMMITS=$(cat commits.txt)
+          DIFF_STAT=$(cat diff_stat.txt)
+          DIFF_CONTENT=$(cat diff_content.txt)
+          BRANCH_NAME="${{ steps.branch.outputs.branch_name }}"
+
+          cat > prompt.txt <<EOF
+          Write a PR description for branch '${BRANCH_NAME}' merging into staging.
+
+          Based on the commits and code diff below, write a clear description:
+          - Start with 1-2 sentences explaining what this PR does
+          - List the key changes as bullet points
+          - Use relevant emojis to make the description more engaging (✨ for features, 🐛 for fixes, ⚡ for improvements, 🔧 for chores, 📚 for docs, etc.)
+          - Mention anything reviewers should pay attention to
+
+          Commits:
+          ${COMMITS}
+
+          Files changed:
+          ${DIFF_STAT}
+
+          Code diff (truncated):
+          ${DIFF_CONTENT}
+
+          Write the PR description in markdown. No headers, just the content:
+          EOF
+
+          .github/scripts/call-claude-api.sh \
+            --prompt-file prompt.txt \
+            --output pr_body.md \
+            --fallback "Changes from ${BRANCH_NAME}.
+
+          $(cat commits.txt | sed 's/^/- /')"
+
+      - name: Update PR description
+        if: steps.check_pr.outputs.result == '0'
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh pr edit "${{ steps.branch.outputs.branch_name }}" --body-file pr_body.md
