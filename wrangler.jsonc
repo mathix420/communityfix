@@ -23,38 +23,9 @@
       "head_sampling_rate": 1
     }
   },
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      "id": "9cfe49d0e805462086e8365bd604a062"
-    }
-  ],
-  "vars": {},
-  // ───────────────────────────────────────────────────────────────
-  // Per-environment overrides. Non-inheritable keys (vars, hyperdrive,
-  // bindings) MUST be redeclared in each environment block.
-  //
-  //   master push      → CF Workers Builds runs `wrangler deploy`
-  //                      → deploys the top-level (production) Worker
-  //                        `communityfix` against the production Neon
-  //                        branch via Hyperdrive id 9cfe49d0...
-  //
-  //   any other branch → CF Workers Builds runs
-  //                      `wrangler deploy --env staging`
-  //                      → deploys `communityfix-staging` against the
-  //                        staging Neon branch via Hyperdrive id
-  //                        d9a5e687...
-  // ───────────────────────────────────────────────────────────────
-  "env": {
-    "staging": {
-      "name": "communityfix-staging",
-      "hyperdrive": [
-        {
-          "binding": "HYPERDRIVE",
-          "id": "d9a5e6878b9342b4ac96844524a59d05"
-        }
-      ],
-      "vars": {}
-    }
-  }
+  "vars": {}
+  // The Hyperdrive binding is injected per-build by Nitro via
+  // `nitro.cloudflare.wrangler` in nuxt.config.ts so it can be picked
+  // dynamically from WORKERS_CI_BRANCH. Don't add it back here or it
+  // will collide with the per-build override.
 }
