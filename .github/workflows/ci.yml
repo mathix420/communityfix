@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ───────────────────────────────────────────────────────────────
+  # PR PREVIEW: create a Neon branch, run migrations on it, and
+  # deploy a preview Worker version wired to that branch.
+  # ───────────────────────────────────────────────────────────────
+  pr-preview:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      branch-url: ${{ steps.neon-branch.outputs.db_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Neon branch for PR
+        id: neon-branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          parent: main
+          branch_name: pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - name: Run migrations against Neon branch
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
+        run: bun run db:migrate
+
+      - name: Build
+        env:
+          NODE_OPTIONS: --max_old_space_size=4096
+        run: bun run build
+
+      - name: Deploy preview version to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # `versions upload` creates an unreleased version and returns a
+          # preview URL without affecting production traffic. The preview
+          # bypasses Hyperdrive by injecting NUXT_DATABASE_URL directly so
+          # it targets the PR's Neon branch.
+          command: versions upload --var NUXT_DATABASE_URL:"${{ steps.neon-branch.outputs.db_url }}"
+
+  # ───────────────────────────────────────────────────────────────
+  # PR CLOSE: tear down the Neon branch.
+  # ───────────────────────────────────────────────────────────────
+  pr-cleanup:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Neon branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  # ───────────────────────────────────────────────────────────────
+  # PRODUCTION: run migrations against Neon main, then deploy.
+  # Migrations use the DIRECT (non-pooled) connection string — DDL
+  # does not play nicely with PgBouncer transaction pooling.
+  # Runtime traffic goes through Hyperdrive (pooled) via the binding
+  # in wrangler.jsonc.
+  # ───────────────────────────────────────────────────────────────
+  migrate:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Run Drizzle migrations against Neon
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: bun run db:migrate
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - name: Build
+        env:
+          NODE_OPTIONS: --max_old_space_size=4096
+        run: bun run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy

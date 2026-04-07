@@ -23,10 +23,10 @@
       "head_sampling_rate": 1
     }
   },
-  "d1_databases": [
+  "hyperdrive": [
     {
-      "binding": "DB",
-      "database_id": "750da5ca-dffe-4f04-b21b-ea288e2f16ea"
+      "binding": "HYPERDRIVE",
+      "id": "<hyperdrive-config-id>"
     }
   ],
   "vars": {}
