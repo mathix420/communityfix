@@ -3,8 +3,11 @@
 ## Development
 
 - Always use `bun` as the package manager (not npm/yarn/pnpm)
+- Secrets are managed via **Doppler** — run `doppler setup --project communityfix --config dev` once, then all scripts automatically inject env vars via `doppler run --`
 - Run dev server: `bun run dev`
 - Type check: `bunx vue-tsc --noEmit`
+- To run an ad-hoc command with the Doppler env: `doppler run -- <command>`
+- To target a different config: `doppler run -c stg -- <command>` (or `prd`)
 
 ## Database
 

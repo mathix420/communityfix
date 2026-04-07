@@ -7,6 +7,6 @@ export default defineConfig({
   extensionsFilters: ['postgis'],
   tablesFilter: ['!spatial_ref_sys'],
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgres://communityfix:communityfix@localhost:5432/communityfix',
+    url: process.env.NUXT_DATABASE_URL || 'postgres://communityfix:communityfix@localhost:5432/communityfix',
   },
 })

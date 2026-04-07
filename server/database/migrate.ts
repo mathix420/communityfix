@@ -4,7 +4,7 @@ import postgres from 'postgres'
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const url = process.env.DATABASE_URL || 'postgres://communityfix:communityfix@localhost:5432/communityfix'
+const url = process.env.NUXT_DATABASE_URL || 'postgres://communityfix:communityfix@localhost:5432/communityfix'
 const client = postgres(url, { max: 1 })
 const db = drizzle(client)
 
