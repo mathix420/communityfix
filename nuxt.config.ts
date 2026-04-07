@@ -58,6 +58,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-12-22',
 
   nitro: {
+    // Pin the preset explicitly so the build always emits a Worker bundle.
+    // Without this, Nitro can fall back to `node-server` if Workers Builds
+    // doesn't inject NITRO_PRESET, producing an output that wrangler can't
+    // deploy.
+    preset: 'cloudflare_module',
     experimental: {
       asyncContext: true,
       tasks: true,

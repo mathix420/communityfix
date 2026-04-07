@@ -16,7 +16,7 @@ useSeoMeta({
 
 <template>
   <AppContainer>
-    <!-- @vue-expect-error vue-tsc type collapse on Nuxt Content's ContentRenderer slots -->
+    <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
     <ContentRenderer
       v-if="whitepaper"
       :value="whitepaper"

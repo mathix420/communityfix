@@ -32,8 +32,17 @@ describe('Votes API', () => {
       }
     })
 
-    it('returns score of 0 for un-voted issue', async () => {
+    it('returns the seeded score for issue 1 (5 upvotes - 1 downvote = +5)', async () => {
+      // See server/database/seed/006_votes.sql — issue 1 has 6 +1 votes and
+      // 1 -1 vote, all with default weight=1, so vote_score should be 5.
       const data = await apiFetch('/api/issue/1/votes')
+
+      expect(data.score).toBe(5)
+    })
+
+    it('returns score of 0 for an issue with no seeded votes', async () => {
+      // Issue 8 has no rows in the votes seed.
+      const data = await apiFetch('/api/issue/8/votes')
 
       expect(data.score).toBe(0)
     })

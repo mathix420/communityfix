@@ -7,7 +7,7 @@ Adapted from the [Hacker News formula](https://medium.com/hacking-and-gonzo/how-
 ### Formula
 
 ```
-engagement = voteScore + (solutionCount × 3) + (subIssueCount × 2) + commentCount
+engagement = voteScore + (solutionCount × 3) + (subIssueCount × 2)
 trending   = engagement / (age_hours + 2) ^ 1.5
 ```
 
@@ -18,7 +18,6 @@ trending   = engagement / (age_hours + 2) ^ 1.5
 | `voteScore` | 1× | Already trust-weighted (see Weighted Voting below) |
 | `solutionCount` | 3× | Highest-value engagement — someone proposed a fix |
 | `subIssueCount` | 2× | Issue is being actively decomposed into sub-problems |
-| `commentCount` | 1× | Basic engagement signal |
 
 ### Parameters
 
@@ -38,7 +37,7 @@ Used on three endpoints, all accepting `?sort=trending|newest|oldest|most_voted`
 ### SQL implementation
 
 ```sql
-(vote_score + solution_count * 3 + sub_issue_count * 2 + comment_count)::float
+(vote_score + solution_count * 3 + sub_issue_count * 2)::float
   / POWER(EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 + 2, 1.5)
 ```
 
@@ -62,9 +61,9 @@ Each user has a trust score (0–100) stored in `users.trust_score`, computed fr
 
 ### When it's recalculated
 
-- **On issue approval or rejection** — in `server/utils/review-issue.ts`
-- **On vote cast or removed** — in `server/api/issue/[id]/vote.post.ts` and `vote.delete.ts`
-- **Daily cron fallback** — `compute:trust-scores` Nitro task runs at 3:00 AM UTC
+- **On issue approval or rejection** — for the *issue author* in `server/utils/review-issue.ts`
+- **On vote cast or removed** — for the *issue author* in `server/api/issue/[id]/vote.post.ts` and `vote.delete.ts`. The voter's own score is **not** recomputed on each vote; voters rely on the daily cron fallback.
+- **Daily cron fallback** — `compute:trust-scores` Nitro task runs at 3:00 AM UTC and recomputes every user's score
 
 ### Implementation
 

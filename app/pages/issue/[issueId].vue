@@ -27,8 +27,6 @@ if (issue.value) {
     number: issue.value.id,
     solutionCount: issue.value.solutionCount,
     subIssueCount: issue.value.subIssueCount,
-    commentCount: issue.value.commentCount,
-    sourceCount: issue.value.sourceCount,
   })
 }
 </script>

@@ -16,8 +16,8 @@
     "db:studio": "doppler run -- drizzle-kit studio",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "doppler run -- vitest run",
+    "test:watch": "doppler run -- vitest"
   },
   "dependencies": {
     "@nuxt/content": "3.12.0",

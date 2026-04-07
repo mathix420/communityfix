@@ -3,6 +3,7 @@ import { issues, votes } from '../../../database/schema'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
+  await assertNotBanned(session.user.id)
 
   const issueId = getRouterParam(event, 'id')
   if (!issueId || isNaN(parseInt(issueId, 10))) {
@@ -27,9 +28,13 @@ export default defineEventHandler(async (event) => {
     columns: { voteScore: true, authorId: true },
   })
 
-  // Recalculate issue author's trust score
+  // Recalculate issue author's trust score. On Workers, register with
+  // waitUntil so the recompute survives past the response being returned.
   if (updated?.authorId) {
-    updateUserTrustScore(updated.authorId).catch(console.error)
+    const authorId = updated.authorId
+    const trustPromise = updateUserTrustScore(authorId).catch(err =>
+      console.error(`[vote.delete] Trust score update failed for author ${authorId}:`, err))
+    ;(event.context as any).cloudflare?.context?.waitUntil?.(trustPromise)
   }
 
   return { score: updated?.voteScore ?? 0, userVote: null }

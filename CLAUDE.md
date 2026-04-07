@@ -18,8 +18,8 @@
 - Custom migrations (extensions, generated columns, GIN/HNSW/GIST indexes): `server/database/migrations/custom/`
 - Seed files: `server/database/seed/` (numbered SQL files, applied in order)
 - Generate migrations: `bun run db:generate`
-- Run migrations (drizzle + custom): `bun run db:migrate` — reads `DATABASE_URL`. For Neon prod use the **direct** (non-pooled) connection string for DDL; runtime traffic goes through Hyperdrive on the pooled URL
-- Seed: `bun run db:seed` (runs `psql $DATABASE_URL` against each file in `server/database/seed/*.sql`)
+- Run migrations (drizzle + custom): `bun run db:migrate` — reads `NUXT_DATABASE_URL`. For Neon prod use the **direct** (non-pooled) connection string for DDL; runtime traffic goes through Hyperdrive on the pooled URL
+- Seed: `bun run db:seed` (runs `psql $NUXT_DATABASE_URL` against each file in `server/database/seed/*.sql`)
 - Drizzle Studio: `bun run db:studio`
 
 ## Nitro Tasks

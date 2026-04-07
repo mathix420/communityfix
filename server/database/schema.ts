@@ -19,9 +19,6 @@ export type AppealStatus = typeof APPEAL_STATUSES[number]
 export const LOCATION_SCALES = ['neighborhood', 'city', 'region', 'national', 'global'] as const
 export type LocationScale = typeof LOCATION_SCALES[number]
 
-export const ISSUE_CATEGORIES = ['regional', 'thematic', 'mechanistic'] as const
-export type IssueCategory = typeof ISSUE_CATEGORIES[number]
-
 export const SOLUTION_STATUSES = ['plan', 'in-progress', 'done'] as const
 export type SolutionStatus = typeof SOLUTION_STATUSES[number]
 
@@ -94,8 +91,6 @@ export const issues = pgTable('issues', {
   authorName: text('author_name'),
   solutionCount: integer('solution_count').notNull().default(0),
   subIssueCount: integer('sub_issue_count').notNull().default(0),
-  commentCount: integer('comment_count').notNull().default(0),
-  sourceCount: integer('source_count').notNull().default(0),
   voteScore: integer('vote_score').notNull().default(0),
   status: text('status').notNull().default('pending').$type<IssueStatus>(),
   type: text('type').notNull().default('issue').$type<IssueType>(),
@@ -109,7 +104,6 @@ export const issues = pgTable('issues', {
   locationName: text('location_name'),
   location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }),
   scale: text('scale').$type<LocationScale>(),
-  category: text('category').$type<IssueCategory>(),
   // Solution lifecycle (only meaningful when type='solution')
   solutionStatus: text('solution_status').$type<SolutionStatus>(),
   // Embeddings (pgvector)

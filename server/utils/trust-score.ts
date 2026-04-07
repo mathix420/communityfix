@@ -1,7 +1,7 @@
 import { eq, sql, and, ne } from 'drizzle-orm'
 import { users, issues, votes } from '../database/schema'
 
-interface TrustScoreFactors {
+export interface TrustScoreFactors {
   accountAgeDays: number
   approvedCount: number
   rejectedCount: number
@@ -11,7 +11,7 @@ interface TrustScoreFactors {
   wasBanned: boolean
 }
 
-function computeScore(factors: TrustScoreFactors): number {
+export function computeScore(factors: TrustScoreFactors): number {
   // Account age: up to 15 pts (logarithmic, ~1 year to max)
   const agePts = Math.min(15, 15 * Math.log1p(factors.accountAgeDays) / Math.log1p(365))
 
@@ -93,9 +93,13 @@ export async function computeUserTrustScore(userId: string): Promise<number> {
 /**
  * Convert a trust score (0–100) to a vote weight (1–5).
  * 0–19 → 1, 20–39 → 2, 40–59 → 3, 60–79 → 4, 80–100 → 5
+ *
+ * Defensively clamps on both ends so out-of-range inputs (e.g. a stale
+ * negative score from before a CHECK constraint was added) still produce
+ * a valid weight rather than 0 or 6.
  */
 export function trustScoreToVoteWeight(trustScore: number): number {
-  return Math.min(5, Math.floor(trustScore / 20) + 1)
+  return Math.max(1, Math.min(5, Math.floor(trustScore / 20) + 1))
 }
 
 export async function updateUserTrustScore(userId: string): Promise<number> {

@@ -17,6 +17,7 @@ const { data: banStatus } = await useFetch('/api/user/ban-status')
 
 // Similar issues detection
 const similarIssues = ref<{ id: number, title: string, description: string, similarity: number }[]>([])
+const similarStatus = ref<'ok' | 'unavailable' | 'too_short'>('too_short')
 const searchingDuplicates = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout>
@@ -24,17 +25,21 @@ watch([title, description], () => {
   clearTimeout(debounceTimer)
   if (title.value.length < 5 || description.value.length < 10) {
     similarIssues.value = []
+    similarStatus.value = 'too_short'
     return
   }
   debounceTimer = setTimeout(async () => {
     searchingDuplicates.value = true
     try {
-      similarIssues.value = await $fetch('/api/issues/similar', {
+      const response = await $fetch('/api/issues/similar', {
         query: { title: title.value, description: description.value },
       })
+      similarIssues.value = response.results
+      similarStatus.value = response.status
     }
     catch {
       similarIssues.value = []
+      similarStatus.value = 'unavailable'
     }
     finally {
       searchingDuplicates.value = false
@@ -192,6 +197,14 @@ definePageMeta({
           <div v-if="searchingDuplicates" class="flex items-center gap-2 text-sm text-gray-500">
             <UIcon name="lucide:loader-2" class="size-4 animate-spin" />
             Checking for similar issues...
+          </div>
+
+          <div
+            v-else-if="similarStatus === 'unavailable'"
+            class="flex items-center gap-2 text-xs text-gray-500"
+          >
+            <UIcon name="lucide:alert-circle" class="size-4" />
+            Similarity check is temporarily unavailable — please double-check existing issues before submitting.
           </div>
 
           <UButton

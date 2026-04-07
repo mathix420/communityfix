@@ -72,9 +72,12 @@ export default defineEventHandler(async (event) => {
       .where(eq(issues.id, body.parentId))
   }
 
-  // Trigger AI review as a Nitro task (decoupled from request lifecycle)
-  runTask('review:issue', { payload: { issueId: created.id } })
+  // Trigger AI review as a Nitro task. On Cloudflare Workers, we must
+  // register the promise with `waitUntil` so the isolate isn't terminated
+  // before the task completes — otherwise the issue stays `pending` forever.
+  const reviewPromise = runTask('review:issue', { payload: { issueId: created.id } })
     .catch(err => console.error(`[review:issue] Background review failed for issue ${created.id}:`, err))
+  ;(event.context as any).cloudflare?.context?.waitUntil?.(reviewPromise)
 
   return created
 })

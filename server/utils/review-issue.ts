@@ -107,9 +107,16 @@ export async function reviewIssue(issueId: number) {
     }
   }
 
+  // Dedupe — the LLM occasionally returns the same id twice, and a duplicated
+  // (issueId, tagId) pair would violate the issue_tags primary key and roll
+  // back the entire approval transaction below.
   const allTagIds = [...(tagResult.existingTagIds ?? []), ...newTagIds]
-  const validTagIds = allTagIds.filter(id => allTags.some(t => t.id === id) || newTagIds.includes(id))
-  const validSdgIds = (sdgResult.sdgIds ?? []).filter(id => allSdgs.some(s => s.id === id))
+  const validTagIds = Array.from(new Set(
+    allTagIds.filter(id => allTags.some(t => t.id === id) || newTagIds.includes(id)),
+  ))
+  const validSdgIds = Array.from(new Set(
+    (sdgResult.sdgIds ?? []).filter(id => allSdgs.some(s => s.id === id)),
+  ))
 
   // Generate embedding for approved issues
   let embedding: number[] | null = null

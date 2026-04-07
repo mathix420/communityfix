@@ -12,6 +12,9 @@ export const issueWithRelations = {
 } as const
 
 export function transformIssue(issue: DbIssue, { includeModeration = false } = {}) {
+  if (!issue.createdAt) {
+    throw new Error(`[transformIssue] Issue ${issue.id} has no createdAt — refusing to serialize a corrupt row`)
+  }
   return {
     id: issue.id,
     parentId: issue.parentId,
@@ -23,8 +26,6 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
     date: issue.createdAt.toISOString().slice(0, 10),
     solutionCount: issue.solutionCount,
     subIssueCount: issue.subIssueCount,
-    commentCount: issue.commentCount,
-    sourceCount: issue.sourceCount,
     voteScore: issue.voteScore,
     status: issue.status,
     type: issue.type,

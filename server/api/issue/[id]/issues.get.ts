@@ -24,8 +24,9 @@ export default defineEventHandler(async (event) => {
       break
     case 'trending':
     default:
+      // Trending formula — see server/api/issues.get.ts and docs/ranking-and-trust.md
       orderByClause = sql`(
-        ${issues.voteScore} + ${issues.solutionCount} * 3 + ${issues.subIssueCount} * 2 + ${issues.commentCount}
+        ${issues.voteScore} + ${issues.solutionCount} * 3 + ${issues.subIssueCount} * 2
       )::float / POWER(EXTRACT(EPOCH FROM (NOW() - ${issues.createdAt})) / 3600 + 2, 1.5) DESC`
       break
   }

@@ -35,6 +35,24 @@ jobs:
       - run: bunx vue-tsc --noEmit
 
   # ────────────────────────────────────────────────────────────────
+  # UNIT TESTS — vitest against tests/unit only. API/integration
+  # tests live under tests/api and need a running dev server +
+  # seeded Postgres, so they stay out of CI for now. SKIP_DB_SETUP=1
+  # tells tests/global-setup.ts to bypass the migrate+seed step.
+  # ────────────────────────────────────────────────────────────────
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Run unit tests
+        env:
+          SKIP_DB_SETUP: '1'
+        run: bunx vitest run tests/unit
+
+  # ────────────────────────────────────────────────────────────────
   # PRODUCTION MIGRATIONS — runs on every master push, before CF
   # Workers Builds rolls out the new Worker. Uses Doppler `prd`
   # which holds the Neon production direct (non-pooled) URL.

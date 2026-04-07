@@ -56,9 +56,11 @@ export default defineEventHandler(async (event) => {
       break
     case 'trending':
       // HN-style ranking: engagement / (age_hours + 2) ^ gravity
-      // Solutions (3x) and sub-issues (2x) weigh more than raw votes
+      // Solutions (3x) and sub-issues (2x) weigh more than raw votes.
+      // Keep this in sync with server/api/issue/[id]/{issues,solutions}.get.ts
+      // and docs/ranking-and-trust.md.
       orderByClause = sql`(
-        ${issues.voteScore} + ${issues.solutionCount} * 3 + ${issues.subIssueCount} * 2 + ${issues.commentCount}
+        ${issues.voteScore} + ${issues.solutionCount} * 3 + ${issues.subIssueCount} * 2
       )::float / POWER(EXTRACT(EPOCH FROM (NOW() - ${issues.createdAt})) / 3600 + 2, 1.5) DESC`
       break
     default:

@@ -2,9 +2,14 @@
 -- Spread across top-level issues (1-6), sub-issues, and solutions
 -- Each (user_id, issue_id) pair is unique per schema constraint
 -- value: +1 (upvote) or -1 (downvote)
+--
+-- NOTE: weight defaults to 1 here. The vote_score UPDATEs at the bottom
+-- match the seeded weight=1 sums; running compute:trust-scores after
+-- seeding will recompute user trust scores but will NOT retroactively
+-- reweight existing votes — users would need to re-vote for that.
 
 INSERT INTO votes (user_id, issue_id, value, created_at, updated_at) VALUES
-  -- Issue 1: Reduce household waste (popular, net +6)
+  -- Issue 1: Reduce household waste (popular, net +5)
   ('a0000002-0000-4000-8000-000000000002', 1, 1, '2025-09-02T08:00:00.000Z', '2025-09-02T08:00:00.000Z'),
   ('a0000003-0000-4000-8000-000000000003', 1, 1, '2025-09-02T09:15:00.000Z', '2025-09-02T09:15:00.000Z'),
   ('a0000004-0000-4000-8000-000000000004', 1, 1, '2025-09-02T12:30:00.000Z', '2025-09-02T12:30:00.000Z'),
@@ -21,7 +26,7 @@ INSERT INTO votes (user_id, issue_id, value, created_at, updated_at) VALUES
   ('a0000007-0000-4000-8000-000000000007', 2, 1, '2025-09-08T10:00:00.000Z', '2025-09-08T10:00:00.000Z'),
   ('a0000008-0000-4000-8000-000000000008', 2, -1, '2025-09-08T13:45:00.000Z', '2025-09-08T13:45:00.000Z'),
 
-  -- Issue 3: Cheaper access to clean water (net +5)
+  -- Issue 3: Cheaper access to clean water (net +6)
   ('a0000001-0000-4000-8000-000000000001', 3, 1, '2025-09-11T07:00:00.000Z', '2025-09-11T07:00:00.000Z'),
   ('a0000002-0000-4000-8000-000000000002', 3, 1, '2025-09-11T09:30:00.000Z', '2025-09-11T09:30:00.000Z'),
   ('a0000004-0000-4000-8000-000000000004', 3, 1, '2025-09-11T14:00:00.000Z', '2025-09-11T14:00:00.000Z'),
@@ -55,7 +60,7 @@ INSERT INTO votes (user_id, issue_id, value, created_at, updated_at) VALUES
   ('a0000005-0000-4000-8000-000000000005', 7, 1, '2025-09-25T11:00:00.000Z', '2025-09-25T11:00:00.000Z'),
   ('a0000006-0000-4000-8000-000000000006', 7, 1, '2025-09-25T14:30:00.000Z', '2025-09-25T14:30:00.000Z'),
 
-  -- Solution 10: Community composting hubs (net +4)
+  -- Solution 10: Community composting hubs (net +3)
   ('a0000001-0000-4000-8000-000000000001', 10, 1, '2025-09-26T07:00:00.000Z', '2025-09-26T07:00:00.000Z'),
   ('a0000003-0000-4000-8000-000000000003', 10, 1, '2025-09-26T09:30:00.000Z', '2025-09-26T09:30:00.000Z'),
   ('a0000004-0000-4000-8000-000000000004', 10, 1, '2025-09-26T12:00:00.000Z', '2025-09-26T12:00:00.000Z'),
@@ -80,7 +85,7 @@ INSERT INTO votes (user_id, issue_id, value, created_at, updated_at) VALUES
   ('a0000006-0000-4000-8000-000000000006', 25, -1, '2025-10-01T14:00:00.000Z', '2025-10-01T14:00:00.000Z'),
   ('a0000007-0000-4000-8000-000000000007', 25, 1, '2025-10-02T09:00:00.000Z', '2025-10-02T09:00:00.000Z'),
 
-  -- Issue 39: Forest Dieback Crisis (net +3)
+  -- Issue 39: Forest Dieback Crisis (net +4)
   ('a0000001-0000-4000-8000-000000000001', 39, 1, '2025-10-03T08:00:00.000Z', '2025-10-03T08:00:00.000Z'),
   ('a0000003-0000-4000-8000-000000000003', 39, 1, '2025-10-03T11:00:00.000Z', '2025-10-03T11:00:00.000Z'),
   ('a0000005-0000-4000-8000-000000000005', 39, 1, '2025-10-03T14:30:00.000Z', '2025-10-03T14:30:00.000Z'),
@@ -88,14 +93,14 @@ INSERT INTO votes (user_id, issue_id, value, created_at, updated_at) VALUES
 ON CONFLICT DO NOTHING;
 
 -- ── Update vote_score on issues to match seeded votes ──
-UPDATE issues SET vote_score = 6 WHERE id = 1;
+UPDATE issues SET vote_score = 5 WHERE id = 1;
 UPDATE issues SET vote_score = 4 WHERE id = 2;
 UPDATE issues SET vote_score = 6 WHERE id = 3;
 UPDATE issues SET vote_score = 3 WHERE id = 4;
 UPDATE issues SET vote_score = 2 WHERE id = 5;
 UPDATE issues SET vote_score = 4 WHERE id = 6;
 UPDATE issues SET vote_score = 3 WHERE id = 7;
-UPDATE issues SET vote_score = 4 WHERE id = 10;
+UPDATE issues SET vote_score = 3 WHERE id = 10;
 UPDATE issues SET vote_score = 3 WHERE id = 15;
 UPDATE issues SET vote_score = 5 WHERE id = 20;
 UPDATE issues SET vote_score = 2 WHERE id = 25;
