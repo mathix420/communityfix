@@ -4,7 +4,7 @@ on:
   push:
     branches: [master, staging]
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,6 +13,12 @@ concurrency:
 env:
   DOPPLER_PROJECT: communityfix
 
+# Cloudflare Workers Builds handles the actual build + deploy on every push
+# (production for `master`, staging for any other branch via the `env.staging`
+# block in wrangler.jsonc). This workflow only handles the things CF Workers
+# Builds doesn't: typechecking PRs and running database migrations against
+# the right Neon branch before each push goes live.
+
 jobs:
   # ────────────────────────────────────────────────────────────────
   # TYPECHECK — vue-tsc against the project. Required check for PRs
@@ -20,7 +26,7 @@ jobs:
   # the `context` listed in the rulesets.
   # ────────────────────────────────────────────────────────────────
   typecheck:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -29,171 +35,11 @@ jobs:
       - run: bunx vue-tsc --noEmit
 
   # ────────────────────────────────────────────────────────────────
-  # Shared: extract a slash-free branch slug for Neon/Doppler.
-  # tj-actions/branch-names returns the raw branch (e.g.
-  # `feat/postgres-features`); we replace `/` with `-` so the
-  # downstream Neon branch name has a single slash.
+  # PRODUCTION MIGRATIONS — runs on every master push, before CF
+  # Workers Builds rolls out the new Worker. Uses Doppler `prd`
+  # which holds the Neon production direct (non-pooled) URL.
   # ────────────────────────────────────────────────────────────────
-  setup:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    outputs:
-      branch_slug: ${{ steps.slug.outputs.value }}
-    steps:
-      - name: Get branch name
-        id: branch_name
-        uses: tj-actions/branch-names@v9
-      - name: Slugify branch name
-        id: slug
-        run: |
-          slug="${{ steps.branch_name.outputs.current_branch }}"
-          echo "value=${slug//\//-}" >> "$GITHUB_OUTPUT"
-
-  # ────────────────────────────────────────────────────────────────
-  # PR PREVIEW
-  #
-  # 1. Create a Neon branch `preview/pr-<N>-<branch>` from production
-  #    (expires in 14 days for auto-cleanup).
-  # 2. Create a Doppler branch config `prd_pr_<N>` inheriting from
-  #    `prd`, and override NUXT_DATABASE_URL with the PR branch's URL.
-  # 3. Run drizzle + custom migrations against the Neon branch.
-  # 4. Build and upload a preview Worker version, injecting every
-  #    NUXT_* secret as `--var` so the preview bypasses Hyperdrive
-  #    and targets the PR's Neon branch directly.
-  # ────────────────────────────────────────────────────────────────
-  pr-preview:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    needs: setup
-    runs-on: ubuntu-latest
-    environment: preview
-    permissions:
-      contents: read
-      pull-requests: write
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      BRANCH_CONFIG: prd_pr_${{ github.event.pull_request.number }}
-      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch_slug }}
-      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v4
-      - run: bun install --frozen-lockfile
-
-      - name: Compute branch expiration (14 days out)
-        run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
-
-      - name: Create Neon branch for PR
-        id: neon-branch
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
-          parent_branch: production
-          branch_name: ${{ env.NEON_BRANCH_NAME }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-          expires_at: ${{ env.EXPIRES_AT }}
-
-      - name: Create/update Doppler branch config for PR
-        run: |
-          # Try to create the branch config. Swallow ONLY the
-          # "already exists" case so re-runs are idempotent — fail
-          # loudly on auth/permission errors instead of masking them.
-          if ! create_err=$(doppler configs create "$BRANCH_CONFIG" -p "$DOPPLER_PROJECT" -e prd 2>&1); then
-            if echo "$create_err" | grep -qi "already exists"; then
-              echo "Doppler config $BRANCH_CONFIG already exists, reusing it."
-            else
-              echo "::error::Failed to create Doppler config $BRANCH_CONFIG"
-              echo "$create_err"
-              exit 1
-            fi
-          fi
-
-          # Override NUXT_DATABASE_URL with the PR branch's direct (DDL-safe) URL.
-          # Previews bypass Hyperdrive; the Nitro plugin sees NUXT_DATABASE_URL
-          # already set and skips binding hydration.
-          doppler secrets set -p "$DOPPLER_PROJECT" -c "$BRANCH_CONFIG" --no-interactive \
-            NUXT_DATABASE_URL="${{ steps.neon-branch.outputs.db_url }}"
-
-      - name: Run migrations against the Neon branch
-        run: doppler run -c "$BRANCH_CONFIG" -- bun run server/database/migrate.ts
-
-      - name: Build
-        env:
-          NODE_OPTIONS: --max_old_space_size=4096
-        run: doppler run -c "$BRANCH_CONFIG" -- nuxt build
-
-      - name: Sync Doppler → Cloudflare preview + deploy version
-        run: |
-          # Build --var KEY:VALUE arguments from every NUXT_* secret in the
-          # Doppler branch config. The preview version bakes these in.
-          mapfile -t VAR_FLAGS < <(
-            doppler secrets download --no-file --format json -c "$BRANCH_CONFIG" \
-              | jq -r '
-                  to_entries
-                  | map(select(.key | startswith("NUXT_")))
-                  | .[]
-                  | "--var\n\(.key):\(.value)"'
-          )
-          doppler run -c "$BRANCH_CONFIG" -- bunx wrangler versions upload "${VAR_FLAGS[@]}"
-
-      - name: Comment preview details on PR
-        uses: actions/github-script@v8
-        with:
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `🚀 Preview deployed — see the \`wrangler versions upload\` step for the preview URL.\n\n- Neon branch: \`${{ env.NEON_BRANCH_NAME }}\` (expires ${{ env.EXPIRES_AT }})\n- Doppler config: \`${{ env.BRANCH_CONFIG }}\``
-            })
-
-  # ────────────────────────────────────────────────────────────────
-  # PR CLOSE — tear down the Neon branch and Doppler branch config.
-  # ────────────────────────────────────────────────────────────────
-  pr-cleanup:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    needs: setup
-    runs-on: ubuntu-latest
-    environment: preview
-    env:
-      BRANCH_CONFIG: prd_pr_${{ github.event.pull_request.number }}
-      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch_slug }}
-      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-    steps:
-      - uses: dopplerhq/cli-action@v4
-
-      - name: Delete Neon branch
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch: ${{ env.NEON_BRANCH_NAME }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-
-      - name: Delete Doppler branch config
-        run: |
-          # Swallow ONLY "not found" so re-runs on already-cleaned PRs
-          # are idempotent — fail loudly on auth/permission errors.
-          if ! delete_err=$(doppler configs delete "$BRANCH_CONFIG" -p "$DOPPLER_PROJECT" --yes 2>&1); then
-            if echo "$delete_err" | grep -qiE "not found|does not exist"; then
-              echo "Doppler config $BRANCH_CONFIG already gone, nothing to delete."
-            else
-              echo "::error::Failed to delete Doppler config $BRANCH_CONFIG"
-              echo "$delete_err"
-              exit 1
-            fi
-          fi
-
-  # ────────────────────────────────────────────────────────────────
-  # PRODUCTION — migrate then deploy.
-  #
-  # Migrations run with the Neon direct (non-pooled) connection
-  # string from Doppler `prd` (NUXT_DATABASE_URL).
-  # Deploy uses `wrangler deploy` and then syncs non-DB NUXT_*
-  # secrets via `wrangler secret bulk`. NUXT_DATABASE_URL is
-  # deliberately NOT synced so the Hyperdrive binding wins at
-  # runtime via server/plugins/hyperdrive.ts.
-  # ────────────────────────────────────────────────────────────────
-  migrate:
+  migrate-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: production
@@ -204,47 +50,15 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
-      - name: Run Drizzle migrations against Neon production
+      - name: Run Drizzle + custom migrations against Neon production
         run: doppler run -c prd -- bun run server/database/migrate.ts
 
-  deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: migrate
-    runs-on: ubuntu-latest
-    environment: production
-    env:
-      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v4
-      - run: bun install --frozen-lockfile
-
-      - name: Build
-        env:
-          NODE_OPTIONS: --max_old_space_size=4096
-        run: doppler run -c prd -- nuxt build
-
-      - name: Deploy Worker
-        run: doppler run -c prd -- bunx wrangler deploy
-
-      - name: Sync Doppler → Cloudflare Worker secrets
-        # Push NUXT_* runtime secrets but EXCLUDE NUXT_DATABASE_URL so
-        # the Hyperdrive binding stays authoritative in production.
-        run: |
-          doppler secrets download --no-file --format json -c prd \
-            | jq 'with_entries(select(.key | startswith("NUXT_")) | select(.key != "NUXT_DATABASE_URL"))' \
-            > /tmp/worker-secrets.json
-          doppler run -c prd -- bunx wrangler secret bulk /tmp/worker-secrets.json
-
   # ────────────────────────────────────────────────────────────────
-  # STAGING — migrate against the permanent Neon `staging` branch
-  # and upload a preview Worker version. Mirrors the prd flow but
-  # uses the Doppler `stg` config and the Neon `staging` branch.
-  # Uses `versions upload` (not `deploy`) so production traffic on
-  # the live Worker is untouched — staging gets its own preview URL.
+  # STAGING MIGRATIONS — runs on every staging push, before CF
+  # Workers Builds rolls out the staging Worker. Uses Doppler `stg`
+  # which holds the Neon staging direct (non-pooled) URL.
   # ────────────────────────────────────────────────────────────────
-  staging-migrate:
+  migrate-staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     environment: preview
@@ -255,38 +69,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
-      - name: Run Drizzle migrations against Neon staging
+      - name: Run Drizzle + custom migrations against Neon staging
         run: doppler run -c stg -- bun run server/database/migrate.ts
-
-  staging-deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-    needs: staging-migrate
-    runs-on: ubuntu-latest
-    environment: preview
-    env:
-      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-    steps:
-      - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v4
-      - run: bun install --frozen-lockfile
-
-      - name: Build
-        env:
-          NODE_OPTIONS: --max_old_space_size=4096
-        run: doppler run -c stg -- nuxt build
-
-      - name: Upload staging preview version
-        # Bake every NUXT_* secret in via --var so the preview bypasses
-        # Hyperdrive and targets the staging Neon branch directly,
-        # mirroring how pr-preview wires the per-PR branch.
-        run: |
-          mapfile -t VAR_FLAGS < <(
-            doppler secrets download --no-file --format json -c stg \
-              | jq -r '
-                  to_entries
-                  | map(select(.key | startswith("NUXT_")))
-                  | .[]
-                  | "--var\n\(.key):\(.value)"'
-          )
-          doppler run -c stg -- bunx wrangler versions upload "${VAR_FLAGS[@]}"
