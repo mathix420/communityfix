@@ -5,16 +5,12 @@ withDefaults(defineProps<{
   description?: string
   solutionCount?: number
   subIssueCount?: number
-  commentCount?: number
-  sourceCount?: number
 }>(), {
   title: 'title',
   number: 1,
   description: 'description',
   solutionCount: 0,
   subIssueCount: 0,
-  commentCount: 0,
-  sourceCount: 0,
 })
 </script>
 
@@ -73,34 +69,6 @@ withDefaults(defineProps<{
         </p>
         <p class="text-lg font-bold text-gray-500">
           SOLUTIONS
-        </p>
-      </div>
-      <div
-        v-if="commentCount"
-        class="flex flex-col"
-      >
-        <p
-          class="text-5xl leading-none text-gray-300"
-          style="font-family: Oswald"
-        >
-          {{ commentCount }}
-        </p>
-        <p class="text-lg font-bold text-gray-500">
-          COMMENTS
-        </p>
-      </div>
-      <div
-        v-if="sourceCount"
-        class="flex flex-col"
-      >
-        <p
-          class="text-5xl leading-none text-gray-300"
-          style="font-family: Oswald"
-        >
-          {{ sourceCount }}
-        </p>
-        <p class="text-lg font-bold text-gray-500">
-          SOURCES
         </p>
       </div>
     </div>

@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     columns: { bannedUntil: true, banAppealStatus: true },
   })
 
-  if (!user?.bannedUntil || new Date(user.bannedUntil) <= new Date()) {
+  if (!user?.bannedUntil || user.bannedUntil <= new Date()) {
     throw createError({ statusCode: 400, statusMessage: 'You are not currently banned' })
   }
   if (user.banAppealStatus) {
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   await db.update(users)
     .set({
-      banAppealedAt: new Date().toISOString(),
+      banAppealedAt: new Date(),
       banAppealStatus: 'pending',
       banAppealReason: body.reason.trim(),
     })

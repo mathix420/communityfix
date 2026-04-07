@@ -16,10 +16,11 @@ useSeoMeta({
 
 <template>
   <AppContainer>
+    <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
     <ContentRenderer
       v-if="privacy"
       :value="privacy"
-      :class="prose"
+      class="prose"
     />
     <div v-else>
       Not found

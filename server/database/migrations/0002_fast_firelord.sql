@@ -1,1 +1,0 @@
-ALTER TABLE `issues` ADD `status` text DEFAULT 'pending' NOT NULL;

@@ -2,7 +2,36 @@
 const { track } = useUmami()
 const route = useRoute()
 const tagSlug = computed(() => route.params.slug)
-const { data: issues } = await useFetch(() => `/api/issues?tag=${tagSlug.value}`)
+
+const sort = ref((route.query.sort as string) || 'newest')
+const search = ref((route.query.search as string) || '')
+
+const sortOptions = [
+  { label: 'Newest', value: 'newest' },
+  { label: 'Oldest', value: 'oldest' },
+  { label: 'Most Voted', value: 'most_voted' },
+  { label: 'Trending', value: 'trending' },
+]
+
+const queryParams = computed(() => {
+  const params: Record<string, string> = { tag: tagSlug.value as string }
+  if (sort.value && sort.value !== 'newest') params.sort = sort.value
+  if (search.value.trim()) params.search = search.value.trim()
+  return params
+})
+
+const { data: issues } = await useFetch('/api/issues', {
+  query: queryParams,
+  watch: [queryParams],
+})
+
+let searchTimeout: ReturnType<typeof setTimeout>
+function onSearchInput(val: string) {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    search.value = val
+  }, 300)
+}
 
 // SEO Meta tags
 useSeoMeta({
@@ -55,6 +84,25 @@ const allTags = computed(() => {
     >
       Found {{ issues.length }} issue{{ issues.length === 1 ? '' : 's' }} with this tag:
     </p>
+
+    <!-- Filter bar -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-3xl mx-auto mb-6">
+      <UInput
+        :model-value="search"
+        placeholder="Search issues..."
+        icon="i-lucide-search"
+        size="md"
+        class="flex-1"
+        @update:model-value="onSearchInput"
+      />
+      <USelectMenu
+        v-model="sort"
+        :items="sortOptions"
+        value-key="value"
+        size="md"
+        class="w-full sm:w-44"
+      />
+    </div>
 
     <div
       v-if="allTags.length > 0"

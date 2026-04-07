@@ -3,18 +3,23 @@
 ## Development
 
 - Always use `bun` as the package manager (not npm/yarn/pnpm)
+- Secrets are managed via **Doppler** — run `doppler setup --project communityfix --config dev` once, then all scripts automatically inject env vars via `doppler run --`
 - Run dev server: `bun run dev`
 - Type check: `bunx vue-tsc --noEmit`
+- To run an ad-hoc command with the Doppler env: `doppler run -- <command>`
+- To target a different config: `doppler run -c stg -- <command>` (or `prd`)
 
 ## Database
 
-- Cloudflare D1 (SQLite) via Drizzle ORM + NuxtHub
+- PostgreSQL via Drizzle ORM (`drizzle-orm/postgres-js`) with PostGIS, pgvector, and tsvector full-text search
+- **Local (dev + tests)**: Docker Postgres via `docker-compose.yml` — image built from `docker/Dockerfile.postgres` (postgis + pgvector). Start with `bun run docker:up`
+- **Production**: Neon Postgres, reached from Cloudflare Workers through a Hyperdrive binding (`HYPERDRIVE` in `wrangler.jsonc`). `server/plugins/hyperdrive.ts` hydrates `NUXT_DATABASE_URL` from the binding at request/scheduled time so `useDB()` works unchanged
 - Schema: `server/database/schema.ts`
+- Custom migrations (extensions, generated columns, GIN/HNSW/GIST indexes): `server/database/migrations/custom/`
 - Seed files: `server/database/seed/` (numbered SQL files, applied in order)
 - Generate migrations: `bun run db:generate`
-- Push schema (remote D1): `bun run db:push` (requires CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN)
-- Seed local: `for f in server/database/seed/*.sql; do wrangler d1 execute DB --local --file=$f; done`
-- Seed remote: `for f in server/database/seed/*.sql; do wrangler d1 execute DB --remote --file=$f; done`
+- Run migrations (drizzle + custom): `bun run db:migrate` — reads `NUXT_DATABASE_URL`. For Neon prod use the **direct** (non-pooled) connection string for DDL; runtime traffic goes through Hyperdrive on the pooled URL
+- Seed: `bun run db:seed` (runs `psql $NUXT_DATABASE_URL` against each file in `server/database/seed/*.sql`)
 - Drizzle Studio: `bun run db:studio`
 
 ## Nitro Tasks

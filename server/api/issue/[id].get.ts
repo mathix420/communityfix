@@ -13,12 +13,16 @@ export default defineEventHandler(async (event) => {
 
   if (!result) return null
 
+  const session = await getUserSession(event)
+
   // Rejected issues: only visible to the author (and never if spam)
   if (result.status === 'rejected') {
     if (result.isSpam) return null
-    const session = await getUserSession(event)
     if (!session.user || session.user.id !== result.authorId) return null
   }
 
-  return transformIssue(result, { includeModeration: true })
+  // Only expose moderation fields to the author. Anonymous viewers never
+  // see appealStatus, isSpam, rejectionReason, etc., even on pending issues.
+  const isAuthor = session.user?.id === result.authorId
+  return transformIssue(result, { includeModeration: isAuthor })
 })

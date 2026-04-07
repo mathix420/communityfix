@@ -3,7 +3,7 @@ const { track } = useUmami()
 </script>
 
 <template>
-  <header class="flex sm:text-lg z-10 fixed top-0 inset-x-0 bg-white/5 backdrop-blur-md px-4 py-2">
+  <header class="flex sm:text-lg z-[99] fixed top-0 inset-x-0 bg-white/5 backdrop-blur-md px-4 py-2">
     <AppLogo />
     <div class="ml-auto font-mono flex gap-2">
       <AuthState v-slot="{ loggedIn, user }">

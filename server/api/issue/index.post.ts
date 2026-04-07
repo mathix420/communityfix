@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import { issues, users } from '../../database/schema'
+import type { LocationScale } from '../../database/schema'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -13,6 +14,10 @@ export default defineEventHandler(async (event) => {
     detailedDescription?: string
     parentId?: number
     type?: 'issue' | 'solution'
+    locationName?: string
+    latitude?: number
+    longitude?: number
+    scale?: LocationScale
   }>(event)
 
   if (!body.title?.trim()) {
@@ -49,6 +54,11 @@ export default defineEventHandler(async (event) => {
     authorId: user.id,
     authorName: dbUser?.name ?? dbUser?.email ?? 'Anonymous',
     type,
+    locationName: body.locationName?.trim() || null,
+    location: (body.latitude != null && body.longitude != null)
+      ? { x: body.longitude, y: body.latitude }
+      : null,
+    scale: body.scale || null,
   }).returning()
   const created = rows[0]!
 
@@ -62,11 +72,12 @@ export default defineEventHandler(async (event) => {
       .where(eq(issues.id, body.parentId))
   }
 
-  // Trigger AI review as a Nitro task (decoupled from request lifecycle).
-  // waitUntil() prevents Cloudflare Workers from terminating the task after the response is sent.
-  const promise = runTask('review:issue', { payload: { issueId: created.id } })
+  // Trigger AI review as a Nitro task. On Cloudflare Workers, we must
+  // register the promise with `waitUntil` so the isolate isn't terminated
+  // before the task completes — otherwise the issue stays `pending` forever.
+  const reviewPromise = runTask('review:issue', { payload: { issueId: created.id } })
     .catch(err => console.error(`[review:issue] Background review failed for issue ${created.id}:`, err))
-  event.context.cloudflare?.context?.waitUntil(promise)
+  ;(event.context as any).cloudflare?.context?.waitUntil?.(reviewPromise)
 
   return created
 })

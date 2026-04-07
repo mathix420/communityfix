@@ -1,12 +1,51 @@
 <script setup lang="ts">
+import type { LocationScale } from '../../server/database/schema'
+
 const toast = useToast()
+const { track } = useUmami()
 const submitting = ref(false)
 
 const title = ref('')
 const description = ref('')
 const detailedDescription = ref('')
+const locationName = ref('')
+const latitude = ref<number | undefined>()
+const longitude = ref<number | undefined>()
+const scale = ref<LocationScale>()
 
 const { data: banStatus } = await useFetch('/api/user/ban-status')
+
+// Similar issues detection
+const similarIssues = ref<{ id: number, title: string, description: string, similarity: number }[]>([])
+const similarStatus = ref<'ok' | 'unavailable' | 'too_short'>('too_short')
+const searchingDuplicates = ref(false)
+
+let debounceTimer: ReturnType<typeof setTimeout>
+watch([title, description], () => {
+  clearTimeout(debounceTimer)
+  if (title.value.length < 5 || description.value.length < 10) {
+    similarIssues.value = []
+    similarStatus.value = 'too_short'
+    return
+  }
+  debounceTimer = setTimeout(async () => {
+    searchingDuplicates.value = true
+    try {
+      const response = await $fetch('/api/issues/similar', {
+        query: { title: title.value, description: description.value },
+      })
+      similarIssues.value = response.results
+      similarStatus.value = response.status
+    }
+    catch {
+      similarIssues.value = []
+      similarStatus.value = 'unavailable'
+    }
+    finally {
+      searchingDuplicates.value = false
+    }
+  }, 500)
+})
 
 async function submit() {
   submitting.value = true
@@ -17,9 +56,13 @@ async function submit() {
         title: title.value,
         description: description.value,
         detailedDescription: detailedDescription.value || undefined,
+        locationName: locationName.value || undefined,
+        latitude: latitude.value,
+        longitude: longitude.value,
+        scale: scale.value,
       },
     })
-    umami.track('Issue created', { issueId: issue!.id })
+    track('Issue created', { issueId: issue!.id })
     await navigateTo(`/issue/${issue!.id}`)
   }
   catch (error: any) {
@@ -50,7 +93,6 @@ definePageMeta({
       <UiPageHeader
         title="New Issue"
         description="Describe an issue you'd like the community to work on."
-        center
       />
 
       <!-- Ban notice -->
@@ -112,6 +154,58 @@ definePageMeta({
               :rows="6"
             />
           </UFormField>
+
+          <!-- Location picker -->
+          <LocationPicker
+            v-model:latitude="latitude"
+            v-model:longitude="longitude"
+            v-model:location-name="locationName"
+            v-model:scale="scale"
+          />
+
+          <!-- Similar issues panel -->
+          <div
+            v-if="similarIssues.length > 0"
+            class="rounded-lg border border-yellow-200 bg-yellow-50 p-4"
+          >
+            <div class="flex items-center gap-2 mb-3">
+              <UIcon name="lucide:alert-triangle" class="size-4 text-yellow-600" />
+              <span class="text-sm font-medium text-yellow-800">Similar issues already exist</span>
+            </div>
+            <ul class="space-y-2">
+              <li
+                v-for="similar in similarIssues"
+                :key="similar.id"
+                class="flex items-start gap-2"
+              >
+                <NuxtLink
+                  :to="`/issue/${similar.id}`"
+                  class="text-sm text-primary-700 hover:text-primary-900 underline underline-offset-2 flex-1"
+                >
+                  {{ similar.title }}
+                </NuxtLink>
+                <span class="text-xs text-yellow-600 font-mono shrink-0">
+                  {{ similar.similarity }}% match
+                </span>
+              </li>
+            </ul>
+            <p class="text-xs text-yellow-600 mt-2">
+              Consider joining an existing issue instead of creating a duplicate.
+            </p>
+          </div>
+
+          <div v-if="searchingDuplicates" class="flex items-center gap-2 text-sm text-gray-500">
+            <UIcon name="lucide:loader-2" class="size-4 animate-spin" />
+            Checking for similar issues...
+          </div>
+
+          <div
+            v-else-if="similarStatus === 'unavailable'"
+            class="flex items-center gap-2 text-xs text-gray-500"
+          >
+            <UIcon name="lucide:alert-circle" class="size-4" />
+            Similarity check is temporarily unavailable — please double-check existing issues before submitting.
+          </div>
 
           <UButton
             type="submit"
