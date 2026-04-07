@@ -29,17 +29,25 @@ jobs:
       - run: bunx vue-tsc --noEmit
 
   # ────────────────────────────────────────────────────────────────
-  # Shared: extract branch name for Neon/Doppler branch naming.
+  # Shared: extract a slash-free branch slug for Neon/Doppler.
+  # tj-actions/branch-names returns the raw branch (e.g.
+  # `feat/postgres-features`); we replace `/` with `-` so the
+  # downstream Neon branch name has a single slash.
   # ────────────────────────────────────────────────────────────────
   setup:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
-      branch: ${{ steps.branch_name.outputs.current_branch }}
+      branch_slug: ${{ steps.slug.outputs.value }}
     steps:
       - name: Get branch name
         id: branch_name
         uses: tj-actions/branch-names@v8
+      - name: Slugify branch name
+        id: slug
+        run: |
+          slug="${{ steps.branch_name.outputs.current_branch }}"
+          echo "value=${slug//\//-}" >> "$GITHUB_OUTPUT"
 
   # ────────────────────────────────────────────────────────────────
   # PR PREVIEW
@@ -64,7 +72,7 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       BRANCH_CONFIG: prd_pr_${{ github.event.pull_request.number }}
-      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch }}
+      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch_slug }}
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -139,7 +147,7 @@ jobs:
     environment: preview
     env:
       BRANCH_CONFIG: prd_pr_${{ github.event.pull_request.number }}
-      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch }}
+      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch_slug }}
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
       - uses: dopplerhq/cli-action@v3

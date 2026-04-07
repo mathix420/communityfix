@@ -16,10 +16,11 @@ useSeoMeta({
 
 <template>
   <AppContainer>
+    <!-- @vue-expect-error vue-tsc type collapse on Nuxt Content's ContentRenderer slots -->
     <ContentRenderer
       v-if="whitepaper"
       :value="whitepaper"
-      :class="prose"
+      class="prose"
     />
     <div v-else>
       Not found
