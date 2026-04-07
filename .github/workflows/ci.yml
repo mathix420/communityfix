@@ -23,7 +23,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bunx vue-tsc --noEmit
@@ -42,7 +42,7 @@ jobs:
     steps:
       - name: Get branch name
         id: branch_name
-        uses: tj-actions/branch-names@v8
+        uses: tj-actions/branch-names@v9
       - name: Slugify branch name
         id: slug
         run: |
@@ -75,9 +75,9 @@ jobs:
       NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch_slug }}
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
 
       - name: Compute branch expiration (14 days out)
@@ -95,8 +95,18 @@ jobs:
 
       - name: Create/update Doppler branch config for PR
         run: |
-          # Create the branch config (idempotent — swallow "already exists")
-          doppler configs create "$BRANCH_CONFIG" -p "$DOPPLER_PROJECT" -e prd 2>/dev/null || true
+          # Try to create the branch config. Swallow ONLY the
+          # "already exists" case so re-runs are idempotent — fail
+          # loudly on auth/permission errors instead of masking them.
+          if ! create_err=$(doppler configs create "$BRANCH_CONFIG" -p "$DOPPLER_PROJECT" -e prd 2>&1); then
+            if echo "$create_err" | grep -qi "already exists"; then
+              echo "Doppler config $BRANCH_CONFIG already exists, reusing it."
+            else
+              echo "::error::Failed to create Doppler config $BRANCH_CONFIG"
+              echo "$create_err"
+              exit 1
+            fi
+          fi
 
           # Override NUXT_DATABASE_URL with the PR branch's direct (DDL-safe) URL.
           # Previews bypass Hyperdrive; the Nitro plugin sees NUXT_DATABASE_URL
@@ -127,7 +137,7 @@ jobs:
           doppler run -c "$BRANCH_CONFIG" -- bunx wrangler versions upload "${VAR_FLAGS[@]}"
 
       - name: Comment preview details on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             github.rest.issues.createComment({
@@ -150,7 +160,7 @@ jobs:
       NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch_slug }}
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
 
       - name: Delete Neon branch
         uses: neondatabase/delete-branch-action@v3
@@ -160,7 +170,18 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
 
       - name: Delete Doppler branch config
-        run: doppler configs delete "$BRANCH_CONFIG" -p "$DOPPLER_PROJECT" --yes || true
+        run: |
+          # Swallow ONLY "not found" so re-runs on already-cleaned PRs
+          # are idempotent — fail loudly on auth/permission errors.
+          if ! delete_err=$(doppler configs delete "$BRANCH_CONFIG" -p "$DOPPLER_PROJECT" --yes 2>&1); then
+            if echo "$delete_err" | grep -qiE "not found|does not exist"; then
+              echo "Doppler config $BRANCH_CONFIG already gone, nothing to delete."
+            else
+              echo "::error::Failed to delete Doppler config $BRANCH_CONFIG"
+              echo "$delete_err"
+              exit 1
+            fi
+          fi
 
   # ────────────────────────────────────────────────────────────────
   # PRODUCTION — migrate then deploy.
@@ -179,9 +200,9 @@ jobs:
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
       - name: Run Drizzle migrations against Neon production
         run: doppler run -c prd -- bun run server/database/migrate.ts
@@ -194,9 +215,9 @@ jobs:
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
 
       - name: Build
@@ -230,9 +251,9 @@ jobs:
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
       - name: Run Drizzle migrations against Neon staging
         run: doppler run -c stg -- bun run server/database/migrate.ts
@@ -245,9 +266,9 @@ jobs:
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
-      - uses: dopplerhq/cli-action@v3
+      - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
 
       - name: Build
