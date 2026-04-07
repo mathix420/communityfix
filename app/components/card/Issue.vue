@@ -12,6 +12,7 @@ const props = defineProps<{
     subIssueCount?: number
     voteScore?: number
     status?: string
+    solutionStatus?: string | null
     locationName?: string | null
     scale?: string | null
   }
@@ -89,6 +90,15 @@ async function handleShare() {
         </UiBadge>
         <UiBadge v-else-if="issue.status === 'pending'" variant="warning">
           Pending
+        </UiBadge>
+        <UiBadge v-if="issue.solutionStatus === 'plan'" variant="default">
+          Plan
+        </UiBadge>
+        <UiBadge v-else-if="issue.solutionStatus === 'in-progress'" variant="warning">
+          In progress
+        </UiBadge>
+        <UiBadge v-else-if="issue.solutionStatus === 'done'" variant="success">
+          Done
         </UiBadge>
       </h2>
       <p class="text-gray-700">

@@ -62,6 +62,10 @@ export default defineNuxtConfig({
       asyncContext: true,
       tasks: true,
     },
+    scheduledTasks: {
+      // Recompute all trust scores daily at 3am UTC
+      '0 3 * * *': ['compute:trust-scores'],
+    },
   },
 
   runtimeConfig: {

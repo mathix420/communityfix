@@ -318,7 +318,7 @@ Drought also lowers trees'' chemical defenses, making them easy targets for bark
 
 The severity of drought-induced decline varies by region depending on local geology, soil type, groundwater access, and tree species composition. Regional sub-issues below document specific local conditions and invite solutions tailored to each context.',
    'a0000003-0000-4000-8000-000000000003', 'Amara Okafor',
-   0, 1, 0, 0, 'approved', 'issue',
+   4, 1, 0, 0, 'approved', 'issue',
    NULL, 'global',
    '2026-03-16T10:00:00.000Z', '2026-03-16T10:00:00.000Z'),
 
@@ -360,7 +360,7 @@ In 2023, the commune of Waldighoffen was placed under reinforced drought alert, 
 
 As of early 2026, winter groundwater recharge in the Sundgau has been deficient, and summer water levels are projected to be significantly lower than in 2025. Without structural changes to how water is retained and managed in the landscape, the forests will continue to decline with each dry summer.',
    'a0000004-0000-4000-8000-000000000004', 'Leo Martinez',
-   0, 0, 0, 0, 'approved', 'issue',
+   2, 0, 0, 0, 'approved', 'issue',
    'Sundgau, Grand Est, Metropolitan France', ST_SetSRID(ST_MakePoint(7.2541, 47.6413), 4326), 'region',
    '2026-03-19T08:30:00.000Z', '2026-03-19T08:30:00.000Z')
 ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
@@ -678,6 +678,124 @@ INSERT INTO issues (id, parent_id, title, description, author_id, author_name, s
    0, 0, 0, 0, 'approved', 'solution', 'city',
    '2026-04-04T12:00:00.000Z', '2026-04-04T12:00:00.000Z')
 ON CONFLICT DO NOTHING;
+
+-- ── Solutions for Drought-Induced Forest Decline (parent_id = 40, global cause) ──
+
+INSERT INTO issues (id, parent_id, title, description, detailed_description, author_id, author_name, solution_count, sub_issue_count, comment_count, source_count, status, type, scale, solution_status, created_at, updated_at) VALUES
+  (68, 40, 'Mosaic forest silviculture',
+   'Replace single-species, even-aged stands with mixed-species, mixed-age "mosaic" forests so that climate, pest, and drought risk is spread across many trees rather than concentrated on one vulnerable species. The approach is being pushed by the French ONF as the standard response to dieback and is gradually being applied wherever new plantings are made.',
+   'A mosaic forest is a stand made up of several species, often of different ages, planted or regenerated together. The goal is resilience: when drought, pests, or disease hit one species, the others continue to provide cover, soil protection, and economic value. It is the explicit alternative to the productivity-driven monoculture model that left European forests so exposed to bark beetles after 2018.
+
+The ONF (Office National des Forêts) promotes this concept across all French public forests as part of its climate adaptation strategy. In practice it means mixing oaks, cedars, hornbeams, lindens, and other candidate species into formerly pure beech, spruce, or fir stands, and accepting that the new forest will look and behave differently from the one it replaces.
+
+Mosaic silviculture is being applied opportunistically wherever clearings or replantings occur, but it cannot be retrofitted onto existing stands at scale — only the next generation of trees benefits. Foresters across the Grand Est use it where they can, and it is now embedded in management plans for communal forests.',
+   'a0000007-0000-4000-8000-000000000007', 'Yuki Tanaka',
+   0, 0, 0, 0, 'approved', 'solution', 'global', 'in-progress',
+   '2026-04-04T08:00:00.000Z', '2026-04-04T08:00:00.000Z'),
+
+  (69, 40, 'Thin forest stands',
+   'Reduce stand density so each remaining tree has access to more soil water during dry periods. This is the most established silvicultural response to drought stress and is widely applied across European temperate forests, including in the Grand Est.',
+   'Stand thinning is one of the oldest tools in the forester''s kit. By removing a fraction of the trees in a dense stand, the remaining trees face less competition for soil water, light, and nutrients. During moderate droughts, thinned stands have measurably lower mortality and recover faster than unthinned ones — a result confirmed across decades of European and North American forestry research.
+
+The limit of the technique is severity. When drought is mild to moderate, thinning helps. When drought is extreme — multi-year, with high temperatures and depleted soil moisture — even widely spaced trees run out of water and die. Thinning cannot save a forest from collapse; it can only extend the runway and reduce the rate of damage.
+
+In the Grand Est, ONF foresters apply thinning as a standard response in communal and state forests, including in stands that have already started to decline. The results are visible: thinned spruce and beech stands fare better through dry summers than dense ones. But foresters also acknowledge openly that thinning alone is insufficient — they have described feeling powerless against droughts that exceed any historical precedent.',
+   'a0000006-0000-4000-8000-000000000006', 'James Whitfield',
+   0, 0, 0, 0, 'approved', 'solution', 'global', 'done',
+   '2026-04-04T08:30:00.000Z', '2026-04-04T08:30:00.000Z'),
+
+  (70, 40, 'Restore landscape water retention',
+   'Slow down and infiltrate water at the landscape scale using hedgerows, retention ponds, swales, restored wetlands, and beaver-led re-wetting. The goal is to recharge small aquifers and keep soils moist longer between rainfall events, addressing the structural water shortage that no forestry technique alone can fix.',
+   'When forests dry out structurally, the problem is not in the forest — it is in the wider landscape. Decades of drainage, intensive agriculture, channelized streams, and removed hedgerows have caused water to run off the land instead of soaking in. Where water once lingered for weeks or months, it now flushes downstream within days, leaving aquifers and forest soils chronically under-recharged.
+
+Landscape water retention reverses this. The toolkit includes hedgerows and small wooded buffers along contour lines, swales and shallow infiltration basins on agricultural land, restored wetlands in valley bottoms, beaver dams or beaver-style leaky dams in headwater streams, and pond restoration in former mill sites. Each individual intervention is small; the collective effect on a watershed can be substantial. The Slovak "New Water Paradigm" projects, the British "Slow the Flow" programs, and beaver reintroductions in Bavaria all show measurable improvements in summer baseflow and soil moisture.
+
+This is currently the most under-explored lever for drought-stressed forests in continental Europe. It addresses the root cause — water leaving the landscape too fast — rather than treating symptoms in the forest itself. The catch is that it requires coordination across many landowners and land uses, which is exactly the kind of work that no single forestry agency is set up to lead.',
+   'a0000004-0000-4000-8000-000000000004', 'Leo Martinez',
+   0, 0, 0, 0, 'approved', 'solution', 'global', 'plan',
+   '2026-04-04T09:00:00.000Z', '2026-04-04T09:00:00.000Z'),
+
+  (71, 40, 'Test new species and provenances',
+   'Plant experimental forest "gardens" combining local and non-local tree species and seed provenances to study which ones adapt to future climate conditions. The work is run as a long-term research program by the ONF under the name RENEssences, with plots distributed across French regions including the Grand Est.',
+   'No one knows for certain which tree species will still thrive in continental Europe by 2080. The species that dominated for centuries — beech, spruce, fir, ash — are visibly failing in many places, but the alternatives are far from obvious. Some candidates are local species from drier microclimates; others are species or provenances from southern Europe, the Balkans, or even further afield. Each comes with unknowns about pests, soils, frost tolerance, and biodiversity impact.
+
+The ONF''s RENEssences project addresses this through experimental "gardens": small, dense plots in which dozens of species and provenances are planted side by side, then monitored for decades. The data feeds into national replanting recommendations as it accumulates. Plots have been established across the country, and the network is growing.
+
+The strength of the approach is that it is empirical rather than guess-based. The weakness is time. Species selection decisions need to be informed by results that will not be available for 20 to 40 years — and many forests cannot wait that long. RENEssences is still the most rigorous source of guidance available, but the gap between when we need answers and when we will have them is the central tension of forest climate adaptation.',
+   'a0000005-0000-4000-8000-000000000005', 'Priya Sharma',
+   0, 1, 0, 0, 'approved', 'solution', 'global', 'in-progress',
+   '2026-04-04T09:30:00.000Z', '2026-04-04T09:30:00.000Z')
+ON CONFLICT DO NOTHING;
+
+-- ── Solutions for Drought – Sundgau (parent_id = 41, regional) ──
+
+INSERT INTO issues (id, parent_id, title, description, detailed_description, author_id, author_name, solution_count, sub_issue_count, comment_count, source_count, status, type, location_name, location, scale, solution_status, created_at, updated_at) VALUES
+  (72, 41, 'Plant climate-adapted species',
+   'Use targeted subsidies to fund the planting of at least two climate-adapted tree species per intervention in declining communal forests. In Alsace this is delivered through the Collectivité européenne d''Alsace''s "Forêts d''Avenir d''Alsace" program, which has been running since 2021 and explicitly targets the Sundgau among other declining areas.',
+   'When a beech, spruce, or ash stand collapses, communes face a choice: replant with the same species that failed, or experiment with something new. Most lack the budget and the expertise to do the second on their own. The "Forêts d''Avenir d''Alsace" program (FAA), launched in 2021 by the Collectivité européenne d''Alsace, exists to remove that barrier.
+
+FAA subsidies cover the planting of climate-adapted species in communal forests, with one binding constraint: each intervention must include at least two species, complementing whatever natural regeneration occurs on the site. The aim is to start every new generation of trees as a small mosaic rather than a fragile monoculture. Communes apply through the Collectivité, choose from a list of candidate species recommended for their soil and climate, and receive support for both the planting and the early maintenance.
+
+In the Sundgau the program is now active in several communal forests. It does not solve the drought problem itself — the trees still need water — but it changes the trajectory of the next generation, giving the new forest a better chance of standing up to the climate of 2050 and beyond. The big open question is which species will actually succeed on Sundgau''s heavy clay soils, and only time will tell.',
+   'a0000008-0000-4000-8000-000000000008', 'Elena Popescu',
+   0, 1, 0, 0, 'approved', 'solution',
+   'Sundgau, Grand Est, Metropolitan France', ST_SetSRID(ST_MakePoint(7.2541, 47.6413), 4326), 'region', 'in-progress',
+   '2026-04-04T10:00:00.000Z', '2026-04-04T10:00:00.000Z'),
+
+  (73, 41, 'Drought-period water restrictions',
+   'Impose binding restrictions on non-essential water use during drought, and coordinate emergency drinking-water supply between communes when local sources fail. In the Sundgau this has been delivered by the Communauté de Communes Sundgau through prefectural alerts since 2018, with reinforced restrictions extended across all 64 communes from August 2025.',
+   'When the Sundgau''s small aquifers run low, the Communauté de Communes Sundgau (CC Sundgau), which manages drinking-water service for the area''s communes including Waldighoffen and Ferrette, has the authority to enforce demand-side measures. Since 2018 these have been triggered repeatedly: bans on watering gardens, washing cars, filling pools, and irrigating non-essential land, layered into prefectural arrêtés as the situation worsens.
+
+The 2023 episode is the clearest case: Waldighoffen was placed under reinforced drought alert, and Ferrette had to be supplied by tanker truck after its local sources ran dry — a logistically demanding operation that showed the system can stretch in an emergency. The August 2025 arrêté extended reinforced water-use restrictions across every commune in the CC Sundgau territory, the broadest measure the area has seen.
+
+These measures work for what they are designed to do: keep taps running through the worst weeks of summer. But they explicitly do not, and cannot, address the underlying problem. Drought restrictions reduce human water use; they do not put water back into the aquifer or the forest soil. They are a coping mechanism for the human-water system, not a solution for the forests, and CC Sundgau and the prefecture both acknowledge this openly.',
+   'a0000002-0000-4000-8000-000000000002', 'Marcus Johnson',
+   0, 1, 0, 0, 'approved', 'solution',
+   'Sundgau, Grand Est, Metropolitan France', ST_SetSRID(ST_MakePoint(7.2541, 47.6413), 4326), 'region', 'done',
+   '2026-04-04T10:30:00.000Z', '2026-04-04T10:30:00.000Z')
+ON CONFLICT DO NOTHING;
+
+-- ── Sub-issues attached to drought solutions (74–76) ──
+
+INSERT INTO issues (id, parent_id, title, description, detailed_description, author_id, author_name, solution_count, sub_issue_count, comment_count, source_count, status, type, scale, created_at, updated_at) VALUES
+  (74, 71, 'Trials too slow for dying stands',
+   'Multi-decade species trials produce reliable data only after 20–40 years, but many forests are dying now. There is no mechanism to give foresters actionable guidance on the timescale at which they actually need to make replanting decisions.',
+   'RENEssences and similar long-term species trials are scientifically rigorous: dozens of species and provenances grown side by side, monitored for survival, growth, pest resistance, and frost tolerance over multiple decades. The results that come out of them are trustworthy precisely because they take this long.
+
+The problem is that foresters in the Grand Est and elsewhere need to make replanting decisions every year. A communal forest that lost its spruce in 2018 is being replanted right now, in 2026, with whichever species the local ONF agent thinks has the best chance — and that decision will not be validated by trial data until 2046 at the earliest. By then it will be too late to reverse a bad choice. There is currently no formalized process for translating partial, in-progress trial results into shorter-term recommendations, and no fallback if the species chosen today turns out to be wrong.',
+   'a0000005-0000-4000-8000-000000000005', 'Priya Sharma',
+   0, 0, 0, 0, 'approved', 'issue', 'global',
+   '2026-04-04T11:00:00.000Z', '2026-04-04T11:00:00.000Z')
+ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
+
+INSERT INTO issues (id, parent_id, title, description, detailed_description, author_id, author_name, solution_count, sub_issue_count, comment_count, source_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
+  (75, 72, 'Species suitability on clay unknown',
+   'The Sundgau''s heavy clay soils, which become rock-hard and impenetrable when dry, are very different from the sandy or loamy soils where most candidate replacement species have been tested. There is no published guidance on which FAA-recommended species will actually succeed on Sundgau clay.',
+   'The FAA program''s candidate species list is drawn from regional and national recommendations developed for the Grand Est and France as a whole. But the Sundgau''s defining feature is its clay soils — soils that hold water in wet periods but seal up and crack in dry ones, cutting tree roots off from any moisture that does fall. Beech historically thrived on these soils, which is why it was so dominant; the species being trialled as replacements have mostly not been tested on equivalent ground.
+
+A 2023 study documented widespread beech dieback specifically on Sundgau soils, but no equivalent study has tracked how oak, cedar, or other proposed alternatives perform on the same ground. Foresters in Altkirch and elsewhere are planting these species on faith. If the choices turn out to be wrong, the cost is another generation of failed forest — and the time loss is measured in decades, not years.',
+   'a0000008-0000-4000-8000-000000000008', 'Elena Popescu',
+   0, 0, 0, 0, 'approved', 'issue',
+   'Sundgau, Grand Est, Metropolitan France', ST_SetSRID(ST_MakePoint(7.2541, 47.6413), 4326), 'region',
+   '2026-04-04T11:30:00.000Z', '2026-04-04T11:30:00.000Z')
+ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
+
+INSERT INTO issues (id, parent_id, title, description, detailed_description, author_id, author_name, solution_count, sub_issue_count, comment_count, source_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
+  (76, 73, 'Restrictions don''t refill aquifers',
+   'Demand-side water restrictions keep human supply running through dry summers but do nothing to recharge the Sundgau''s small aquifers or relieve forest water stress. The forests continue to decline regardless of how strict the bans on garden watering become.',
+   'The Sundgau''s drought response is built around protecting human drinking-water supply: prefectural alerts, watering bans, tanker deliveries when sources run dry. Within that narrow goal, the system works — taps stay on and acute crises are managed. But it is not, and cannot be, a forest solution.
+
+Aquifer recharge in the Sundgau depends on winter rainfall slowly soaking into the ground. Reducing summer water use does not put water back into the ground; at best it prevents the existing reserves from being drawn down faster. The forest, meanwhile, depends entirely on direct rainfall and soil moisture, neither of which is affected by what humans pump from taps. Every dry summer the forest draws down its own moisture reserves and loses more trees, regardless of how strict the human-side restrictions are. Closing this gap requires intervening in the landscape itself, not just on the demand side.',
+   'a0000002-0000-4000-8000-000000000002', 'Marcus Johnson',
+   0, 0, 0, 0, 'approved', 'issue',
+   'Sundgau, Grand Est, Metropolitan France', ST_SetSRID(ST_MakePoint(7.2541, 47.6413), 4326), 'region',
+   '2026-04-04T12:00:00.000Z', '2026-04-04T12:00:00.000Z')
+ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
+
+-- Backfill solution counts on parent issues whose existing rows were
+-- created before the drought solutions were seeded.
+UPDATE issues SET solution_count = 4 WHERE id = 40;
+UPDATE issues SET solution_count = 2 WHERE id = 41;
 
 -- Reset serial sequence after explicit ID inserts
 SELECT setval('issues_id_seq', (SELECT MAX(id) FROM issues));

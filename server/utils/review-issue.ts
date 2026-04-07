@@ -89,6 +89,7 @@ export async function reviewIssue(issueId: number) {
       .where(eq(issues.id, issueId))
     if (issue.authorId) {
       await checkAndApplyBan(issue.authorId)
+      await updateUserTrustScore(issue.authorId)
     }
     return
   }
@@ -132,4 +133,8 @@ export async function reviewIssue(issueId: number) {
       await tx.insert(issueSdgs).values(validSdgIds.map(sdgId => ({ issueId, sdgId })))
     }
   })
+
+  if (issue.authorId) {
+    await updateUserTrustScore(issue.authorId)
+  }
 }

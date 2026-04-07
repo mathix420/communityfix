@@ -18,14 +18,19 @@ export default defineEventHandler(async (event) => {
     )
 
     await tx.update(issues)
-      .set({ voteScore: sql`(SELECT COALESCE(SUM(value), 0) FROM votes WHERE issue_id = ${id})` })
+      .set({ voteScore: sql`(SELECT COALESCE(SUM(value * weight), 0) FROM votes WHERE issue_id = ${id})` })
       .where(eq(issues.id, id))
   })
 
   const updated = await db.query.issues.findFirst({
     where: eq(issues.id, id),
-    columns: { voteScore: true },
+    columns: { voteScore: true, authorId: true },
   })
+
+  // Recalculate issue author's trust score
+  if (updated?.authorId) {
+    updateUserTrustScore(updated.authorId).catch(console.error)
+  }
 
   return { score: updated?.voteScore ?? 0, userVote: null }
 })

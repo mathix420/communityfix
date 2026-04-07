@@ -28,6 +28,7 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
     voteScore: issue.voteScore,
     status: issue.status,
     type: issue.type,
+    solutionStatus: issue.solutionStatus,
     tags: issue.issueTags.map(it => it.tag.slug),
     sustainableDevelopmentGoals: issue.issueSdgs.map(is => ({
       id: is.sdg.id,

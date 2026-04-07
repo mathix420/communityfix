@@ -55,7 +55,11 @@ export default defineEventHandler(async (event) => {
       orderByClause = desc(issues.voteScore)
       break
     case 'trending':
-      orderByClause = sql`${issues.voteScore}::float / GREATEST(1, EXTRACT(EPOCH FROM (NOW() - ${issues.createdAt})) / 86400) DESC`
+      // HN-style ranking: engagement / (age_hours + 2) ^ gravity
+      // Solutions (3x) and sub-issues (2x) weigh more than raw votes
+      orderByClause = sql`(
+        ${issues.voteScore} + ${issues.solutionCount} * 3 + ${issues.subIssueCount} * 2 + ${issues.commentCount}
+      )::float / POWER(EXTRACT(EPOCH FROM (NOW() - ${issues.createdAt})) / 3600 + 2, 1.5) DESC`
       break
     default:
       orderByClause = desc(issues.createdAt)

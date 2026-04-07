@@ -3,7 +3,18 @@ const route = useRoute()
 const issueId = computed(() => route.params.issueId)
 const toast = useToast()
 
-const { data: solutions, refresh } = await useFetch(() => `/api/issue/${issueId.value}/solutions`)
+const sort = ref('trending')
+const sortOptions = [
+  { label: 'Trending', value: 'trending' },
+  { label: 'Newest', value: 'newest' },
+  { label: 'Oldest', value: 'oldest' },
+  { label: 'Most Voted', value: 'most_voted' },
+]
+
+const { data: solutions, refresh } = await useFetch(() => `/api/issue/${issueId.value}/solutions`, {
+  query: computed(() => sort.value !== 'trending' ? { sort: sort.value } : {}),
+  watch: [sort],
+})
 
 const showForm = ref(false)
 const submitting = ref(false)
@@ -49,6 +60,27 @@ async function submit() {
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
+    <div class="flex items-center justify-between gap-2">
+      <AuthState v-slot="{ loggedIn: isLoggedIn }">
+        <UButton
+          v-if="isLoggedIn && !banStatus?.banned && !showForm"
+          color="primary"
+          size="lg"
+          data-umami-event="Open solution form"
+          @click="showForm = true"
+        >
+          Propose a solution
+        </UButton>
+      </AuthState>
+      <USelectMenu
+        v-model="sort"
+        :items="sortOptions"
+        value-key="value"
+        size="md"
+        class="w-44 ml-auto"
+      />
+    </div>
+
     <AuthState v-slot="{ loggedIn: isLoggedIn }">
       <div v-if="isLoggedIn">
         <!-- Ban notice -->
@@ -59,74 +91,62 @@ async function submit() {
         />
 
         <!-- Solution form (hidden when banned) -->
-        <template v-else>
-          <UButton
-            v-if="!showForm"
-            color="primary"
-            size="lg"
-            data-umami-event="Open solution form"
-            @click="showForm = true"
+        <UiCard
+          v-else-if="showForm"
+          padding="lg"
+          class="flex flex-col gap-4"
+        >
+          <form
+            class="grid gap-4"
+            @submit.prevent="submit"
           >
-            Propose a solution
-          </UButton>
-
-          <UiCard
-            v-else
-            padding="lg"
-            class="flex flex-col gap-4"
-          >
-            <form
-              class="grid gap-4"
-              @submit.prevent="submit"
+            <UFormField
+              label="Title"
+              name="title"
+              required
             >
-              <UFormField
-                label="Title"
-                name="title"
-                required
-              >
-                <UInput
-                  v-model="title"
-                  type="text"
-                  placeholder="Solution title"
-                  size="lg"
-                  class="w-full"
-                />
-              </UFormField>
+              <UInput
+                v-model="title"
+                type="text"
+                placeholder="Solution title"
+                size="lg"
+                class="w-full"
+              />
+            </UFormField>
 
-              <UFormField
-                label="Description"
-                name="description"
-                required
-              >
-                <UTextarea
-                  v-model="description"
-                  placeholder="Describe your proposed solution"
-                  size="lg"
-                  class="w-full"
-                  :rows="3"
-                />
-              </UFormField>
+            <UFormField
+              label="Description"
+              name="description"
+              required
+            >
+              <UTextarea
+                v-model="description"
+                placeholder="Describe your proposed solution"
+                size="lg"
+                class="w-full"
+                :rows="3"
+              />
+            </UFormField>
 
-              <div class="flex gap-2">
-                <UButton
-                  type="submit"
-                  color="primary"
-                  size="lg"
-                  :loading="submitting"
-                >
-                  Submit
-                </UButton>
-                <UButton
-                  variant="ghost"
-                  size="lg"
-                  @click="showForm = false"
-                >
-                  Cancel
-                </UButton>
-              </div>
-            </form>
-          </UiCard>
-        </template>
+            <div class="flex gap-2">
+              <UButton
+                type="submit"
+                color="primary"
+                size="lg"
+                :loading="submitting"
+              >
+                Submit
+              </UButton>
+              <UButton
+                variant="ghost"
+                size="lg"
+                @click="showForm = false"
+              >
+                Cancel
+              </UButton>
+            </div>
+          </form>
+        </UiCard>
       </div>
     </AuthState>
 

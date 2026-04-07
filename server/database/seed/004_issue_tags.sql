@@ -203,6 +203,71 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (45, (SELECT id FROM tags WHERE slug = 'biodiversity'))
 ON CONFLICT DO NOTHING;
 
+-- ── Solutions for Drought-Induced Forest Decline – global cause (68–71) ────
+
+-- Mosaic forest silviculture (68)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (68, (SELECT id FROM tags WHERE slug = 'forestry')),
+  (68, (SELECT id FROM tags WHERE slug = 'biodiversity')),
+  (68, (SELECT id FROM tags WHERE slug = 'sustainability'))
+ON CONFLICT DO NOTHING;
+
+-- Thin forest stands (69)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (69, (SELECT id FROM tags WHERE slug = 'forestry')),
+  (69, (SELECT id FROM tags WHERE slug = 'sustainability'))
+ON CONFLICT DO NOTHING;
+
+-- Restore landscape water retention (70)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (70, (SELECT id FROM tags WHERE slug = 'water')),
+  (70, (SELECT id FROM tags WHERE slug = 'environment')),
+  (70, (SELECT id FROM tags WHERE slug = 'infrastructure'))
+ON CONFLICT DO NOTHING;
+
+-- Test new species and provenances (71)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (71, (SELECT id FROM tags WHERE slug = 'forestry')),
+  (71, (SELECT id FROM tags WHERE slug = 'innovation')),
+  (71, (SELECT id FROM tags WHERE slug = 'biodiversity'))
+ON CONFLICT DO NOTHING;
+
+-- ── Solutions for Drought – Sundgau (72–73) ────
+
+-- Plant climate-adapted species (72)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (72, (SELECT id FROM tags WHERE slug = 'forestry')),
+  (72, (SELECT id FROM tags WHERE slug = 'environment')),
+  (72, (SELECT id FROM tags WHERE slug = 'sustainability'))
+ON CONFLICT DO NOTHING;
+
+-- Drought-period water restrictions (73)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (73, (SELECT id FROM tags WHERE slug = 'water')),
+  (73, (SELECT id FROM tags WHERE slug = 'infrastructure')),
+  (73, (SELECT id FROM tags WHERE slug = 'drought'))
+ON CONFLICT DO NOTHING;
+
+-- ── Sub-issues attached to drought solutions (74–76) ────
+
+-- Trials too slow for dying stands (74, parent=71)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (74, (SELECT id FROM tags WHERE slug = 'forestry')),
+  (74, (SELECT id FROM tags WHERE slug = 'climate'))
+ON CONFLICT DO NOTHING;
+
+-- Species suitability on clay unknown (75, parent=72)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (75, (SELECT id FROM tags WHERE slug = 'forestry')),
+  (75, (SELECT id FROM tags WHERE slug = 'biodiversity'))
+ON CONFLICT DO NOTHING;
+
+-- Restrictions don't refill aquifers (76, parent=73)
+INSERT INTO issue_tags (issue_id, tag_id) VALUES
+  (76, (SELECT id FROM tags WHERE slug = 'water')),
+  (76, (SELECT id FROM tags WHERE slug = 'drought'))
+ON CONFLICT DO NOTHING;
+
 -- ── Urban Carbon Neutrality (46) ──────────────────────────────
 
 -- Urban Carbon Neutrality (46): climate, energy, sustainability, infrastructure

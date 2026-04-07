@@ -144,6 +144,48 @@ ON CONFLICT DO NOTHING;
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (45, 15), (45, 13)
 ON CONFLICT DO NOTHING;
 
+-- ── Solutions for Drought-Induced Forest Decline – global cause (68–71) ────
+
+-- Mosaic forest silviculture (68): SDG 15 (Life on Land), SDG 13 (Climate Action)
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (68, 15), (68, 13)
+ON CONFLICT DO NOTHING;
+
+-- Thin forest stands (69): SDG 15 (Life on Land)
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (69, 15)
+ON CONFLICT DO NOTHING;
+
+-- Restore landscape water retention (70): SDG 6 (Clean Water), SDG 15 (Life on Land)
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (70, 6), (70, 15)
+ON CONFLICT DO NOTHING;
+
+-- Test new species and provenances (71): SDG 15 (Life on Land), SDG 9 (Industry & Infrastructure)
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (71, 15), (71, 9)
+ON CONFLICT DO NOTHING;
+
+-- ── Solutions for Drought – Sundgau (72–73) ────
+
+-- Plant climate-adapted species (72): SDG 15 (Life on Land), SDG 13 (Climate Action)
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (72, 15), (72, 13)
+ON CONFLICT DO NOTHING;
+
+-- Drought-period water restrictions (73): SDG 6 (Clean Water), SDG 11 (Sustainable Cities)
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (73, 6), (73, 11)
+ON CONFLICT DO NOTHING;
+
+-- ── Sub-issues attached to drought solutions (74–76) ────
+
+-- Trials too slow for dying stands (74): SDG 15, SDG 13
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (74, 15), (74, 13)
+ON CONFLICT DO NOTHING;
+
+-- Species suitability on clay unknown (75): SDG 15
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (75, 15)
+ON CONFLICT DO NOTHING;
+
+-- Restrictions don't refill aquifers (76): SDG 6, SDG 15
+INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (76, 6), (76, 15)
+ON CONFLICT DO NOTHING;
+
 -- ── Urban Carbon Neutrality and sub-issues (46-67) ─────────────
 
 -- Urban Carbon Neutrality (46): SDG 13 (Climate Action), 11 (Sustainable Cities), 7 (Clean Energy)

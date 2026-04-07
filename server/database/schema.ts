@@ -22,6 +22,9 @@ export type LocationScale = typeof LOCATION_SCALES[number]
 export const ISSUE_CATEGORIES = ['regional', 'thematic', 'mechanistic'] as const
 export type IssueCategory = typeof ISSUE_CATEGORIES[number]
 
+export const SOLUTION_STATUSES = ['plan', 'in-progress', 'done'] as const
+export type SolutionStatus = typeof SOLUTION_STATUSES[number]
+
 // ── Users ──────────────────────────────────────────────
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -33,6 +36,8 @@ export const users = pgTable('users', {
   banAppealedAt: timestamp('ban_appealed_at', { withTimezone: true }),
   banAppealStatus: text('ban_appeal_status').$type<AppealStatus>(),
   banAppealReason: text('ban_appeal_reason'),
+  trustScore: integer('trust_score').notNull().default(0),
+  trustScoreUpdatedAt: timestamp('trust_score_updated_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -105,6 +110,8 @@ export const issues = pgTable('issues', {
   location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }),
   scale: text('scale').$type<LocationScale>(),
   category: text('category').$type<IssueCategory>(),
+  // Solution lifecycle (only meaningful when type='solution')
+  solutionStatus: text('solution_status').$type<SolutionStatus>(),
   // Embeddings (pgvector)
   embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -126,6 +133,7 @@ export const votes = pgTable('votes', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
   value: integer('value').notNull(), // +1 or -1
+  weight: integer('weight').notNull().default(1), // derived from voter's trust score
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [
