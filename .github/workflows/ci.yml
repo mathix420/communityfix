@@ -15,18 +15,33 @@ env:
 
 jobs:
   # ────────────────────────────────────────────────────────────────
+  # Shared: extract branch name for Neon/Doppler branch naming.
+  # ────────────────────────────────────────────────────────────────
+  setup:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.branch_name.outputs.current_branch }}
+    steps:
+      - name: Get branch name
+        id: branch_name
+        uses: tj-actions/branch-names@v8
+
+  # ────────────────────────────────────────────────────────────────
   # PR PREVIEW
   #
-  # 1. Create a Neon branch for the PR (from `production`).
+  # 1. Create a Neon branch `preview/pr-<N>-<branch>` from production
+  #    (expires in 14 days for auto-cleanup).
   # 2. Create a Doppler branch config `prd_pr_<N>` inheriting from
-  #    `prd`, and override NUXT_DATABASE_URL with the branch's URLs.
+  #    `prd`, and override NUXT_DATABASE_URL with the PR branch's URL.
   # 3. Run drizzle + custom migrations against the Neon branch.
-  # 4. Build and deploy a preview Worker version, injecting every
-  #    Doppler secret as `--var` so the preview bypasses Hyperdrive
+  # 4. Build and upload a preview Worker version, injecting every
+  #    NUXT_* secret as `--var` so the preview bypasses Hyperdrive
   #    and targets the PR's Neon branch directly.
   # ────────────────────────────────────────────────────────────────
   pr-preview:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    needs: setup
     runs-on: ubuntu-latest
     environment: preview
     permissions:
@@ -35,6 +50,7 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       BRANCH_CONFIG: prd_pr_${{ github.event.pull_request.number }}
+      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch }}
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -42,14 +58,18 @@ jobs:
       - uses: dopplerhq/cli-action@v3
       - run: bun install --frozen-lockfile
 
+      - name: Compute branch expiration (14 days out)
+        run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+
       - name: Create Neon branch for PR
         id: neon-branch
-        uses: neondatabase/create-branch-action@v5
+        uses: neondatabase/create-branch-action@v6
         with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          project_id: ${{ vars.NEON_PROJECT_ID }}
           parent: production
-          branch_name: pr-${{ env.PR_NUMBER }}
+          branch_name: ${{ env.NEON_BRANCH_NAME }}
           api_key: ${{ secrets.NEON_API_KEY }}
+          expires_at: ${{ env.EXPIRES_AT }}
 
       - name: Create/update Doppler branch config for PR
         run: |
@@ -84,7 +104,7 @@ jobs:
           )
           doppler run -c "$BRANCH_CONFIG" -- bunx wrangler versions upload "${VAR_FLAGS[@]}"
 
-      - name: Comment preview URL on PR
+      - name: Comment preview details on PR
         uses: actions/github-script@v7
         with:
           script: |
@@ -92,7 +112,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `🚀 Preview deployed — see the wrangler versions upload output in the workflow log for the preview URL.\n\nNeon branch: \`pr-${{ env.PR_NUMBER }}\`\nDoppler config: \`${{ env.BRANCH_CONFIG }}\``
+              body: `🚀 Preview deployed — see the \`wrangler versions upload\` step for the preview URL.\n\n- Neon branch: \`${{ env.NEON_BRANCH_NAME }}\` (expires ${{ env.EXPIRES_AT }})\n- Doppler config: \`${{ env.BRANCH_CONFIG }}\``
             })
 
   # ────────────────────────────────────────────────────────────────
@@ -100,10 +120,12 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   pr-cleanup:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    needs: setup
     runs-on: ubuntu-latest
     environment: preview
     env:
       BRANCH_CONFIG: prd_pr_${{ github.event.pull_request.number }}
+      NEON_BRANCH_NAME: preview/pr-${{ github.event.pull_request.number }}-${{ needs.setup.outputs.branch }}
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
       - uses: dopplerhq/cli-action@v3
@@ -111,8 +133,8 @@ jobs:
       - name: Delete Neon branch
         uses: neondatabase/delete-branch-action@v3
         with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch: pr-${{ github.event.pull_request.number }}
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ env.NEON_BRANCH_NAME }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
       - name: Delete Doppler branch config
@@ -121,11 +143,11 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   # PRODUCTION — migrate then deploy.
   #
-  # Migrations run with the direct (non-pooled) connection string
-  # from Doppler `prd` (NUXT_DATABASE_URL).
+  # Migrations run with the Neon direct (non-pooled) connection
+  # string from Doppler `prd` (NUXT_DATABASE_URL).
   # Deploy uses `wrangler deploy` and then syncs non-DB NUXT_*
-  # secrets to the Worker via `wrangler secret bulk`. NUXT_DATABASE_URL
-  # is deliberately NOT synced so the Hyperdrive binding wins at
+  # secrets via `wrangler secret bulk`. NUXT_DATABASE_URL is
+  # deliberately NOT synced so the Hyperdrive binding wins at
   # runtime via server/plugins/hyperdrive.ts.
   # ────────────────────────────────────────────────────────────────
   migrate:
