@@ -45,8 +45,6 @@ export default defineWebAuthnRegisterEventHandler({
     // nuxt-auth-utils wraps any non-H3Error thrown from onSuccess into a
     // generic 500 "Failed to register credential" before our onError ever
     // sees it (see node_modules/nuxt-auth-utils/.../webauthn/register.js).
-    // Log the original error here so we can see it in Better Stack instead
-    // of staring at the sanitized wrapper.
     const email = normalizeEmail(user.userName)
     try {
       const dbUser = await ensureUser(email)
