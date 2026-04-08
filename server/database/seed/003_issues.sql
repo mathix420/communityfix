@@ -595,87 +595,98 @@ ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
 
 -- ── Solutions for Fossil Heating Phase-Out (parent_id = 47) ──────────────────
 
-INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
+INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (49, 47, 'Mandatory District Heating Connection Zones',
    'Designate zones where buildings must connect to district heating networks when available, coordinated with gas network decommissioning schedules. This prevents stranded infrastructure investment and ensures district heating reaches the density needed for economic viability. Danish cities pioneered this approach and achieve over 60% district heating penetration nationally. Basel''s IWB is already implementing a version of this — publishing an interactive map showing every address''s planned connection date and shutting off gas supply area by area.',
    'a0000003-0000-4000-8000-000000000003', 'Amara Okafor',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-03T08:00:00.000Z', '2026-04-03T08:00:00.000Z'),
 
   (50, 47, 'Retrofit Accelerator with On-Bill Financing',
    'Create a one-stop-shop retrofit service that bundles energy audits, contractor matching, and financing into a single program. The key innovation is on-bill financing: retrofit costs are repaid through the energy bill, so landlords face no upfront cost and the charge transfers with the property, not the owner. This solves the split incentive problem that blocks most building upgrades. Energiesprong in the Netherlands has demonstrated net-zero retrofits completed in under two weeks per dwelling using this model.',
    'a0000006-0000-4000-8000-000000000006', 'James Whitfield',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-03T09:00:00.000Z', '2026-04-03T09:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
 -- ── Solutions for Urban Transport Decarbonization (parent_id = 51) ───────────
 
-INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
+INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (53, 51, 'Right-to-Charge Legislation for Tenants',
    'Pass legislation giving tenants and condominium owners the legal right to install EV charging stations, overriding landlord or homeowner association objections. Pair with a standardized cost-sharing mechanism so building owners are not burdened unfairly. France, Germany, and several US states have enacted right-to-charge laws, and adoption rates in buildings covered by such laws are 3–5x higher than comparable buildings without them. Under current Swiss law (Article 260a Code of Obligations), tenants have no recourse if a landlord refuses charging installation.',
    'a0000008-0000-4000-8000-000000000008', 'Elena Popescu',
-   0, 0, 'approved', 'solution', 'national',
+   0, 0, 'approved', 'solution',
+   'Switzerland', ST_SetSRID(ST_MakePoint(8.2275, 46.8182), 4326), 'national',
    '2026-04-03T10:00:00.000Z', '2026-04-03T10:00:00.000Z'),
 
   (54, 51, 'Car Deregistration Incentive with Mobility Credits',
    'Offer residents a financial incentive to permanently deregister a car, paid as credits redeemable for public transit passes, bike-sharing, car-sharing, and cargo bike rentals rather than cash. This ensures the incentive shifts behavior rather than just subsidizing a transaction. Basel''s Umweltprämie (CHF 1,500, launched September 2025, 400 slots) is a working pilot of this approach. Helsinki''s mobility-as-a-service platform demonstrates the broader ecosystem needed to make car-free living genuinely convenient.',
    'a0000001-0000-4000-8000-000000000001', 'Sarah Chen',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-03T11:00:00.000Z', '2026-04-03T11:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
 -- ── Solutions for Embodied Carbon (parent_id = 55) ──────────────────────────
 
-INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
+INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (57, 55, 'Binding Whole-Life Carbon Limits for New Construction',
    'Mandate maximum lifecycle carbon budgets per square meter for all new construction, declining over time. This forces architects and developers to optimize material choices from the design phase rather than treating embodied carbon as an afterthought. France''s RE2020 regulation, in force since 2022, sets progressively tightening embodied carbon thresholds (−15% in 2024, −25% in 2027, −30 to −40% in 2030) that have already shifted the market toward timber, low-carbon concrete, and bio-based insulation. Denmark''s BR18 set a limit of 12 kg CO2e/m2/year in 2023, tightened to 7.1 in 2025.',
    'a0000004-0000-4000-8000-000000000004', 'Leo Martinez',
-   0, 0, 'approved', 'solution', 'national',
+   0, 0, 'approved', 'solution',
+   'Switzerland', ST_SetSRID(ST_MakePoint(8.2275, 46.8182), 4326), 'national',
    '2026-04-03T12:00:00.000Z', '2026-04-03T12:00:00.000Z'),
 
   (58, 55, 'Demolition Tax and Renovation-First Policy',
    'Impose a fee on demolishing buildings below a certain age and require developers to demonstrate that renovation is not viable before granting demolition permits. The embodied carbon in an existing structure is already "spent" — demolishing it releases that carbon and requires new embodied carbon for the replacement. Basel-Stadt is implementing a version of this: a compensation fee for demolishing buildings younger than 60 years, with revenues funding a Scope 3 emissions compensation fund.',
    'a0000007-0000-4000-8000-000000000007', 'Yuki Tanaka',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-03T13:00:00.000Z', '2026-04-03T13:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
 -- ── Solutions for Residual Emissions (parent_id = 59) ───────────────────────
 
-INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
+INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (61, 59, 'CCS at Municipal Waste-to-Energy Plants',
    'Retrofit waste-to-energy incineration plants with post-combustion carbon capture, transporting captured CO2 for geological storage or industrial use. Since waste incineration produces roughly 50% biogenic CO2 (from organic waste), capturing it achieves net-negative emissions (BECCS). KVA Linth in Switzerland will be the first such facility, designed for 100,000 tonnes CO2/year. Copenhagen''s experience shows the technology is not yet proven at municipal scale — cities should pursue this as one element of a portfolio, not as a single solution.',
    'a0000002-0000-4000-8000-000000000002', 'Marcus Johnson',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-04T08:00:00.000Z', '2026-04-04T08:00:00.000Z'),
 
   (62, 59, 'Carbon Mineralization in Construction Materials',
    'Permanently store captured CO2 by mineralizing it into concrete and other construction materials. The CO2 reacts with calcium and magnesium compounds and becomes rock — permanently sequestered. Neustark, a Swiss ETH spin-off, operates 19+ plants across Switzerland, Austria, Liechtenstein, and Germany doing exactly this, with over 2,500 tonnes of CO2 removed to date and a target of 1 million tonnes by 2030. The resulting concrete performs equivalently to conventional products, creating a circular economy link between carbon removal and construction.',
    'a0000008-0000-4000-8000-000000000008', 'Elena Popescu',
-   0, 0, 'approved', 'solution', 'global',
+   0, 0, 'approved', 'solution',
+   NULL, NULL, 'global',
    '2026-04-04T09:00:00.000Z', '2026-04-04T09:00:00.000Z'),
 
   (63, 59, 'Diversified Negative Emissions Portfolio Strategy',
    'Instead of betting on a single carbon removal technology, build a portfolio combining CCS at point sources, direct air capture procurement contracts, carbon mineralization in construction, and potentially enhanced weathering or biochar. Set intermediate milestones requiring each technology to demonstrate progress, with fallback provisions to scale alternatives if one fails. Copenhagen''s collapse after relying solely on CCS at one waste-to-energy facility is the definitive argument for diversification. The Swiss federal Climate and Innovation Act provides CHF 200 million per year (2025–2030) that cities can leverage for portfolio development.',
    'a0000004-0000-4000-8000-000000000004', 'Leo Martinez',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-04T10:00:00.000Z', '2026-04-04T10:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
 -- ── Solutions for Small Business Viability (parent_id = 64) ─────────────────
 
-INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
+INSERT INTO issues (id, parent_id, title, description, author_id, author_name, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (66, 64, 'Municipal Climate Platform for SME Coordination',
    'Create a public-private platform that provides SMEs with simplified carbon footprint assessment tools, pre-negotiated group rates for retrofits and fleet electrification, peer learning networks organized by sector, and a single point of contact for navigating subsidies and regulations. The platform aggregates demand across hundreds of small businesses to achieve economies of scale that no single SME could access alone. Basel''s Klimaplattform der Wirtschaft, with 800+ member companies and quarterly business lunches since 2014, is a working model of this approach.',
    'a0000001-0000-4000-8000-000000000001', 'Sarah Chen',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-04T11:00:00.000Z', '2026-04-04T11:00:00.000Z'),
 
   (67, 64, 'Sector-Specific Transition Roadmaps for Small Businesses',
    'Develop concrete, step-by-step decarbonization roadmaps for the 10–15 most common SME sectors in a city (restaurants, retail, trades, small manufacturing, professional services). Each roadmap shows exactly what to do first, what it costs, what subsidies are available, and what the payback period is. Generic climate advice overwhelms small business owners; sector-specific guidance with real numbers is actionable. Pair each roadmap with a peer mentor program connecting businesses that have already completed the steps with those starting out.',
    'a0000005-0000-4000-8000-000000000005', 'Priya Sharma',
-   0, 0, 'approved', 'solution', 'city',
+   0, 0, 'approved', 'solution',
+   'Basel-Stadt, Switzerland', ST_SetSRID(ST_MakePoint(7.5886, 47.5596), 4326), 'city',
    '2026-04-04T12:00:00.000Z', '2026-04-04T12:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
