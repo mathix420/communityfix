@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { track } = useUmami()
+
 const links = [
   { name: 'Whitepaper', to: '/whitepaper' },
   { name: 'Privacy', to: '/privacy' },
@@ -52,8 +54,7 @@ function scrollToTop() {
         :to="link.to"
         variant="link"
         color="neutral"
-        data-umami-event="Footer nav"
-        :data-umami-event-page="link.name"
+        @click="track('Footer nav', { page: link.name })"
       >
         {{ link.name }}
       </UButton>
