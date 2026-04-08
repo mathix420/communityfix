@@ -42,27 +42,43 @@ export default defineWebAuthnRegisterEventHandler({
   },
 
   async onSuccess(event, { credential, user }) {
+    // nuxt-auth-utils wraps any non-H3Error thrown from onSuccess into a
+    // generic 500 "Failed to register credential" before our onError ever
+    // sees it (see node_modules/nuxt-auth-utils/.../webauthn/register.js).
+    // Log the original error here so we can see it in Better Stack instead
+    // of staring at the sanitized wrapper.
     const email = normalizeEmail(user.userName)
-    const dbUser = await ensureUser(email)
+    try {
+      const dbUser = await ensureUser(email)
 
-    await upsertCredential({
-      id: credential.id,
-      userId: dbUser.id,
-      publicKey: credential.publicKey,
-      counter: credential.counter,
-      backedUp: credential.backedUp,
-      transports: credential.transports || [],
-    })
+      await upsertCredential({
+        id: credential.id,
+        userId: dbUser.id,
+        publicKey: credential.publicKey,
+        counter: credential.counter,
+        backedUp: credential.backedUp,
+        transports: credential.transports || [],
+      })
 
-    await setUserSession(event, {
-      user: {
-        id: dbUser.id,
+      await setUserSession(event, {
+        user: {
+          id: dbUser.id,
+          email,
+          name: dbUser.name,
+          provider: 'passkey',
+        },
+        loggedInAt: Date.now(),
+      })
+    } catch (err) {
+      console.error('[webauthn/register onSuccess] failed', {
         email,
-        name: dbUser.name,
-        provider: 'passkey',
-      },
-      loggedInAt: Date.now(),
-    })
+        credentialId: credential.id,
+        error: err instanceof Error
+          ? { name: err.name, message: err.message, stack: err.stack }
+          : err,
+      })
+      throw err
+    }
   },
 
   onError(event, error) {
