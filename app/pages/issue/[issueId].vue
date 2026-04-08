@@ -9,6 +9,7 @@ const tabs = [
   { name: 'Solutions', path: `/issue/${issueId.value}/solutions` },
   { name: 'Studies', path: `/issue/${issueId.value}/studies` },
   { name: 'Funding', path: `/issue/${issueId.value}/funding` },
+  { name: 'Tree View', path: `/issue/${issueId.value}/tree` },
 ]
 
 // SEO Meta Tags for Issue Page
