@@ -36,6 +36,13 @@
       "when": 1775562508158,
       "tag": "0004_hesitant_flatman",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775636736326,
+      "tag": "0005_lucky_mantis",
+      "breakpoints": true
     }
   ]
 }

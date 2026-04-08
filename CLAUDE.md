@@ -45,18 +45,16 @@
 - Add analytics events to meaningful user interactions — don't track everything, focus on actions that inform product decisions
 - **When to add events**: form submissions, auth actions (login, register, logout), issue creation, solution submissions, upvotes/endorsements, external link clicks, navigation to key pages, CTA button clicks
 - **When NOT to add events**: routine navigation, scrolling, hover states, every single click
-- **Known issue**: `data-umami-event` attributes do not work on `<NuxtLink>` components — use the `useUmami()` composable with a `@click` handler instead
-- **Data attributes** work on non-NuxtLink elements (e.g., `<UButton>`) for simple interactions:
-  ```html
-  <UButton data-umami-event="Create issue" data-umami-event-page="new">Submit</UButton>
-  ```
-- **Use `useUmami()` composable** for NuxtLinks and programmatic events:
+- **NEVER use `data-umami-event` (or `data-umami-event-*`) attributes anywhere** — not on `UButton`, not on plain `<a>`/`<button>`, not on `<NuxtLink>`. They have caused too many issues in this project and are considered broken. Always use the `useUmami()` composable instead.
+- **Always use the `useUmami()` composable** for every Umami event:
   ```ts
   const { track } = useUmami()
   track('Issue created', { issueId: issue.id })
   ```
   ```html
   <NuxtLink to="/page" @click="track('Nav click')">Link</NuxtLink>
+  <UButton @click="track('Submit issue')">Submit</UButton>
   ```
+- If the click already calls a handler function, put the `track(...)` call **inside** the handler rather than wiring it on the element.
 - Event names: max 50 characters, use sentence case (e.g., `"Sign up with Google"`, `"Submit solution"`)
 - Include relevant context as event data properties (e.g., issue ID, auth provider, tag slug) but never send PII (emails, names)

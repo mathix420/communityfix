@@ -27,6 +27,12 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   name: text('name'),
+  // Short one-line description shown under the name on profiles.
+  headline: text('headline'),
+  // Long-form bio shown on the public profile page.
+  bio: text('bio'),
+  // Free-text location ("Brussels, BE", "Remote"). Not geocoded.
+  location: text('location'),
   provider: text('provider').$type<Provider>(),
   bannedUntil: timestamp('banned_until', { withTimezone: true }),
   banReason: text('ban_reason'),
@@ -43,6 +49,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   credentials: many(credentials),
   issues: many(issues),
   votes: many(votes),
+  qualifications: many(qualifications),
+  endorsementsGiven: many(qualificationEndorsements),
 }))
 
 // ── Credentials (WebAuthn) ─────────────────────────────
@@ -165,4 +173,48 @@ export const issueSdgs = pgTable('issue_sdgs', {
 export const issueSdgsRelations = relations(issueSdgs, ({ one }) => ({
   issue: one(issues, { fields: [issueSdgs.issueId], references: [issues.id] }),
   sdg: one(sdgs, { fields: [issueSdgs.sdgId], references: [sdgs.id] }),
+}))
+
+// ── User qualifications (public-facing "credentials") ─
+// Named `qualifications` to avoid collision with the WebAuthn `credentials`
+// table above. Surfaced to users as "Credentials" in the UI.
+export const qualifications = pgTable('qualifications', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Short headline of the qualification, e.g. "10 years as structural engineer".
+  title: text('title').notNull(),
+  // Area/domain tag, e.g. "civil engineering", "urban planning", "nursing".
+  area: text('area').notNull(),
+  // Optional longer context — how, where, when, proof links.
+  detail: text('detail'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  index('qualifications_user_id_idx').on(t.userId),
+])
+
+export const qualificationsRelations = relations(qualifications, ({ one, many }) => ({
+  user: one(users, { fields: [qualifications.userId], references: [users.id] }),
+  endorsements: many(qualificationEndorsements),
+}))
+
+// ── Qualification endorsements ────────────────────────
+// A community acknowledgement that a user's qualification is legitimate.
+// Rule: only users who themselves have received at least one endorsement
+// may endorse others. When a qualification's content is edited, every row
+// for that qualification is deleted — the claim has changed, so past
+// endorsements no longer apply.
+export const qualificationEndorsements = pgTable('qualification_endorsements', {
+  id: serial('id').primaryKey(),
+  qualificationId: integer('qualification_id').notNull().references(() => qualifications.id, { onDelete: 'cascade' }),
+  endorserId: uuid('endorser_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  unique('qualification_endorsements_unique').on(t.qualificationId, t.endorserId),
+  index('qualification_endorsements_endorser_idx').on(t.endorserId),
+])
+
+export const qualificationEndorsementsRelations = relations(qualificationEndorsements, ({ one }) => ({
+  qualification: one(qualifications, { fields: [qualificationEndorsements.qualificationId], references: [qualifications.id] }),
+  endorser: one(users, { fields: [qualificationEndorsements.endorserId], references: [users.id] }),
 }))

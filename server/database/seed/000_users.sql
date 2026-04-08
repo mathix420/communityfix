@@ -1,10 +1,109 @@
-INSERT INTO users (id, email, name, provider, trust_score, trust_score_updated_at, created_at, updated_at) VALUES
-  ('a0000001-0000-4000-8000-000000000001', 'sarah.chen@example.com', 'Sarah Chen', 'google', 62, '2026-04-05T00:00:00.000Z', '2025-06-12T09:30:00.000Z', '2025-06-12T09:30:00.000Z'),
-  ('a0000002-0000-4000-8000-000000000002', 'marcus.johnson@example.com', 'Marcus Johnson', 'google', 48, '2026-04-05T00:00:00.000Z', '2025-06-15T14:20:00.000Z', '2025-06-15T14:20:00.000Z'),
-  ('a0000003-0000-4000-8000-000000000003', 'amara.okafor@example.com', 'Amara Okafor', 'apple', 55, '2026-04-05T00:00:00.000Z', '2025-07-01T11:00:00.000Z', '2025-07-01T11:00:00.000Z'),
-  ('a0000004-0000-4000-8000-000000000004', 'leo.martinez@example.com', 'Leo Martinez', 'passkey', 35, '2026-04-05T00:00:00.000Z', '2025-07-08T16:45:00.000Z', '2025-07-08T16:45:00.000Z'),
-  ('a0000005-0000-4000-8000-000000000005', 'priya.sharma@example.com', 'Priya Sharma', 'google', 71, '2026-04-05T00:00:00.000Z', '2025-07-20T08:15:00.000Z', '2025-07-20T08:15:00.000Z'),
-  ('a0000006-0000-4000-8000-000000000006', 'james.whitfield@example.com', 'James Whitfield', 'apple', 28, '2026-04-05T00:00:00.000Z', '2025-08-02T10:30:00.000Z', '2025-08-02T10:30:00.000Z'),
-  ('a0000007-0000-4000-8000-000000000007', 'yuki.tanaka@example.com', 'Yuki Tanaka', 'passkey', 44, '2026-04-05T00:00:00.000Z', '2025-08-14T13:00:00.000Z', '2025-08-14T13:00:00.000Z'),
-  ('a0000008-0000-4000-8000-000000000008', 'elena.popescu@example.com', 'Elena Popescu', 'google', 58, '2026-04-05T00:00:00.000Z', '2025-08-25T17:20:00.000Z', '2025-08-25T17:20:00.000Z')
-ON CONFLICT DO NOTHING;
+INSERT INTO users (id, email, name, headline, bio, location, provider, trust_score, trust_score_updated_at, created_at, updated_at) VALUES
+  (
+    'a0000001-0000-4000-8000-000000000001',
+    'sarah.chen@example.com',
+    'Sarah Chen',
+    'Civil engineer focused on resilient water infrastructure',
+    E'Spent the last decade designing and retrofitting stormwater systems for coastal cities.\nHere because the next decade of climate adaptation is going to be community-led, and I want to put my plans where my mouth is.',
+    'Rotterdam, NL',
+    'google',
+    62,
+    '2026-04-05T00:00:00.000Z',
+    '2025-06-12T09:30:00.000Z',
+    '2025-06-12T09:30:00.000Z'
+  ),
+  (
+    'a0000002-0000-4000-8000-000000000002',
+    'marcus.johnson@example.com',
+    'Marcus Johnson',
+    'Community organiser, ex-public-housing tenant rep',
+    E'I run door-knocks, write tenant briefs, and turn city council meetings into something people actually want to attend. Looking for issues where coordination beats funding.',
+    'Detroit, US',
+    'google',
+    48,
+    '2026-04-05T00:00:00.000Z',
+    '2025-06-15T14:20:00.000Z',
+    '2025-06-15T14:20:00.000Z'
+  ),
+  (
+    'a0000003-0000-4000-8000-000000000003',
+    'amara.okafor@example.com',
+    'Amara Okafor',
+    'Public-health nurse and outbreak response trainer',
+    E'15 years in maternal and child health across Lagos and rural southeast Nigeria. I teach community health workers and design vaccination outreach programmes.',
+    'Lagos, NG',
+    'apple',
+    55,
+    '2026-04-05T00:00:00.000Z',
+    '2025-07-01T11:00:00.000Z',
+    '2025-07-01T11:00:00.000Z'
+  ),
+  (
+    'a0000004-0000-4000-8000-000000000004',
+    'leo.martinez@example.com',
+    'Leo Martinez',
+    'Software engineer, civic-tech volunteer',
+    E'Backend engineer by day, OpenStreetMap mapper by night. Mostly here to build tools and tighten data pipelines for the issues this community surfaces.',
+    'Mexico City, MX',
+    'passkey',
+    35,
+    '2026-04-05T00:00:00.000Z',
+    '2025-07-08T16:45:00.000Z',
+    '2025-07-08T16:45:00.000Z'
+  ),
+  (
+    'a0000005-0000-4000-8000-000000000005',
+    'priya.sharma@example.com',
+    'Priya Sharma',
+    'Urban planner working on informal settlements',
+    E'PhD in urban planning, currently consulting with municipal governments on housing upgrade programmes. I care about plans that survive contact with real neighbourhoods.',
+    'Mumbai, IN',
+    'google',
+    71,
+    '2026-04-05T00:00:00.000Z',
+    '2025-07-20T08:15:00.000Z',
+    '2025-07-20T08:15:00.000Z'
+  ),
+  (
+    'a0000006-0000-4000-8000-000000000006',
+    'james.whitfield@example.com',
+    'James Whitfield',
+    'Carpenter and youth-trades mentor',
+    E'30 years on the tools, last 10 running a free apprenticeship for kids aging out of care. If a solution involves actually building something with your hands, ping me.',
+    'Manchester, UK',
+    'apple',
+    28,
+    '2026-04-05T00:00:00.000Z',
+    '2025-08-02T10:30:00.000Z',
+    '2025-08-02T10:30:00.000Z'
+  ),
+  (
+    'a0000007-0000-4000-8000-000000000007',
+    'yuki.tanaka@example.com',
+    'Yuki Tanaka',
+    'Environmental scientist studying river ecosystems',
+    E'Freshwater biologist, formerly at Kyoto University. I run citizen-science water-quality monitoring with local schools.',
+    'Kyoto, JP',
+    'passkey',
+    44,
+    '2026-04-05T00:00:00.000Z',
+    '2025-08-14T13:00:00.000Z',
+    '2025-08-14T13:00:00.000Z'
+  ),
+  (
+    'a0000008-0000-4000-8000-000000000008',
+    'elena.popescu@example.com',
+    'Elena Popescu',
+    'Human-rights lawyer, refugee legal aid',
+    E'Lawyer with 12 years of pro-bono refugee work across Romania and Greece. I draft legal templates and train volunteers to help asylum seekers navigate appeals.',
+    'Bucharest, RO',
+    'google',
+    58,
+    '2026-04-05T00:00:00.000Z',
+    '2025-08-25T17:20:00.000Z',
+    '2025-08-25T17:20:00.000Z'
+  )
+ON CONFLICT (id) DO UPDATE SET
+  headline = EXCLUDED.headline,
+  bio = EXCLUDED.bio,
+  location = EXCLUDED.location;
