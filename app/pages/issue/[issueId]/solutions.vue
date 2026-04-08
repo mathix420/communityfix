@@ -150,10 +150,10 @@ async function submit() {
       </div>
     </AuthState>
 
-    <CardIssue
+    <CardSolution
       v-for="solution in solutions"
       :key="solution.id"
-      :issue="solution"
+      :solution="solution"
     />
 
     <p
