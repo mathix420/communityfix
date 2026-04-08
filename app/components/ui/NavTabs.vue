@@ -61,7 +61,7 @@ watch(() => route.path, updateHighlight)
       :key="tab.path"
       :to="tab.path"
       replace
-      class="tab-item select-none z-10 text-toned hover:text-black/80 transition-colors py-2 px-4 rounded-lg"
+      class="tab-item select-none z-10 text-toned hover:text-black/80 transition-colors py-2 px-4 rounded-lg whitespace-nowrap"
       :class="{ 'hover:bg-black/5': !tab.active }"
       @click="track('Tab click', { tab: tab.name })"
     >
