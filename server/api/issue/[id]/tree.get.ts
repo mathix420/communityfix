@@ -1,8 +1,10 @@
 import { sql } from 'drizzle-orm'
 
-// Cap recursion depth and total node count so a pathological tree (deep chain
-// or massive fan-out) cannot blow up the response.
+// Cap recursion depth, per-parent fan-out, and total node count so a pathological
+// tree cannot blow up the response. Per-parent cap prevents a wide root from
+// crowding out grandchildren under the global node cap.
 const MAX_DEPTH = 10
+const MAX_PER_PARENT = 20
 const MAX_NODES = 500
 
 type TreeRow = {
@@ -40,27 +42,38 @@ export default defineEventHandler(async (event): Promise<TreeNode[]> => {
   }
   const rootId = parseInt(id, 10)
 
-  // Recursive CTE walks the parent_id self-reference downward from rootId.
-  // Sibling order is vote_score DESC, id ASC so the most-supported children
-  // surface first and ordering is stable across requests.
+  // Rank siblings per-parent so the recursive walk can keep only the top N
+  // children of each node, then walk the parent_id self-reference downward.
+  // Sibling order is vote_score DESC, id ASC: most-supported first, stable.
   const rows = await db.execute<TreeRow>(sql`
-    WITH RECURSIVE tree AS (
+    WITH RECURSIVE ranked_issues AS (
+      SELECT
+        id, parent_id, title, type, solution_status, status,
+        vote_score, solution_count, sub_issue_count, author_name,
+        ROW_NUMBER() OVER (
+          PARTITION BY parent_id
+          ORDER BY vote_score DESC, id ASC
+        ) AS sibling_rank
+      FROM issues
+      WHERE status = 'approved'
+    ),
+    tree AS (
       SELECT
         id, parent_id, title, type, solution_status, status,
         vote_score, solution_count, sub_issue_count, author_name,
         1 AS depth
-      FROM issues
+      FROM ranked_issues
       WHERE parent_id = ${rootId}
-        AND status = 'approved'
+        AND sibling_rank <= ${MAX_PER_PARENT}
       UNION ALL
       SELECT
         i.id, i.parent_id, i.title, i.type, i.solution_status, i.status,
         i.vote_score, i.solution_count, i.sub_issue_count, i.author_name,
         t.depth + 1
-      FROM issues i
+      FROM ranked_issues i
       INNER JOIN tree t ON i.parent_id = t.id
       WHERE t.depth < ${MAX_DEPTH}
-        AND i.status = 'approved'
+        AND i.sibling_rank <= ${MAX_PER_PARENT}
     )
     SELECT * FROM tree
     ORDER BY depth ASC, vote_score DESC, id ASC
