@@ -43,6 +43,13 @@
       "when": 1775636736326,
       "tag": "0005_lucky_mantis",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779201460413,
+      "tag": "0006_lethal_vampiro",
+      "breakpoints": true
     }
   ]
 }

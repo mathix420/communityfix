@@ -4,6 +4,11 @@ const userId = route.params.id as string
 const toast = useToast()
 const { track } = useUmami()
 
+// Set when the viewer arrives via a "share endorse link" — surfaces a banner
+// above the credentials section and auto-scrolls there on mount.
+const endorseInvite = computed(() => route.query.endorse === '1')
+const credentialsSection = ref<HTMLElement | null>(null)
+
 // Narrow the unknown errors thrown by `$fetch` so we can read the API
 // statusMessage without resorting to `any`.
 function fetchErrorMessage(error: unknown, fallback: string): string {
@@ -74,6 +79,16 @@ async function unendorse(qualificationId: number) {
     endorsing.value = null
   }
 }
+
+onMounted(() => {
+  if (endorseInvite.value) {
+    track('Endorse invite opened', { userId })
+    // Wait one tick so the credentials section is rendered before scrolling.
+    nextTick(() => {
+      credentialsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+})
 
 useSeoMeta({
   title: () => `${displayName.value} - CommunityFix`,
@@ -191,12 +206,42 @@ useSeoMeta({
       </section>
 
       <!-- ── Credentials ───────────────────────────────── -->
-      <section class="mb-12">
+      <section
+        ref="credentialsSection"
+        class="mb-12 scroll-mt-8"
+      >
         <div class="mb-4 flex items-baseline gap-3">
           <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
             {{ user.bio ? '02' : '01' }}
           </span>
           <UiSectionTitle>Credentials</UiSectionTitle>
+        </div>
+
+        <!-- Friendly banner for visitors arriving via a "share endorse link" -->
+        <div
+          v-if="endorseInvite && !user.viewer.isOwner"
+          class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
+        >
+          <UIcon
+            name="lucide:hand-heart"
+            class="size-4 text-primary-600 mt-0.5 shrink-0"
+          />
+          <p class="text-xs text-primary-900 leading-relaxed">
+            <span class="font-mono uppercase tracking-wide">{{ displayName }} asked you to vouch — </span>
+            tap "Endorse" on any credential you can personally vouch for.
+            <span
+              v-if="user.viewer.isAuthenticated && !user.viewer.canEndorse"
+              class="block mt-1 text-primary-800/80"
+            >
+              You'll be able to endorse once your own credentials have at least one endorsement.
+            </span>
+            <span
+              v-else-if="!user.viewer.isAuthenticated"
+              class="block mt-1 text-primary-800/80"
+            >
+              Sign in first to leave an endorsement.
+            </span>
+          </p>
         </div>
 
         <div
@@ -224,20 +269,33 @@ useSeoMeta({
                 >
                   {{ q.detail }}
                 </p>
-                <div class="mt-3 flex items-center gap-1.5 text-xs font-mono text-gray-500">
-                  <UIcon
-                    name="lucide:check-circle-2"
-                    class="size-3.5"
-                    :class="q.endorsementCount > 0 ? 'text-primary-600' : 'text-gray-400'"
-                  />
-                  <span>
+                <div class="mt-3 flex items-center gap-3 text-xs font-mono text-gray-500">
+                  <span
+                    v-if="q.isVerified"
+                    class="inline-flex items-center gap-1.5 text-primary-600"
+                    title="Verified by the CommunityFix team"
+                  >
+                    <UIcon
+                      name="lucide:badge-check"
+                      class="size-3.5"
+                    />
+                    Verified
+                  </span>
+                  <span class="inline-flex items-center gap-1.5">
+                    <UIcon
+                      name="lucide:check-circle-2"
+                      class="size-3.5"
+                      :class="q.endorsementCount > 0 ? 'text-primary-600' : 'text-gray-400'"
+                    />
                     {{ q.endorsementCount }}
                     endorsement{{ q.endorsementCount === 1 ? '' : 's' }}
                   </span>
                 </div>
               </div>
 
-              <!-- Endorse / unendorse button -->
+              <!-- Endorse / verify / unendorse button. Admins see the
+                   verification flavor (badge icon + "Verify"/"Verified") so
+                   the action they take maps to the badge they create. -->
               <div class="shrink-0">
                 <template v-if="user.viewer.isOwner">
                   <span class="text-[10px] font-mono uppercase tracking-widest text-gray-400">
@@ -249,11 +307,11 @@ useSeoMeta({
                     size="sm"
                     color="primary"
                     variant="soft"
-                    icon="lucide:check"
+                    :icon="user.viewer.isAdmin ? 'lucide:badge-check' : 'lucide:check'"
                     :loading="endorsing === q.id"
                     @click="unendorse(q.id)"
                   >
-                    Endorsed
+                    {{ user.viewer.isAdmin ? 'Verified' : 'Endorsed' }}
                   </UButton>
                 </template>
                 <template v-else>
@@ -261,7 +319,7 @@ useSeoMeta({
                     size="sm"
                     color="primary"
                     variant="outline"
-                    icon="lucide:thumbs-up"
+                    :icon="user.viewer.isAdmin ? 'lucide:badge-check' : 'lucide:thumbs-up'"
                     :disabled="!user.viewer.canEndorse"
                     :loading="endorsing === q.id"
                     :title="!user.viewer.isAuthenticated
@@ -271,7 +329,7 @@ useSeoMeta({
                         : ''"
                     @click="endorse(q.id)"
                   >
-                    Endorse
+                    {{ user.viewer.isAdmin ? 'Verify' : 'Endorse' }}
                   </UButton>
                 </template>
               </div>
