@@ -1,9 +1,28 @@
 <script setup lang="ts">
 import type { LocationScale } from '../../server/database/schema'
 
+const route = useRoute()
 const toast = useToast()
 const { track } = useUmami()
 const submitting = ref(false)
+
+const parentId = computed(() => {
+  const raw = route.query.parent
+  const n = Array.isArray(raw) ? Number(raw[0]) : Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
+})
+
+const childType = computed<'issue' | 'solution'>(() => {
+  return route.query.type === 'solution' ? 'solution' : 'issue'
+})
+
+const isChild = computed(() => parentId.value != null)
+
+const noun = computed(() => {
+  if (!isChild.value) return 'issue'
+  return childType.value === 'solution' ? 'solution' : 'sub-issue'
+})
+const Noun = computed(() => noun.value[0]!.toUpperCase() + noun.value.slice(1))
 
 const title = ref('')
 const description = ref('')
@@ -15,7 +34,12 @@ const scale = ref<LocationScale>()
 
 const { data: banStatus } = await useFetch('/api/user/ban-status')
 
-// Similar issues detection
+const { data: parent } = await useFetch(
+  () => parentId.value ? `/api/issue/${parentId.value}` : null,
+  { watch: [parentId] },
+)
+
+// Similar issues detection — only applies to top-level issues
 const similarIssues = ref<{ id: number, title: string, description: string, similarity: number }[]>([])
 const similarStatus = ref<'ok' | 'unavailable' | 'too_short'>('too_short')
 const searchingDuplicates = ref(false)
@@ -60,14 +84,23 @@ async function submit() {
         latitude: latitude.value,
         longitude: longitude.value,
         scale: scale.value,
+        parentId: parentId.value ?? undefined,
+        type: isChild.value ? childType.value : undefined,
       },
     })
-    track('Issue created', { issueId: issue!.id })
+    if (isChild.value) {
+      track(childType.value === 'solution' ? 'Solution proposed' : 'Sub-issue proposed', {
+        issueId: parentId.value!,
+      })
+    }
+    else {
+      track('Issue created', { issueId: issue!.id })
+    }
     await navigateTo(`/issue/${issue!.id}`)
   }
   catch (error: any) {
     toast.add({
-      title: 'Failed to create issue',
+      title: `Failed to create ${noun.value}`,
       description: error?.data?.message || error?.message || 'Please try again.',
       color: 'error',
     })
@@ -77,9 +110,20 @@ async function submit() {
   }
 }
 
+const pageTitle = computed(() => `New ${Noun.value}`)
+const pageDescription = computed(() => {
+  if (childType.value === 'solution') {
+    return 'Propose a concrete solution that tackles the parent issue.'
+  }
+  if (isChild.value) {
+    return 'Break the parent issue into a more focused sub-issue.'
+  }
+  return 'Describe an issue you\'d like the community to work on.'
+})
+
 useSeoMeta({
-  title: 'New Issue - CommunityFix',
-  description: 'Create a new issue on CommunityFix.',
+  title: () => `${pageTitle.value} - CommunityFix`,
+  description: () => pageDescription.value,
 })
 
 definePageMeta({
@@ -91,8 +135,16 @@ definePageMeta({
   <AppContainer>
     <section class="w-full max-w-2xl mx-auto">
       <UiPageHeader
-        title="New Issue"
-        description="Describe an issue you'd like the community to work on."
+        :title="pageTitle"
+        :description="pageDescription"
+      />
+
+      <!-- Parent callout (sub-issues / solutions) -->
+      <IssueParentCallout
+        v-if="isChild && parent"
+        :parent="{ id: parent.id, title: parent.title }"
+        :label="childType === 'solution' ? 'Solution for' : 'Parent issue'"
+        class="mb-6"
       />
 
       <!-- Ban notice -->
@@ -122,7 +174,7 @@ definePageMeta({
             <UInput
               v-model="title"
               type="text"
-              placeholder="A short, descriptive title"
+              :placeholder="childType === 'solution' ? 'A short, descriptive solution title' : 'A short, descriptive title'"
               size="lg"
               class="w-full"
             />
@@ -135,7 +187,7 @@ definePageMeta({
           >
             <UTextarea
               v-model="description"
-              placeholder="Briefly describe the issue"
+              :placeholder="childType === 'solution' ? 'Briefly describe the proposed solution' : 'Briefly describe the issue'"
               size="lg"
               class="w-full"
               :rows="3"
@@ -214,7 +266,7 @@ definePageMeta({
             color="primary"
             :loading="submitting"
           >
-            Create Issue
+            {{ childType === 'solution' ? 'Submit Solution' : (isChild ? 'Submit Sub-issue' : 'Create Issue') }}
           </UButton>
         </form>
       </UiCard>
