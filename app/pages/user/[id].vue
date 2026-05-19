@@ -347,10 +347,11 @@ useSeoMeta({
           </UiSectionTitle>
         </div>
         <div class="flex flex-col gap-6">
-          <CardIssue
+          <CardSolution
             v-for="solution in user.solutions"
             :key="solution.id"
-            :issue="solution"
+            :solution="solution"
+            show-parent
           />
         </div>
       </section>

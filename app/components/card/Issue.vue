@@ -75,12 +75,12 @@ async function handleShare() {
 <template>
   <article class="bg-white rounded-lg">
     <div class="p-4 flex flex-col gap-4 min-w-0">
-      <h2 class="font-title text-xl flex items-center gap-2 flex-wrap">
-        <span class="text-gray-400 select-none text-base font-light font-mono mr-1">
+      <h2 class="font-title text-xl flex items-baseline gap-2">
+        <span class="shrink-0 text-gray-400 select-none text-base font-light font-mono mr-1">
           {{ formatNumber(issue.id) }}
         </span>
         <NuxtLink
-          class="interactive-underline"
+          class="interactive-underline min-w-0 break-words"
           :to="`/issue/${issue.id}`"
         >
           {{ issue.title }}
