@@ -16,18 +16,16 @@ const tabs = [
 if (issue.value) {
   useSeoMeta({
     title: issue.value.title,
-    description: issue.value.description || `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
+    description: issue.value.summary || `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
     ogTitle: `${issue.value.title} - CommunityFix`,
-    ogDescription: issue.value.description || `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
+    ogDescription: issue.value.summary || `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
     keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
   })
 
   defineOgImage('CommunityFix', {
     title: issue.value.title,
-    description: issue.value.description,
+    description: issue.value.summary,
     number: issue.value.id,
-    solutionCount: issue.value.solutionCount,
-    subIssueCount: issue.value.subIssueCount,
   })
 }
 </script>
@@ -42,9 +40,10 @@ if (issue.value) {
         #{{ issue.id.toString().padStart(5, '0') }}
       </p>
     </div>
-    <p class="text-toned text-lg my-8">
-      {{ issue.description }}
-    </p>
+    <UiMarkdown
+      :value="issue.summary"
+      class="text-toned text-lg my-8"
+    />
 
     <UiNavTabs :tabs="tabs" />
 

@@ -84,6 +84,7 @@ export const tags = pgTable('tags', {
   id: serial('id').primaryKey(),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
+  embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -93,10 +94,9 @@ export const issues = pgTable('issues', {
   id: serial('id').primaryKey(),
   parentId: integer('parent_id').references((): any => issues.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
-  description: text('description').notNull(),
-  detailedDescription: text('detailed_description'),
+  summary: text('summary').notNull(),
+  description: text('description'),
   authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
-  authorName: text('author_name'),
   solutionCount: integer('solution_count').notNull().default(0),
   subIssueCount: integer('sub_issue_count').notNull().default(0),
   voteScore: integer('vote_score').notNull().default(0),
@@ -227,3 +227,41 @@ export const qualificationEndorsementsRelations = relations(qualificationEndorse
   qualification: one(qualifications, { fields: [qualificationEndorsements.qualificationId], references: [qualifications.id] }),
   endorser: one(users, { fields: [qualificationEndorsements.endorserId], references: [users.id] }),
 }))
+
+// ── OAuth (MCP server) ────────────────────────────────
+export const oauthClients = pgTable('oauth_clients', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  redirectUris: jsonb('redirect_uris').$type<string[]>().notNull().default([]),
+  // null for PKCE-only public clients; sha256 hex for confidential.
+  secretHash: text('secret_hash'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const oauthCodes = pgTable('oauth_codes', {
+  code: text('code').primaryKey(),
+  clientId: text('client_id').notNull().references(() => oauthClients.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  redirectUri: text('redirect_uri').notNull(),
+  codeChallenge: text('code_challenge').notNull(),
+  codeChallengeMethod: text('code_challenge_method').notNull().default('S256'),
+  scope: text('scope').notNull().default(''),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const oauthTokens = pgTable('oauth_tokens', {
+  // sha256 of the raw token — raw value never persisted.
+  tokenHash: text('token_hash').primaryKey(),
+  clientId: text('client_id').notNull().references(() => oauthClients.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  scope: text('scope').notNull().default(''),
+  refreshHash: text('refresh_hash'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  index('oauth_tokens_user_idx').on(t.userId),
+  index('oauth_tokens_refresh_idx').on(t.refreshHash),
+])

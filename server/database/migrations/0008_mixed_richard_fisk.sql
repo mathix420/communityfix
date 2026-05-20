@@ -1,0 +1,1 @@
+ALTER TABLE "tags" ADD COLUMN "embedding" vector(1536);

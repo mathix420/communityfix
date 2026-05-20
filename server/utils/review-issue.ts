@@ -38,8 +38,8 @@ export async function reviewIssue(issueId: number) {
 
   const issueText = [
     `Title: ${issue.title}`,
-    `Description: ${issue.description}`,
-    issue.detailedDescription ? `Details: ${issue.detailedDescription}` : '',
+    `Summary: ${issue.summary}`,
+    issue.description ? `Description: ${issue.description}` : '',
   ].filter(Boolean).join('\n')
 
   let moderation: ModerationResult
@@ -121,7 +121,7 @@ export async function reviewIssue(issueId: number) {
   // Generate embedding for approved issues
   let embedding: number[] | null = null
   try {
-    const embeddingText = `${issue.title}\n${issue.description}`
+    const embeddingText = `${issue.title}\n${issue.summary}`
     embedding = await generateEmbedding(embeddingText)
   }
   catch (err) {

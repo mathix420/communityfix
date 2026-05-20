@@ -107,7 +107,7 @@ useSeoMeta({
       <!-- ── Hero ──────────────────────────────────────── -->
       <header class="mt-10 mb-12 flex flex-col items-center text-center gap-5">
         <img
-          :src="`https://api.dicebear.com/9.x/glass/svg?seed=${displayName}`"
+          :src="`https://api.dicebear.com/9.x/glass/svg?seed=${user.id}`"
           :alt="`${displayName}'s avatar`"
           class="size-28 rounded-full"
         >

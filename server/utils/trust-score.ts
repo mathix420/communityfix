@@ -1,17 +1,28 @@
 import { eq, sql, and, ne } from 'drizzle-orm'
-import { users, issues, votes } from '../database/schema'
+import { users, issues, votes, qualifications, qualificationEndorsements } from '../database/schema'
+import { isAdminEmail } from './admin'
 
 export interface TrustScoreFactors {
+  isAdmin: boolean
   accountAgeDays: number
   approvedCount: number
   rejectedCount: number
   solutionCount: number
   totalVotesReceived: number
   votesCast: number
+  // Number of the user's own qualifications that have at least one
+  // 'verification'-kind endorsement (i.e. an admin or team member vouched
+  // for the credential). Each verified credential is a heavy positive
+  // signal — far more reliable than peer endorsements.
+  verifiedCredentials: number
   wasBanned: boolean
 }
 
 export function computeScore(factors: TrustScoreFactors): number {
+  // Admins are 100 by fiat — the email allowlist already gates this and
+  // bypasses all the other heuristics.
+  if (factors.isAdmin) return 100
+
   // Account age: up to 15 pts (logarithmic, ~1 year to max)
   const agePts = Math.min(15, 15 * Math.log1p(factors.accountAgeDays) / Math.log1p(365))
 
@@ -34,19 +45,29 @@ export function computeScore(factors: TrustScoreFactors): number {
   // Engagement (votes cast on others' content): up to 10 pts
   const engagementPts = Math.min(10, 10 * Math.log1p(factors.votesCast) / Math.log1p(100))
 
+  // Verified credentials: up to 30 pts. Human-reviewed and more reliable
+  // than activity metrics, but kept below half the total so a single
+  // credential can't single-handedly mint a high-trust account — it has
+  // to combine with real activity. +20 for the first, +5 for each
+  // additional, capped at 30.
+  const verifiedPts = factors.verifiedCredentials > 0
+    ? Math.min(30, 20 + (factors.verifiedCredentials - 1) * 5)
+    : 0
+
   // Ban penalty: -20 pts
   const banPenalty = factors.wasBanned ? -20 : 0
 
-  const raw = agePts + contribPts + approvalPts + votePts + solutionPts + engagementPts + banPenalty
+  const raw = agePts + contribPts + approvalPts + votePts + solutionPts + engagementPts + verifiedPts + banPenalty
   return Math.round(Math.max(0, Math.min(100, raw)))
 }
 
 export async function computeUserTrustScore(userId: string): Promise<number> {
   const db = useDB()
 
-  const [stats, voteStats, engagementStats] = await Promise.all([
+  const [stats, voteStats, engagementStats, verifiedStats] = await Promise.all([
     // Contribution stats + account info
     db.select({
+      email: users.email,
       createdAt: users.createdAt,
       bannedUntil: users.bannedUntil,
       approvedCount: sql<number>`COUNT(*) FILTER (WHERE ${issues.status} = 'approved')`.as('approved_count'),
@@ -71,6 +92,20 @@ export async function computeUserTrustScore(userId: string): Promise<number> {
     })
       .from(votes)
       .where(eq(votes.userId, userId)),
+
+    // Verified credentials: count this user's qualifications that have at
+    // least one 'verification'-kind endorsement on them. DISTINCT on the
+    // qualification id so multiple verifications on the same credential
+    // don't double-count.
+    db.select({
+      verifiedCount: sql<number>`COUNT(DISTINCT ${qualifications.id})`.as('verified_count'),
+    })
+      .from(qualifications)
+      .innerJoin(qualificationEndorsements, and(
+        eq(qualificationEndorsements.qualificationId, qualifications.id),
+        eq(qualificationEndorsements.kind, 'verification'),
+      ))
+      .where(eq(qualifications.userId, userId)),
   ])
 
   if (!stats[0]) return 0
@@ -80,12 +115,14 @@ export async function computeUserTrustScore(userId: string): Promise<number> {
   const wasBanned = row.bannedUntil !== null
 
   return computeScore({
+    isAdmin: isAdminEmail(row.email),
     accountAgeDays,
     approvedCount: Number(row.approvedCount),
     rejectedCount: Number(row.rejectedCount),
     solutionCount: Number(row.solutionCount),
     totalVotesReceived: Number(voteStats[0]?.totalVotes ?? 0),
     votesCast: Number(engagementStats[0]?.votesCast ?? 0),
+    verifiedCredentials: Number(verifiedStats[0]?.verifiedCount ?? 0),
     wasBanned,
   })
 }

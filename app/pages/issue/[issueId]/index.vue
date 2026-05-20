@@ -241,7 +241,7 @@ async function submitAppeal() {
 
       <!-- Description Section -->
       <div
-        v-if="issue.detailedDescription"
+        v-if="issue.description"
         class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
       >
         <div class="flex items-center gap-2 mb-2.5">
@@ -250,9 +250,10 @@ async function submitAppeal() {
             Description
           </p>
         </div>
-        <div class="prose prose-sm max-w-none text-gray-700">
-          {{ issue.detailedDescription }}
-        </div>
+        <UiMarkdown
+          :value="issue.description"
+          class="prose-sm text-gray-700"
+        />
       </div>
     </div>
   </div>

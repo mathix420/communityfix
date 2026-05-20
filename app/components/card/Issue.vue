@@ -4,7 +4,7 @@ const props = defineProps<{
   issue: {
     id: number
     title: string
-    description: string
+    summary: string
     authorId?: string | null
     author: string
     date: string
@@ -41,7 +41,7 @@ function handleVote(value: 1 | -1) {
 async function handleShare() {
   const url = `${window.location.origin}/issue/${props.issue.id}`
   const title = props.issue.title
-  const text = props.issue.description
+  const text = props.issue.summary
 
   if (navigator.share) {
     try {
@@ -101,9 +101,10 @@ async function handleShare() {
           Done
         </UiBadge>
       </h2>
-      <p class="text-gray-700">
-        {{ issue.description }}
-      </p>
+      <UiMarkdown
+        :value="issue.summary"
+        class="prose-sm text-gray-700"
+      />
       <div v-if="issue.locationName || (issue.scale && issue.scale !== 'global')" class="flex items-center gap-2 flex-wrap text-sm text-gray-500">
         <span v-if="issue.locationName" class="flex items-center gap-1">
           <UIcon name="lucide:map-pin" class="size-3.5" />
@@ -173,7 +174,7 @@ async function handleShare() {
           class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md hover:bg-gray-100 transition-colors"
         >
           <img
-            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
+            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.authorId ?? 'anonymous'}`"
             alt="Author Avatar"
             class="size-5 rounded-full shrink-0"
           >
@@ -186,7 +187,7 @@ async function handleShare() {
           class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md"
         >
           <img
-            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
+            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.authorId ?? 'anonymous'}`"
             alt="Author Avatar"
             class="size-5 rounded-full shrink-0"
           >

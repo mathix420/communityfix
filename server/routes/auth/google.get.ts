@@ -3,7 +3,7 @@ export default defineOAuthGoogleEventHandler({
     try {
       if (!user.email) throw createError({ statusCode: 400, message: 'Email is required' })
       const { isNew } = await handleOAuthLogin(event, user.email, user.name, 'google')
-      return sendRedirect(event, isNew ? '/settings' : '/')
+      return sendRedirect(event, consumePostLoginRedirect(event) ?? (isNew ? '/settings' : '/'))
     }
     catch (err) {
       console.error('Google OAuth onSuccess error:', err)

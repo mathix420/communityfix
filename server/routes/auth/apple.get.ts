@@ -6,7 +6,7 @@ export default defineOAuthAppleEventHandler({
         ? user.name
         : [user.name?.firstName, user.name?.lastName].filter(Boolean).join(' ') || undefined
       const { isNew } = await handleOAuthLogin(event, user.email, name, 'apple')
-      return sendRedirect(event, isNew ? '/settings' : '/')
+      return sendRedirect(event, consumePostLoginRedirect(event) ?? (isNew ? '/settings' : '/'))
     }
     catch (err) {
       console.error('Apple OAuth onSuccess error:', err)

@@ -50,6 +50,34 @@
       "when": 1779201460413,
       "tag": "0006_lethal_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779272125048,
+      "tag": "0007_cool_peter_quill",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779276580456,
+      "tag": "0008_mixed_richard_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779283109982,
+      "tag": "0009_strong_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779283200000,
+      "tag": "0010_rename_description_to_summary",
+      "breakpoints": true
     }
   ]
 }

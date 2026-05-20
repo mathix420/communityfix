@@ -48,7 +48,7 @@ watch(() => route.path, updateHighlight)
 <template>
   <div
     ref="tabsContainer"
-    class="relative bg-black/10 rounded-lg p-1 flex w-fit max-w-full gap-1 text-sm overflow-x-scroll scrollbar-hide"
+    class="relative bg-black/10 rounded-xl p-1 flex w-fit max-w-full gap-1 text-sm overflow-x-scroll scrollbar-hide"
   >
     <!-- animated highlight -->
     <div
