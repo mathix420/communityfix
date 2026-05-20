@@ -66,6 +66,7 @@ type Qualification = {
   area: string
   detail: string | null
   endorsementCount: number
+  isVerified: boolean
   createdAt: string
 }
 
@@ -163,6 +164,45 @@ const verificationMailto = computed(() => {
   )
   return `mailto:support@communityfix.org?subject=${subject}`
 })
+
+// Shareable endorse link — drops viewers straight into the credentials
+// section of the public profile with a friendly call-to-action banner.
+async function shareEndorseLink() {
+  const id = user.value?.id
+  if (!id) return
+  const url = `${window.location.origin}/user/${id}?endorse=1`
+  const shareData = {
+    title: 'Endorse my credentials on CommunityFix',
+    text: `Vouch for ${name.value || 'my'} credentials on CommunityFix.`,
+    url,
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData)
+      track('Share endorse link', { method: 'native' })
+      return
+    }
+    catch {
+      // User dismissed share sheet — fall through to clipboard fallback.
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url)
+    track('Share endorse link', { method: 'clipboard' })
+    toast.add({
+      title: 'Link copied!',
+      description: 'Share it with people who can vouch for your credentials.',
+      color: 'success',
+    })
+  }
+  catch {
+    toast.add({
+      title: 'Copy failed',
+      description: 'Unable to copy link to clipboard',
+      color: 'error',
+    })
+  }
+}
 
 useSeoMeta({
   title: 'Edit profile - CommunityFix',
@@ -327,6 +367,34 @@ definePageMeta({
         in the community.
       </p>
 
+      <!-- Share endorse link — only useful once at least one credential exists.
+           Visual style mirrors the "Need a head start?" CTA below so the two
+           sit cleanly next to each other in the section. -->
+      <div
+        v-if="quals && quals.length > 0"
+        class="mb-3 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
+      >
+        <UIcon
+          name="lucide:share-2"
+          class="size-4 text-primary-600 mt-0.5 shrink-0"
+        />
+        <p class="flex-1 text-xs text-primary-900 leading-relaxed">
+          <span class="font-mono uppercase tracking-wide">Ask people to vouch for you — </span>
+          share a direct link to your profile so colleagues, clients or peers
+          can endorse the credentials they know first-hand.
+        </p>
+        <UButton
+          size="xs"
+          variant="ghost"
+          color="primary"
+          icon="lucide:share-2"
+          class="shrink-0 -mt-1"
+          @click="shareEndorseLink"
+        >
+          Share
+        </UButton>
+      </div>
+
       <!-- Verification CTA -->
       <div class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4">
         <UIcon
@@ -371,13 +439,26 @@ definePageMeta({
               >
                 {{ q.detail }}
               </p>
-              <div class="mt-3 flex items-center gap-1.5 text-xs font-mono text-gray-500">
-                <UIcon
-                  name="lucide:check-circle-2"
-                  class="size-3.5"
-                  :class="q.endorsementCount > 0 ? 'text-primary-600' : 'text-gray-400'"
-                />
-                <span>{{ q.endorsementCount }} endorsement{{ q.endorsementCount === 1 ? '' : 's' }}</span>
+              <div class="mt-3 flex items-center gap-3 text-xs font-mono text-gray-500">
+                <span
+                  v-if="q.isVerified"
+                  class="inline-flex items-center gap-1.5 text-primary-600"
+                  title="Verified by the CommunityFix team"
+                >
+                  <UIcon
+                    name="lucide:badge-check"
+                    class="size-3.5"
+                  />
+                  Verified
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                  <UIcon
+                    name="lucide:check-circle-2"
+                    class="size-3.5"
+                    :class="q.endorsementCount > 0 ? 'text-primary-600' : 'text-gray-400'"
+                  />
+                  {{ q.endorsementCount }} endorsement{{ q.endorsementCount === 1 ? '' : 's' }}
+                </span>
               </div>
             </div>
             <UButton

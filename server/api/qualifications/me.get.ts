@@ -10,18 +10,34 @@ export default defineEventHandler(async (event) => {
     orderBy: [desc(qualifications.createdAt)],
   })
 
+  // Split counts by kind: peer 'endorsement' rows are tallied into the
+  // endorsementCount; presence of a 'verification' row flips isVerified.
+  // Mirrors the same shape returned by /api/user/[id].
   const ids = rows.map(r => r.id)
   const counts = ids.length
     ? await db
         .select({
           qualificationId: qualificationEndorsements.qualificationId,
+          kind: qualificationEndorsements.kind,
           n: count(qualificationEndorsements.id).as('n'),
         })
         .from(qualificationEndorsements)
         .where(inArray(qualificationEndorsements.qualificationId, ids))
-        .groupBy(qualificationEndorsements.qualificationId)
+        .groupBy(qualificationEndorsements.qualificationId, qualificationEndorsements.kind)
     : []
-  const countMap = new Map(counts.map(c => [c.qualificationId, Number(c.n)]))
+  const countMap = new Map<number, number>()
+  const verifiedSet = new Set<number>()
+  for (const c of counts) {
+    if (c.kind === 'verification') {
+      if (Number(c.n) > 0) verifiedSet.add(c.qualificationId)
+    }
+    else {
+      countMap.set(c.qualificationId, (countMap.get(c.qualificationId) ?? 0) + Number(c.n))
+    }
+  }
+
+  // Admins' own credentials are auto-verified (matches /api/user/[id]).
+  const ownerIsAdmin = isAdminEmail(session.user.email)
 
   return rows.map(r => ({
     id: r.id,
@@ -30,5 +46,6 @@ export default defineEventHandler(async (event) => {
     detail: r.detail,
     createdAt: r.createdAt,
     endorsementCount: countMap.get(r.id) ?? 0,
+    isVerified: verifiedSet.has(r.id) || ownerIsAdmin,
   }))
 })
