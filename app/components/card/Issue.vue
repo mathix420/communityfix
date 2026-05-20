@@ -173,7 +173,7 @@ async function handleShare() {
           class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md hover:bg-gray-100 transition-colors"
         >
           <img
-            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.authorId ?? 'anonymous'}`"
+            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
             alt="Author Avatar"
             class="size-5 rounded-full shrink-0"
           >
@@ -186,7 +186,7 @@ async function handleShare() {
           class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md"
         >
           <img
-            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.authorId ?? 'anonymous'}`"
+            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
             alt="Author Avatar"
             class="size-5 rounded-full shrink-0"
           >

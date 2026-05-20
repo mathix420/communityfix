@@ -105,7 +105,7 @@ useSeoMeta({
     <template v-if="user">
       <header class="mt-10 mb-12 flex flex-col items-center text-center gap-5">
         <img
-          :src="`https://api.dicebear.com/9.x/glass/svg?seed=${user.id}`"
+          :src="`https://api.dicebear.com/9.x/glass/svg?seed=${displayName}`"
           :alt="`${displayName}'s avatar`"
           class="size-28 rounded-full"
         >
@@ -209,6 +209,33 @@ useSeoMeta({
             {{ user.bio ? '02' : '01' }}
           </span>
           <UiSectionTitle>Credentials</UiSectionTitle>
+        </div>
+
+        <!-- Friendly banner for visitors arriving via a "share endorse link" -->
+        <div
+          v-if="endorseInvite && !user.viewer.isOwner"
+          class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
+        >
+          <UIcon
+            name="lucide:hand-heart"
+            class="size-4 text-primary-600 mt-0.5 shrink-0"
+          />
+          <p class="text-xs text-primary-900 leading-relaxed">
+            <span class="font-mono uppercase tracking-wide">{{ displayName }} asked you to vouch — </span>
+            tap "Endorse" on any credential you can personally vouch for.
+            <span
+              v-if="user.viewer.isAuthenticated && !user.viewer.canEndorse"
+              class="block mt-1 text-primary-800/80"
+            >
+              You'll be able to endorse once your own credentials have at least one endorsement.
+            </span>
+            <span
+              v-else-if="!user.viewer.isAuthenticated"
+              class="block mt-1 text-primary-800/80"
+            >
+              Sign in first to leave an endorsement.
+            </span>
+          </p>
         </div>
 
         <div
