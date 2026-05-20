@@ -31,7 +31,6 @@ function updateHighlight() {
         transform: `translate(${left - 4}px, ${top - 4}px)`,
       }
 
-      // Scroll the active tab into view with smooth behavior
       el.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
@@ -50,12 +49,10 @@ watch(() => route.path, updateHighlight)
     ref="tabsContainer"
     class="relative bg-black/10 rounded-xl p-1 flex w-fit max-w-full gap-1 text-sm overflow-x-scroll scrollbar-hide"
   >
-    <!-- animated highlight -->
     <div
       class="absolute bg-white rounded-lg transition-all duration-300 pointer-events-none"
       :style="highlightStyle"
     />
-    <!-- tabs -->
     <NuxtLink
       v-for="tab in computedTabs"
       :key="tab.path"

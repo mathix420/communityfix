@@ -116,7 +116,6 @@ async function handleShare() {
       </div>
       <div class="flex justify-between flex-wrap gap-2">
         <div class="flex gap-2 my-2 flex-wrap items-center">
-          <!-- Vote pill [UP | score | DOWN] -->
           <div class="inline-flex items-stretch rounded-md overflow-hidden bg-gray-100 text-sm font-mono">
             <button
               :class="[

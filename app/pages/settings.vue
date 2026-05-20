@@ -10,7 +10,6 @@ function fetchErrorMessage(error: unknown, fallback: string): string {
   return e?.data?.statusMessage || e?.message || fallback
 }
 
-// ── Identity form ─────────────────────────────────────
 const savingProfile = ref(false)
 const name = ref(user.value?.name || '')
 const headline = ref('')
@@ -59,7 +58,6 @@ async function saveProfile() {
   }
 }
 
-// ── Qualifications ────────────────────────────────────
 type Qualification = {
   id: number
   title: string
@@ -165,8 +163,6 @@ const verificationMailto = computed(() => {
   return `mailto:support@communityfix.org?subject=${subject}`
 })
 
-// Shareable endorse link — drops viewers straight into the credentials
-// section of the public profile with a friendly call-to-action banner.
 async function shareEndorseLink() {
   const id = user.value?.id
   if (!id) return
@@ -216,7 +212,6 @@ definePageMeta({
 
 <template>
   <AppContainer>
-    <!-- ── Page header ─────────────────────────────────── -->
     <UiPageHeader
       title="Edit profile"
       description="Tell the community who you are and what skills you bring to the table."
@@ -237,7 +232,6 @@ definePageMeta({
       </div>
     </UiPageHeader>
 
-    <!-- ── 01 / Identity ───────────────────────────────── -->
     <section class="mb-12">
       <div class="mb-4 flex items-baseline gap-3">
         <span class="font-mono text-xs uppercase tracking-widest text-primary-600">01</span>
@@ -248,7 +242,6 @@ definePageMeta({
         padding="lg"
         class="flex flex-col gap-6"
       >
-        <!-- Avatar + headline preview -->
         <div class="flex items-center gap-4 pb-4 border-b border-gray-100">
           <img
             :src="`https://api.dicebear.com/9.x/glass/svg?seed=${user?.id ?? 'anonymous'}`"
@@ -354,7 +347,6 @@ definePageMeta({
       </UiCard>
     </section>
 
-    <!-- ── 02 / Credentials ────────────────────────────── -->
     <section class="mb-12">
       <div class="mb-4 flex items-baseline gap-3">
         <span class="font-mono text-xs uppercase tracking-widest text-primary-600">02</span>
@@ -367,9 +359,6 @@ definePageMeta({
         in the community.
       </p>
 
-      <!-- Share endorse link — only useful once at least one credential exists.
-           Visual style mirrors the "Need a head start?" CTA below so the two
-           sit cleanly next to each other in the section. -->
       <div
         v-if="quals && quals.length > 0"
         class="mb-3 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
@@ -395,7 +384,6 @@ definePageMeta({
         </UButton>
       </div>
 
-      <!-- Verification CTA -->
       <div class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4">
         <UIcon
           name="lucide:badge-check"
@@ -413,7 +401,6 @@ definePageMeta({
         </p>
       </div>
 
-      <!-- Existing credentials -->
       <div
         v-if="quals && quals.length > 0"
         class="flex flex-col gap-3 mb-4"
@@ -475,7 +462,6 @@ definePageMeta({
         </UiCard>
       </div>
 
-      <!-- Empty state -->
       <div
         v-else-if="!newOpen"
         class="rounded-2xl border border-dashed border-gray-300 bg-white/40 p-8 text-center mb-4"
@@ -492,7 +478,6 @@ definePageMeta({
         </p>
       </div>
 
-      <!-- New credential form -->
       <UiCard
         v-if="newOpen"
         padding="md"
@@ -580,7 +565,6 @@ definePageMeta({
       </UButton>
     </section>
 
-    <!-- ── 03 / Session ─────────────────────────────────── -->
     <section>
       <div class="mb-4 flex items-baseline gap-3">
         <span class="font-mono text-xs uppercase tracking-widest text-primary-600">03</span>

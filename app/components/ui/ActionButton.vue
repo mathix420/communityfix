@@ -10,9 +10,6 @@ withDefaults(defineProps<{
   type: 'button',
 })
 
-// Soft primary-blue CTA — matches the rounded, light editorial vibe of the
-// site (rounded cards, soft tab pills). Subtle colored shadow conveys depth,
-// hover gently lifts the surface and deepens the glow.
 const base = [
   'group inline-flex items-center justify-center gap-2 whitespace-nowrap',
   'rounded-lg px-4 py-2',

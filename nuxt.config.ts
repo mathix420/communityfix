@@ -145,15 +145,4 @@ export default defineNuxtConfig({
       { name: 'Oswald', weights: [400, 500] },
     ],
   },
-
-  ogImage: {
-    // Takumi components are detected via the `.takumi.vue` filename suffix.
-    // On the `cloudflare_module` preset the WASM binding is auto-selected.
-    // OG image URLs encode all props (title/summary/etc), so the URL —
-    // and therefore the cache key — changes whenever content changes.
-    // That lets us safely cache the rendered PNG for a year on the edge.
-    defaults: {
-      cacheMaxAgeSeconds: 60 * 60 * 24 * 365,
-    },
-  },
 })

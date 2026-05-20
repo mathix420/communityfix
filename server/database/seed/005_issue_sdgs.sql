@@ -1,4 +1,3 @@
--- ── Top-level issue SDGs ──────────────────────────────────────
 
 -- Reduce household waste (1): SDG 12 (Responsible Consumption), 11 (Sustainable Cities)
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (1, 12), (1, 11)
@@ -24,7 +23,6 @@ ON CONFLICT DO NOTHING;
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (6, 13), (6, 7)
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issue and solution SDGs ──────────────────────────────
 
 -- Waste sub-issues (7-9)
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (7, 12), (7, 9)
@@ -114,7 +112,6 @@ ON CONFLICT DO NOTHING;
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (38, 13), (38, 8)
 ON CONFLICT DO NOTHING;
 
--- ── Forest Dieback Crisis and sub-issues (39-45) ────────────
 
 -- Forest Dieback Crisis (39): SDG 13 (Climate Action), SDG 15 (Life on Land)
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (39, 13), (39, 15)
@@ -144,7 +141,6 @@ ON CONFLICT DO NOTHING;
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (45, 15), (45, 13)
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Drought-Induced Forest Decline – global cause (68–71) ────
 
 -- Mosaic forest silviculture (68): SDG 15 (Life on Land), SDG 13 (Climate Action)
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (68, 15), (68, 13)
@@ -162,7 +158,6 @@ ON CONFLICT DO NOTHING;
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (71, 15), (71, 9)
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Drought – Sundgau (72–73) ────
 
 -- Plant climate-adapted species (72): SDG 15 (Life on Land), SDG 13 (Climate Action)
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (72, 15), (72, 13)
@@ -172,7 +167,6 @@ ON CONFLICT DO NOTHING;
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (73, 6), (73, 11)
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues attached to drought solutions (74–76) ────
 
 -- Trials too slow for dying stands (74): SDG 15, SDG 13
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (74, 15), (74, 13)
@@ -186,7 +180,6 @@ ON CONFLICT DO NOTHING;
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (76, 6), (76, 15)
 ON CONFLICT DO NOTHING;
 
--- ── Urban Carbon Neutrality and sub-issues (46-67) ─────────────
 
 -- Urban Carbon Neutrality (46): SDG 13 (Climate Action), 11 (Sustainable Cities), 7 (Clean Energy)
 INSERT INTO issue_sdgs (issue_id, sdg_id) VALUES (46, 13), (46, 11), (46, 7)

@@ -40,7 +40,6 @@ const { data: parent } = await useAsyncData(
   { watch: [parentId] },
 )
 
-// Similar issues detection — only applies to top-level issues
 const similarIssues = ref<{ id: number, title: string, summary: string, similarity: number }[]>([])
 const similarStatus = ref<'ok' | 'unavailable' | 'too_short'>('too_short')
 const searchingDuplicates = ref(false)
@@ -140,7 +139,6 @@ definePageMeta({
         :description="pageDescription"
       />
 
-      <!-- Parent callout (sub-issues / solutions) -->
       <IssueParentCallout
         v-if="isChild && parent"
         :parent="{ id: parent.id, title: parent.title }"
@@ -148,7 +146,6 @@ definePageMeta({
         class="mb-6"
       />
 
-      <!-- Ban notice -->
       <UiCard
         v-if="banStatus?.banned"
         padding="lg"
@@ -157,7 +154,6 @@ definePageMeta({
         <BanNotice :ban-status="banStatus" @appealed="refreshNuxtData()" />
       </UiCard>
 
-      <!-- Creation form (hidden when banned) -->
       <UiCard
         v-else
         padding="lg"
@@ -208,7 +204,6 @@ definePageMeta({
             />
           </UFormField>
 
-          <!-- Location picker -->
           <LocationPicker
             v-model:latitude="latitude"
             v-model:longitude="longitude"
@@ -216,7 +211,6 @@ definePageMeta({
             v-model:scale="scale"
           />
 
-          <!-- Similar issues panel -->
           <div
             v-if="similarIssues.length > 0"
             class="rounded-lg border border-yellow-200 bg-yellow-50 p-4"

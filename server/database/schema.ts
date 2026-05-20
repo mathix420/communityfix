@@ -3,7 +3,6 @@ import { vector } from 'drizzle-orm/pg-core'
 import { geometry } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-// ── Shared type constants ─────────────────────────────
 export const PROVIDERS = ['google', 'apple', 'passkey'] as const
 export type Provider = typeof PROVIDERS[number]
 
@@ -22,7 +21,6 @@ export type LocationScale = typeof LOCATION_SCALES[number]
 export const SOLUTION_STATUSES = ['plan', 'in-progress', 'done'] as const
 export type SolutionStatus = typeof SOLUTION_STATUSES[number]
 
-// ── Users ──────────────────────────────────────────────
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
@@ -53,7 +51,6 @@ export const usersRelations = relations(users, ({ many }) => ({
   endorsementsGiven: many(qualificationEndorsements),
 }))
 
-// ── Credentials (WebAuthn) ─────────────────────────────
 export const credentials = pgTable('credentials', {
   id: text('id').primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -69,7 +66,6 @@ export const credentialsRelations = relations(credentials, ({ one }) => ({
   user: one(users, { fields: [credentials.userId], references: [users.id] }),
 }))
 
-// ── SDGs ───────────────────────────────────────────────
 export const sdgs = pgTable('sdgs', {
   id: integer('id').primaryKey(),
   name: text('name').notNull(),
@@ -79,7 +75,6 @@ export const sdgs = pgTable('sdgs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-// ── Tags ───────────────────────────────────────────────
 export const tags = pgTable('tags', {
   id: serial('id').primaryKey(),
   slug: text('slug').notNull().unique(),
@@ -89,7 +84,6 @@ export const tags = pgTable('tags', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-// ── Issues ─────────────────────────────────────────────
 export const issues = pgTable('issues', {
   id: serial('id').primaryKey(),
   parentId: integer('parent_id').references((): any => issues.id, { onDelete: 'cascade' }),
@@ -108,13 +102,11 @@ export const issues = pgTable('issues', {
   appealReason: text('appeal_reason'),
   appealStatus: text('appeal_status').$type<AppealStatus>(),
   appealedAt: timestamp('appealed_at', { withTimezone: true }),
-  // Location (PostGIS)
   locationName: text('location_name'),
   location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }),
   scale: text('scale').$type<LocationScale>(),
-  // Solution lifecycle (only meaningful when type='solution')
+  // Only meaningful when type='solution'.
   solutionStatus: text('solution_status').$type<SolutionStatus>(),
-  // Embeddings (pgvector)
   embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -129,7 +121,6 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
   votes: many(votes),
 }))
 
-// ── Votes ──────────────────────────────────────────────
 export const votes = pgTable('votes', {
   id: serial('id').primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -147,7 +138,6 @@ export const votesRelations = relations(votes, ({ one }) => ({
   issue: one(issues, { fields: [votes.issueId], references: [issues.id] }),
 }))
 
-// ── Issue ↔ Tag junction ───────────────────────────────
 export const issueTags = pgTable('issue_tags', {
   issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
   tagId: integer('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
@@ -161,7 +151,6 @@ export const issueTagsRelations = relations(issueTags, ({ one }) => ({
   tag: one(tags, { fields: [issueTags.tagId], references: [tags.id] }),
 }))
 
-// ── Issue ↔ SDG junction ──────────────────────────────
 export const issueSdgs = pgTable('issue_sdgs', {
   issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
   sdgId: integer('sdg_id').notNull().references(() => sdgs.id, { onDelete: 'cascade' }),
@@ -175,7 +164,6 @@ export const issueSdgsRelations = relations(issueSdgs, ({ one }) => ({
   sdg: one(sdgs, { fields: [issueSdgs.sdgId], references: [sdgs.id] }),
 }))
 
-// ── User qualifications (public-facing "credentials") ─
 // Named `qualifications` to avoid collision with the WebAuthn `credentials`
 // table above. Surfaced to users as "Credentials" in the UI.
 export const qualifications = pgTable('qualifications', {
@@ -201,7 +189,6 @@ export const qualificationsRelations = relations(qualifications, ({ one, many })
 export const ENDORSEMENT_KINDS = ['endorsement', 'verification'] as const
 export type EndorsementKind = typeof ENDORSEMENT_KINDS[number]
 
-// ── Qualification endorsements ────────────────────────
 // A community acknowledgement that a user's qualification is legitimate.
 // Rule: only users who themselves have received at least one endorsement
 // may endorse others. When a qualification's content is edited, every row
@@ -228,7 +215,6 @@ export const qualificationEndorsementsRelations = relations(qualificationEndorse
   endorser: one(users, { fields: [qualificationEndorsements.endorserId], references: [users.id] }),
 }))
 
-// ── OAuth (MCP server) ────────────────────────────────
 export const oauthClients = pgTable('oauth_clients', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),

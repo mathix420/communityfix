@@ -1,4 +1,3 @@
--- ── Votes ─────────────────────────────────────────────
 -- Spread across top-level issues (1-6), sub-issues, and solutions
 -- Each (user_id, issue_id) pair is unique per schema constraint
 -- value: +1 (upvote) or -1 (downvote)
@@ -92,7 +91,6 @@ INSERT INTO votes (user_id, issue_id, value, created_at, updated_at) VALUES
   ('a0000008-0000-4000-8000-000000000008', 39, 1, '2025-10-04T09:00:00.000Z', '2025-10-04T09:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Update vote_score on issues to match seeded votes ──
 UPDATE issues SET vote_score = 5 WHERE id = 1;
 UPDATE issues SET vote_score = 4 WHERE id = 2;
 UPDATE issues SET vote_score = 6 WHERE id = 3;

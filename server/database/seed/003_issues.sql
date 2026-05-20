@@ -1,4 +1,3 @@
--- ── Top-level issues ──────────────────────────────────────────
 
 INSERT INTO issues (id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (1, 'Reduce household waste',
@@ -44,7 +43,6 @@ INSERT INTO issues (id, title, summary, description, author_id, solution_count, 
    '2025-09-25T09:30:00.000Z', '2025-09-25T09:30:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues for "Reduce household waste" (parent_id = 1) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (7, 1, 'Lack of accessible recycling infrastructure',
@@ -66,7 +64,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-09-18T09:45:00.000Z', '2025-09-18T09:45:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for "Reduce household waste" (parent_id = 1) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (10, 1, 'Community composting hubs in every neighborhood',
@@ -88,7 +85,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-01T11:15:00.000Z', '2025-10-01T11:15:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues for "Improve local public transport" (parent_id = 2) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (13, 2, 'Bus routes don''t serve suburban neighborhoods',
@@ -104,7 +100,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-09-18T17:00:00.000Z', '2025-09-18T17:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for "Improve local public transport" (parent_id = 2) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (15, 2, 'On-demand micro-transit for underserved areas',
@@ -126,7 +121,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-05T15:30:00.000Z', '2025-10-05T15:30:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues for "Cheaper access to clean water" (parent_id = 3) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (18, 3, 'Aging water infrastructure causes contamination',
@@ -142,7 +136,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-09-25T14:15:00.000Z', '2025-09-25T14:15:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for "Cheaper access to clean water" (parent_id = 3) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (20, 3, 'Low-cost ceramic water filters for households',
@@ -158,7 +151,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-08T16:00:00.000Z', '2025-10-08T16:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues for "Affordable housing solutions" (parent_id = 4) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (22, 4, 'Zoning laws restrict high-density development',
@@ -180,7 +172,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-03T08:30:00.000Z', '2025-10-03T08:30:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for "Affordable housing solutions" (parent_id = 4) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (25, 4, 'Community land trusts to keep housing affordable permanently',
@@ -202,7 +193,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-15T09:15:00.000Z', '2025-10-15T09:15:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues for "Accessible hydroponics systems" (parent_id = 5) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (28, 5, 'High initial setup costs for home systems',
@@ -218,7 +208,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-05T12:30:00.000Z', '2025-10-05T12:30:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for "Accessible hydroponics systems" (parent_id = 5) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (30, 5, 'Open-source DIY hydroponics kits',
@@ -234,7 +223,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-12T16:00:00.000Z', '2025-10-12T16:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues for "Curbing greenhouse gas emissions" (parent_id = 6) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (32, 6, 'Industrial emissions lack local accountability',
@@ -256,7 +244,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-10T14:00:00.000Z', '2025-10-10T14:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for "Curbing greenhouse gas emissions" (parent_id = 6) ──
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, created_at, updated_at) VALUES
   (35, 6, 'Mandatory building energy audits and retrofits',
@@ -284,7 +271,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2025-10-28T15:00:00.000Z', '2025-10-28T15:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Top-level issue: Forest Dieback Crisis ────────────────────
 
 INSERT INTO issues (id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, location_name, scale, created_at, updated_at) VALUES
   (39, 'Forest Dieback Crisis',
@@ -307,7 +293,6 @@ ON CONFLICT (id) DO UPDATE SET
   sub_issue_count = EXCLUDED.sub_issue_count,
   status = EXCLUDED.status;
 
--- ── Sub-issues for "Forest Dieback Crisis" (parent_id = 39) ──
 
 INSERT INTO issues (id, parent_id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, location_name, scale, created_at, updated_at) VALUES
   (40, 39, 'Drought-Induced Forest Decline',
@@ -349,7 +334,6 @@ The loss of these species has cascading effects. Beech and ash forests support d
    '2026-03-18T14:00:00.000Z', '2026-03-18T14:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Regional sub-issues (Sundgau, Grand Est, Metropolitan France) ──────────
 
 INSERT INTO issues (id, parent_id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (41, 40, 'Drought-Induced Forest Decline',
@@ -393,7 +377,6 @@ The ONF is currently testing replacement species in the Grand Est, with oak and 
    '2026-03-21T13:00:00.000Z', '2026-03-21T13:00:00.000Z')
 ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
 
--- ── Urban Carbon Neutrality (top-level issue 46) ──────────────────────────
 
 INSERT INTO issues (id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
   (46, 'Urban Carbon Neutrality',
@@ -412,7 +395,6 @@ The economic dimension is equally challenging: total investment requirements typ
    '2026-04-01T08:00:00.000Z', '2026-04-01T08:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Cause sub-issues for Urban Carbon Neutrality (parent_id = 46) ──────────
 
 INSERT INTO issues (id, parent_id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
   (47, 46, 'Fossil Heating Phase-Out in Existing Buildings',
@@ -491,7 +473,6 @@ The cost of urban carbon neutrality typically runs into the billions over 10–1
    '2026-04-01T13:00:00.000Z', '2026-04-01T13:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Regional sub-issues (Basel-Stadt, Switzerland) ──────────────────────────
 
 INSERT INTO issues (id, parent_id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (48, 47, 'Fossil Heating Phase-Out in Existing Buildings',
@@ -593,7 +574,6 @@ The Klimaportal, launched in 2025, provides public transparency on progress acro
    '2026-04-02T12:00:00.000Z', '2026-04-02T12:00:00.000Z')
 ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
 
--- ── Solutions for Fossil Heating Phase-Out (parent_id = 47) ──────────────────
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (49, 47, 'Mandatory District Heating Connection Zones',
@@ -611,7 +591,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2026-04-03T09:00:00.000Z', '2026-04-03T09:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Urban Transport Decarbonization (parent_id = 51) ───────────
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (53, 51, 'Right-to-Charge Legislation for Tenants',
@@ -629,7 +608,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2026-04-03T11:00:00.000Z', '2026-04-03T11:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Embodied Carbon (parent_id = 55) ──────────────────────────
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (57, 55, 'Binding Whole-Life Carbon Limits for New Construction',
@@ -647,7 +625,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2026-04-03T13:00:00.000Z', '2026-04-03T13:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Residual Emissions (parent_id = 59) ───────────────────────
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (61, 59, 'CCS at Municipal Waste-to-Energy Plants',
@@ -672,7 +649,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2026-04-04T10:00:00.000Z', '2026-04-04T10:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Small Business Viability (parent_id = 64) ─────────────────
 
 INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, created_at, updated_at) VALUES
   (66, 64, 'Municipal Climate Platform for SME Coordination',
@@ -690,7 +666,6 @@ INSERT INTO issues (id, parent_id, title, summary, author_id, solution_count, su
    '2026-04-04T12:00:00.000Z', '2026-04-04T12:00:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Drought-Induced Forest Decline (parent_id = 40, global cause) ──
 
 INSERT INTO issues (id, parent_id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, scale, solution_status, created_at, updated_at) VALUES
   (68, 40, 'Mosaic forest silviculture',
@@ -738,7 +713,6 @@ The strength of the approach is that it is empirical rather than guess-based. Th
    '2026-04-04T09:30:00.000Z', '2026-04-04T09:30:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Drought – Sundgau (parent_id = 41, regional) ──
 
 INSERT INTO issues (id, parent_id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, location_name, location, scale, solution_status, created_at, updated_at) VALUES
   (72, 41, 'Plant climate-adapted species',
@@ -766,7 +740,6 @@ These measures work for what they are designed to do: keep taps running through 
    '2026-04-04T10:30:00.000Z', '2026-04-04T10:30:00.000Z')
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues attached to drought solutions (74–76) ──
 
 INSERT INTO issues (id, parent_id, title, summary, description, author_id, solution_count, sub_issue_count, status, type, scale, created_at, updated_at) VALUES
   (74, 71, 'Trials too slow for dying stands',

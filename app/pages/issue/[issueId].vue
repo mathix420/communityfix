@@ -12,7 +12,6 @@ const tabs = [
   { name: 'Tree View', path: `/issue/${issueId.value}/tree` },
 ]
 
-// SEO Meta Tags for Issue Page
 if (issue.value) {
   useSeoMeta({
     title: issue.value.title,
