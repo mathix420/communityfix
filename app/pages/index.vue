@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
+const { track } = useUmami()
 
 const search = ref((route.query.search as string) || '')
 const sort = ref((route.query.sort as string) || 'newest')
@@ -28,14 +29,6 @@ const { data: issues } = await useFetch('/api/issues', {
 watch(queryParams, (params) => {
   router.replace({ query: { ...route.query, ...params, ...(!params.sort && { sort: undefined }), ...(!params.search && { search: undefined }) } })
 }, { deep: true })
-
-let searchTimeout: ReturnType<typeof setTimeout>
-function onSearchInput(val: string) {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    search.value = val
-  }, 300)
-}
 
 // SEO Meta Tags for Homepage
 useSeoMeta({
@@ -66,35 +59,20 @@ defineOgImage('Home')
 
     <!-- Filter bar -->
     <div class="flex items-stretch gap-3 max-w-3xl mx-auto mb-6">
-      <div class="flex items-stretch flex-1 rounded-md overflow-hidden border border-gray-200 [&_[data-slot=base]]:rounded-none">
-        <UInput
-          :model-value="search"
-          placeholder="Search issues..."
-          icon="i-lucide-search"
-          size="md"
-          variant="none"
-          class="flex-1"
-          @update:model-value="onSearchInput"
-        />
-        <USelectMenu
-          v-model="sort"
-          :items="sortOptions"
-          value-key="value"
-          size="md"
-          variant="none"
-          class="w-44 border-l border-gray-200"
-        />
-      </div>
+      <UiSearchAndSortBar
+        v-model:search="search"
+        v-model:sort="sort"
+        :sort-options="sortOptions"
+        placeholder="Search issues..."
+      />
       <AuthState v-slot="{ loggedIn }">
-        <UButton
+        <UiActionButton
           v-if="loggedIn"
           to="/new"
-          color="primary"
-          size="md"
-          data-umami-event="Homepage new issue"
+          @click="track('Homepage new issue')"
         >
           New Issue
-        </UButton>
+        </UiActionButton>
       </AuthState>
     </div>
 
