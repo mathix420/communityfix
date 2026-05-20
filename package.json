@@ -29,6 +29,7 @@
     "@nuxt/ui": "^4.4.0",
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.2",
+    "@takumi-rs/core": "^1.3.0",
     "@unhead/vue": "^2.1.4",
     "drizzle-orm": "^0.45.1",
     "eslint": "^9.39.1",
