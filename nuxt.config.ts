@@ -46,6 +46,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     openaiApiKey: '',
     databaseUrl: '',
+    // Comma-separated list of emails granted admin powers (e.g. endorsing
+    // credentials on behalf of users who emailed proofs to support). Set via
+    // `doppler secrets set NUXT_ADMIN_EMAILS=a@x.com,b@y.com`.
+    adminEmails: '',
   },
 
   routeRules: {

@@ -170,12 +170,12 @@ async function handleShare() {
         <NuxtLink
           v-if="issue.authorId"
           :to="`/user/${issue.authorId}`"
-          class="flex items-center hover:bg-gray-100 transition-colors px-2 py-1 flex-wrap gap-2 text-sm rounded-md"
+          class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md hover:bg-gray-100 transition-colors"
         >
           <img
             :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
             alt="Author Avatar"
-            class="size-4 rounded-full"
+            class="size-5 rounded-full shrink-0"
           >
           <span class="whitespace-nowrap text-gray-700 font-mono">
             {{ issue.author }}
@@ -183,12 +183,12 @@ async function handleShare() {
         </NuxtLink>
         <span
           v-else
-          class="flex items-center px-2 py-1 flex-wrap gap-2 text-sm rounded-md"
+          class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md"
         >
           <img
             :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
             alt="Author Avatar"
-            class="size-4 rounded-full"
+            class="size-5 rounded-full shrink-0"
           >
           <span class="whitespace-nowrap text-gray-700 font-mono">
             {{ issue.author }}

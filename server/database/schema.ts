@@ -198,16 +198,25 @@ export const qualificationsRelations = relations(qualifications, ({ one, many })
   endorsements: many(qualificationEndorsements),
 }))
 
+export const ENDORSEMENT_KINDS = ['endorsement', 'verification'] as const
+export type EndorsementKind = typeof ENDORSEMENT_KINDS[number]
+
 // ── Qualification endorsements ────────────────────────
 // A community acknowledgement that a user's qualification is legitimate.
 // Rule: only users who themselves have received at least one endorsement
 // may endorse others. When a qualification's content is edited, every row
 // for that qualification is deleted — the claim has changed, so past
 // endorsements no longer apply.
+//
+// `kind` distinguishes:
+//   - 'endorsement'  : a peer vouching (counts toward endorsementCount)
+//   - 'verification' : an admin/team vouching (shows a verified badge,
+//                      does NOT increment endorsementCount)
 export const qualificationEndorsements = pgTable('qualification_endorsements', {
   id: serial('id').primaryKey(),
   qualificationId: integer('qualification_id').notNull().references(() => qualifications.id, { onDelete: 'cascade' }),
   endorserId: uuid('endorser_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<EndorsementKind>().notNull().default('endorsement'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [
   unique('qualification_endorsements_unique').on(t.qualificationId, t.endorserId),

@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const sortBy = (query.sort as string) || 'trending'
+  const searchTerm = (query.search as string) || ''
 
   let orderByClause
   switch (sortBy) {
@@ -31,12 +32,20 @@ export default defineEventHandler(async (event) => {
       break
   }
 
+  const conditions = [
+    eq(issues.parentId, parseInt(id, 10)),
+    eq(issues.status, 'approved'),
+    eq(issues.type, 'issue'),
+  ]
+
+  if (searchTerm.trim()) {
+    conditions.push(
+      sql`search_vector @@ plainto_tsquery('english', ${searchTerm.trim()})`,
+    )
+  }
+
   const results = await db.query.issues.findMany({
-    where: and(
-      eq(issues.parentId, parseInt(id, 10)),
-      eq(issues.status, 'approved'),
-      eq(issues.type, 'issue'),
-    ),
+    where: and(...conditions),
     with: issueWithRelations,
     orderBy: orderByClause,
   })

@@ -1,0 +1,1 @@
+ALTER TABLE "qualification_endorsements" ADD COLUMN "kind" text DEFAULT 'endorsement' NOT NULL;
