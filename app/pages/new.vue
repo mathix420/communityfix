@@ -34,8 +34,9 @@ const scale = ref<LocationScale>()
 
 const { data: banStatus } = await useFetch('/api/user/ban-status')
 
-const { data: parent } = await useFetch(
-  () => parentId.value ? `/api/issue/${parentId.value}` : null,
+const { data: parent } = await useAsyncData(
+  'new-page-parent',
+  () => parentId.value ? $fetch(`/api/issue/${parentId.value}`) : Promise.resolve(null),
   { watch: [parentId] },
 )
 
