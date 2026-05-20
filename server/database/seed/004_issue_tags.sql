@@ -1,4 +1,3 @@
--- ── Top-level issue tags ──────────────────────────────────────
 
 -- Reduce household waste (1): environment, waste management, recycling
 INSERT INTO issue_tags (issue_id, tag_id) VALUES
@@ -42,7 +41,6 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (6, (SELECT id FROM tags WHERE slug = 'energy'))
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issue and solution tags ──────────────────────────────
 
 -- Sub-issues for waste (7-9)
 INSERT INTO issue_tags (issue_id, tag_id) VALUES
@@ -152,7 +150,6 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (38, (SELECT id FROM tags WHERE slug = 'innovation'))
 ON CONFLICT DO NOTHING;
 
--- ── Forest Dieback Crisis (39) ──────────────────────────────
 INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (39, (SELECT id FROM tags WHERE slug = 'environment')),
   (39, (SELECT id FROM tags WHERE slug = 'climate')),
@@ -203,7 +200,6 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (45, (SELECT id FROM tags WHERE slug = 'biodiversity'))
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Drought-Induced Forest Decline – global cause (68–71) ────
 
 -- Mosaic forest silviculture (68)
 INSERT INTO issue_tags (issue_id, tag_id) VALUES
@@ -232,7 +228,6 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (71, (SELECT id FROM tags WHERE slug = 'biodiversity'))
 ON CONFLICT DO NOTHING;
 
--- ── Solutions for Drought – Sundgau (72–73) ────
 
 -- Plant climate-adapted species (72)
 INSERT INTO issue_tags (issue_id, tag_id) VALUES
@@ -248,7 +243,6 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (73, (SELECT id FROM tags WHERE slug = 'drought'))
 ON CONFLICT DO NOTHING;
 
--- ── Sub-issues attached to drought solutions (74–76) ────
 
 -- Trials too slow for dying stands (74, parent=71)
 INSERT INTO issue_tags (issue_id, tag_id) VALUES
@@ -268,7 +262,6 @@ INSERT INTO issue_tags (issue_id, tag_id) VALUES
   (76, (SELECT id FROM tags WHERE slug = 'drought'))
 ON CONFLICT DO NOTHING;
 
--- ── Urban Carbon Neutrality (46) ──────────────────────────────
 
 -- Urban Carbon Neutrality (46): climate, energy, sustainability, infrastructure
 INSERT INTO issue_tags (issue_id, tag_id) VALUES

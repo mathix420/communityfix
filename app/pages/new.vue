@@ -25,8 +25,8 @@ const noun = computed(() => {
 const Noun = computed(() => noun.value[0]!.toUpperCase() + noun.value.slice(1))
 
 const title = ref('')
+const summary = ref('')
 const description = ref('')
-const detailedDescription = ref('')
 const locationName = ref('')
 const latitude = ref<number | undefined>()
 const longitude = ref<number | undefined>()
@@ -40,15 +40,14 @@ const { data: parent } = await useAsyncData(
   { watch: [parentId] },
 )
 
-// Similar issues detection — only applies to top-level issues
-const similarIssues = ref<{ id: number, title: string, description: string, similarity: number }[]>([])
+const similarIssues = ref<{ id: number, title: string, summary: string, similarity: number }[]>([])
 const similarStatus = ref<'ok' | 'unavailable' | 'too_short'>('too_short')
 const searchingDuplicates = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout>
-watch([title, description], () => {
+watch([title, summary], () => {
   clearTimeout(debounceTimer)
-  if (title.value.length < 5 || description.value.length < 10) {
+  if (title.value.length < 5 || summary.value.length < 10) {
     similarIssues.value = []
     similarStatus.value = 'too_short'
     return
@@ -57,7 +56,7 @@ watch([title, description], () => {
     searchingDuplicates.value = true
     try {
       const response = await $fetch('/api/issues/similar', {
-        query: { title: title.value, description: description.value },
+        query: { title: title.value, summary: summary.value },
       })
       similarIssues.value = response.results
       similarStatus.value = response.status
@@ -79,8 +78,8 @@ async function submit() {
       method: 'POST',
       body: {
         title: title.value,
-        description: description.value,
-        detailedDescription: detailedDescription.value || undefined,
+        summary: summary.value,
+        description: description.value || undefined,
         locationName: locationName.value || undefined,
         latitude: latitude.value,
         longitude: longitude.value,
@@ -140,7 +139,6 @@ definePageMeta({
         :description="pageDescription"
       />
 
-      <!-- Parent callout (sub-issues / solutions) -->
       <IssueParentCallout
         v-if="isChild && parent"
         :parent="{ id: parent.id, title: parent.title }"
@@ -148,7 +146,6 @@ definePageMeta({
         class="mb-6"
       />
 
-      <!-- Ban notice -->
       <UiCard
         v-if="banStatus?.banned"
         padding="lg"
@@ -157,7 +154,6 @@ definePageMeta({
         <BanNotice :ban-status="banStatus" @appealed="refreshNuxtData()" />
       </UiCard>
 
-      <!-- Creation form (hidden when banned) -->
       <UiCard
         v-else
         padding="lg"
@@ -182,12 +178,12 @@ definePageMeta({
           </UFormField>
 
           <UFormField
-            label="Description"
-            name="description"
+            label="Summary"
+            name="summary"
             required
           >
             <UTextarea
-              v-model="description"
+              v-model="summary"
               :placeholder="childType === 'solution' ? 'Briefly describe the proposed solution' : 'Briefly describe the issue'"
               size="lg"
               class="w-full"
@@ -196,11 +192,11 @@ definePageMeta({
           </UFormField>
 
           <UFormField
-            label="Detailed Description"
-            name="detailedDescription"
+            label="Description"
+            name="description"
           >
             <UTextarea
-              v-model="detailedDescription"
+              v-model="description"
               placeholder="Additional details..."
               size="lg"
               class="w-full"
@@ -208,7 +204,6 @@ definePageMeta({
             />
           </UFormField>
 
-          <!-- Location picker -->
           <LocationPicker
             v-model:latitude="latitude"
             v-model:longitude="longitude"
@@ -216,7 +211,6 @@ definePageMeta({
             v-model:scale="scale"
           />
 
-          <!-- Similar issues panel -->
           <div
             v-if="similarIssues.length > 0"
             class="rounded-lg border border-yellow-200 bg-yellow-50 p-4"

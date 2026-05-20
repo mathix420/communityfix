@@ -31,7 +31,6 @@ const totalContributions = computed(
   () => (user.value?.issues?.length ?? 0) + (user.value?.solutions?.length ?? 0),
 )
 
-// Endorsement actions ─────────────────────────────────
 const endorsing = ref<number | null>(null)
 
 async function endorse(qualificationId: number) {
@@ -104,7 +103,6 @@ useSeoMeta({
 <template>
   <AppContainer>
     <template v-if="user">
-      <!-- ── Hero ──────────────────────────────────────── -->
       <header class="mt-10 mb-12 flex flex-col items-center text-center gap-5">
         <img
           :src="`https://api.dicebear.com/9.x/glass/svg?seed=${displayName}`"
@@ -141,7 +139,6 @@ useSeoMeta({
           <span>Joined {{ joinedDate }}</span>
         </div>
 
-        <!-- Owner edit shortcut -->
         <NuxtLink
           v-if="user.viewer.isOwner"
           to="/settings"
@@ -156,7 +153,6 @@ useSeoMeta({
         </NuxtLink>
       </header>
 
-      <!-- ── Stats strip ───────────────────────────────── -->
       <UiCard
         padding="md"
         class="mb-10"
@@ -189,7 +185,6 @@ useSeoMeta({
         </dl>
       </UiCard>
 
-      <!-- ── Bio ───────────────────────────────────────── -->
       <section
         v-if="user.bio"
         class="mb-12"
@@ -205,7 +200,6 @@ useSeoMeta({
         </UiCard>
       </section>
 
-      <!-- ── Credentials ───────────────────────────────── -->
       <section
         ref="credentialsSection"
         class="mb-12 scroll-mt-8"
@@ -218,6 +212,32 @@ useSeoMeta({
         </div>
 
         <!-- Friendly banner for visitors arriving via a "share endorse link" -->
+        <div
+          v-if="endorseInvite && !user.viewer.isOwner"
+          class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
+        >
+          <UIcon
+            name="lucide:hand-heart"
+            class="size-4 text-primary-600 mt-0.5 shrink-0"
+          />
+          <p class="text-xs text-primary-900 leading-relaxed">
+            <span class="font-mono uppercase tracking-wide">{{ displayName }} asked you to vouch — </span>
+            tap "Endorse" on any credential you can personally vouch for.
+            <span
+              v-if="user.viewer.isAuthenticated && !user.viewer.canEndorse"
+              class="block mt-1 text-primary-800/80"
+            >
+              You'll be able to endorse once your own credentials have at least one endorsement.
+            </span>
+            <span
+              v-else-if="!user.viewer.isAuthenticated"
+              class="block mt-1 text-primary-800/80"
+            >
+              Sign in first to leave an endorsement.
+            </span>
+          </p>
+        </div>
+
         <div
           v-if="endorseInvite && !user.viewer.isOwner"
           class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
@@ -293,9 +313,6 @@ useSeoMeta({
                 </div>
               </div>
 
-              <!-- Endorse / verify / unendorse button. Admins see the
-                   verification flavor (badge icon + "Verify"/"Verified") so
-                   the action they take maps to the badge they create. -->
               <div class="shrink-0">
                 <template v-if="user.viewer.isOwner">
                   <span class="text-[10px] font-mono uppercase tracking-widest text-gray-400">
@@ -336,7 +353,6 @@ useSeoMeta({
             </div>
           </UiCard>
 
-          <!-- Gating notice for unauthenticated / un-endorsed viewers -->
           <p
             v-if="!user.viewer.isOwner && user.viewer.isAuthenticated && !user.viewer.canEndorse"
             class="text-xs text-gray-500 font-mono mt-1"
@@ -370,7 +386,6 @@ useSeoMeta({
         </div>
       </section>
 
-      <!-- ── Contributions ─────────────────────────────── -->
       <section
         v-if="user.issues.length > 0"
         class="mb-12"

@@ -5,7 +5,6 @@
 --
 -- Wrapped in DO blocks because Postgres has no `ADD CONSTRAINT IF NOT EXISTS`.
 
--- ── issues ─────────────────────────────────────────────
 DO $$ BEGIN
   ALTER TABLE issues ADD CONSTRAINT issues_status_check
     CHECK (status IN ('pending', 'approved', 'rejected'));
@@ -43,7 +42,6 @@ DO $$ BEGIN
     CHECK (status <> 'rejected' OR rejection_reason IS NOT NULL);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- ── votes ──────────────────────────────────────────────
 DO $$ BEGIN
   ALTER TABLE votes ADD CONSTRAINT votes_value_check
     CHECK (value IN (-1, 1));
@@ -54,7 +52,6 @@ DO $$ BEGIN
     CHECK (weight BETWEEN 1 AND 5);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- ── users ──────────────────────────────────────────────
 DO $$ BEGIN
   ALTER TABLE users ADD CONSTRAINT users_trust_score_check
     CHECK (trust_score BETWEEN 0 AND 100);

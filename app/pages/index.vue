@@ -25,12 +25,10 @@ const { data: issues } = await useFetch('/api/issues', {
   watch: [queryParams],
 })
 
-// Sync URL query params
 watch(queryParams, (params) => {
   router.replace({ query: { ...route.query, ...params, ...(!params.sort && { sort: undefined }), ...(!params.search && { search: undefined }) } })
 }, { deep: true })
 
-// SEO Meta Tags for Homepage
 useSeoMeta({
   title: 'Community Solutions Hub',
   description: 'Find and co-create solutions to local and global issues. Join CommunityFix to share skills, back ideas, and collaborate on impact projects.',
@@ -57,7 +55,6 @@ defineOgImage('Home')
       The community is actively working on these issues:
     </p>
 
-    <!-- Filter bar -->
     <div class="flex items-stretch gap-3 max-w-3xl mx-auto mb-6">
       <UiSearchAndSortBar
         v-model:search="search"

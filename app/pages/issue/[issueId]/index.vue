@@ -61,7 +61,6 @@ async function submitAppeal() {
     v-if="issue"
     class="mt-3 space-y-3"
   >
-    <!-- Parent issue reference -->
     <IssueParentCallout
       v-if="parentIssue"
       :parent="{ id: parentIssue.id, title: parentIssue.title }"
@@ -75,7 +74,6 @@ async function submitAppeal() {
       This issue is pending review and has not been published yet.
     </div>
 
-    <!-- Rejected banner -->
     <div
       v-if="issue.status === 'rejected'"
       class="bg-red-50 rounded-lg px-4 py-4 space-y-3"
@@ -87,7 +85,6 @@ async function submitAppeal() {
         Reason: {{ issue.rejectionReason }}
       </p>
 
-      <!-- Appeal already submitted -->
       <p
         v-if="issue.appealStatus === 'pending'"
         class="text-yellow-700 text-sm font-mono"
@@ -101,7 +98,6 @@ async function submitAppeal() {
         Your appeal was denied.
       </p>
 
-      <!-- Appeal form (only if not yet appealed and not spam) -->
       <div v-else-if="!issue.appealStatus && !issue.isSpam">
         <form
           class="flex flex-col gap-2"
@@ -128,12 +124,10 @@ async function submitAppeal() {
     </div>
 
     <div class="space-y-3">
-      <!-- Tags & SDGs -->
       <div
         v-if="issue.tags?.length || issue.sustainableDevelopmentGoals?.length"
         class="grid grid-cols-1 md:grid-cols-2 gap-3"
       >
-        <!-- Tags Section -->
         <div
           v-if="issue.tags?.length"
           class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
@@ -156,7 +150,6 @@ async function submitAppeal() {
           </div>
         </div>
 
-        <!-- Sustainable Development Goals Section -->
         <div
           v-if="issue.sustainableDevelopmentGoals?.length"
           class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
@@ -186,7 +179,6 @@ async function submitAppeal() {
         </div>
       </div>
 
-      <!-- Location Section -->
       <div
         v-if="issue.locationName || issue.scale"
         class="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden"
@@ -239,9 +231,8 @@ async function submitAppeal() {
         </div>
       </div>
 
-      <!-- Description Section -->
       <div
-        v-if="issue.detailedDescription"
+        v-if="issue.description"
         class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
       >
         <div class="flex items-center gap-2 mb-2.5">
@@ -250,9 +241,10 @@ async function submitAppeal() {
             Description
           </p>
         </div>
-        <div class="prose prose-sm max-w-none text-gray-700">
-          {{ issue.detailedDescription }}
-        </div>
+        <UiMarkdown
+          :value="issue.description"
+          class="prose-sm text-gray-700"
+        />
       </div>
     </div>
   </div>
