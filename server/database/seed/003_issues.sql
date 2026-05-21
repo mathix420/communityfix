@@ -287,7 +287,6 @@ This issue brings together communities worldwide who are witnessing forest dieba
 ON CONFLICT (id) DO UPDATE SET
   title = EXCLUDED.title,
   description = EXCLUDED.description,
-  description = EXCLUDED.description,
   location_name = EXCLUDED.location_name,
   scale = EXCLUDED.scale,
   sub_issue_count = EXCLUDED.sub_issue_count,

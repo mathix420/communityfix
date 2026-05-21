@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
     latitude?: number
     longitude?: number
     scale?: LocationScale
+    links?: Array<{ url: string, title?: string }>
   }>(event)
 
   const created = await createIssue(session.user.id, {
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
     latitude: body.latitude,
     longitude: body.longitude,
     scale: body.scale,
+    links: body.links,
   })
 
   // Cloudflare Workers requires waitUntil so the AI review survives past the

@@ -1,11 +1,13 @@
 import { and, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
-import { issues, qualificationEndorsements, qualifications, tags, users } from '../database/schema'
+import { caseStudies, issues, qualificationEndorsements, qualifications, tags, users } from '../database/schema'
 import type { IssueType } from '../database/schema'
 import { generateEmbedding } from './embeddings'
 import { isAdminEmail } from './admin'
 import { issueWithRelations, transformIssue } from './transform-issue'
 import { createIssue, updateIssue } from './issue-write'
 import type { CreateIssueInput, UpdateIssueInput } from './issue-write'
+import { createCaseStudy, transformCaseStudy, updateCaseStudy } from './case-study-write'
+import type { CreateCaseStudyInput, UpdateCaseStudyInput } from './case-study-write'
 import { getIssueTree } from './issue-tree'
 
 const SEARCH_SIMILARITY_THRESHOLD = 0.25
@@ -118,6 +120,57 @@ export async function updateSolutionAs(userId: string, input: UpdateIssueInput) 
   return updateNode(userId, input, 'solution', 'update_solution')
 }
 
+async function hydrateCaseStudy(id: number) {
+  const row = await useDB().query.caseStudies.findFirst({
+    where: eq(caseStudies.id, id),
+    with: { author: { columns: { name: true } } },
+  })
+  return row ? transformCaseStudy(row) : null
+}
+
+export async function createCaseStudyAs(userId: string, input: CreateCaseStudyInput) {
+  const created = await createCaseStudy(userId, input)
+  return (await hydrateCaseStudy(created.id))!
+}
+
+export async function updateCaseStudyAs(userId: string, input: UpdateCaseStudyInput) {
+  const updated = await updateCaseStudy(userId, input)
+  return (await hydrateCaseStudy(updated.id))!
+}
+
+export async function getCaseStudyById(id: number) {
+  return hydrateCaseStudy(id)
+}
+
+export async function listCaseStudiesFor(nodeId: number) {
+  const db = useDB()
+  const root = await db.query.issues.findFirst({
+    where: eq(issues.id, nodeId),
+    columns: { id: true, type: true },
+  })
+  if (!root) return null
+
+  let solutionIds: number[]
+  if (root.type === 'solution') {
+    solutionIds = [root.id]
+  }
+  else {
+    const solutionRows = await db.query.issues.findMany({
+      where: and(eq(issues.parentId, root.id), eq(issues.type, 'solution'), eq(issues.status, 'approved')),
+      columns: { id: true },
+    })
+    solutionIds = solutionRows.map(r => r.id)
+  }
+  if (solutionIds.length === 0) return []
+
+  const rows = await db.query.caseStudies.findMany({
+    where: inArray(caseStudies.solutionId, solutionIds),
+    with: { author: { columns: { name: true } } },
+    orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
+  })
+  return rows.map(transformCaseStudy)
+}
+
 export async function suggestMore(seedId: number, limit = SUGGEST_LIMIT) {
   const db = useDB()
   const seed = await db.query.issues.findFirst({
@@ -167,8 +220,6 @@ export async function getIssueById(id: number) {
   return row ? transformIssue(row) : null
 }
 
-// `isSelf` toggles private fields (email, ban state) and visibility of
-// rejected/pending posts — mirrors /api/user/[id].
 async function loadProfile(userId: string, opts: { isSelf: boolean }) {
   const db = useDB()
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) })
@@ -212,6 +263,10 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     .select({ solutionsCount: count(issues.id).as('solutionsCount') })
     .from(issues)
     .where(and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), visibility ?? sql`true`)) as [{ solutionsCount: number }]
+  const [{ caseStudiesCount }] = await db
+    .select({ caseStudiesCount: count(caseStudies.id).as('caseStudiesCount') })
+    .from(caseStudies)
+    .where(eq(caseStudies.authorId, user.id)) as [{ caseStudiesCount: number }]
 
   return {
     id: user.id,
@@ -224,6 +279,7 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     endorsementsReceived: [...endorseCount.values()].reduce((sum, n) => sum + n, 0),
     issuesAuthored: Number(issuesCount),
     solutionsAuthored: Number(solutionsCount),
+    caseStudiesAuthored: Number(caseStudiesCount),
     qualifications: ownQualifications.map(q => ({
       id: q.id,
       title: q.title,

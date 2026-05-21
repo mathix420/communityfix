@@ -3,14 +3,31 @@ const route = useRoute()
 const issueId = computed(() => route.params.issueId)
 const { data: issue } = await useFetch(() => `/api/issue/${issueId.value}`)
 
-const tabs = [
-  { name: 'Overview', path: `/issue/${issueId.value}` },
-  { name: 'Issues', path: `/issue/${issueId.value}/issues` },
-  { name: 'Solutions', path: `/issue/${issueId.value}/solutions` },
-  { name: 'Studies', path: `/issue/${issueId.value}/studies` },
-  { name: 'Funding', path: `/issue/${issueId.value}/funding` },
-  { name: 'Tree View', path: `/issue/${issueId.value}/tree` },
-]
+// Solutions can't have sub-solutions, so the Solutions tab is meaningless on
+// a solution page — case studies replace it. Inverse for issues: no case
+// studies tab there (the studies route still resolves for direct links).
+const tabs = computed(() => {
+  const isSolution = issue.value?.type === 'solution'
+  const base = [
+    { name: 'Overview', path: `/issue/${issueId.value}` },
+    { name: 'Issues', path: `/issue/${issueId.value}/issues` },
+  ]
+  if (isSolution) {
+    base.push({ name: 'Case Studies', path: `/issue/${issueId.value}/studies` })
+  }
+  else {
+    base.push({ name: 'Solutions', path: `/issue/${issueId.value}/solutions` })
+  }
+  base.push(
+    { name: 'Funding', path: `/issue/${issueId.value}/funding` },
+    { name: 'Tree View', path: `/issue/${issueId.value}/tree` },
+  )
+  return base
+})
+
+// Make the loaded row available to nested route children (e.g. studies.vue
+// switches between solution-mode and issue-mode based on `issue.type`).
+provide('issue', issue)
 
 if (issue.value) {
   useSeoMeta({

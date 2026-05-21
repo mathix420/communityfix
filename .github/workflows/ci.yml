@@ -96,6 +96,15 @@ jobs:
         run: bun run build
       - name: Run Drizzle + custom migrations against Neon production
         run: doppler run -c prd -- bun run server/database/migrate.ts
+      - name: Sync Doppler secrets to Cloudflare Worker (production)
+        # Mirrors every secret from the Doppler `prd` config onto the
+        # `communityfix` Worker via `wrangler secret bulk`. The DOPPLER_* meta
+        # keys are filtered out. Runs before deploy so the new bundle boots
+        # with up-to-date secrets.
+        run: |
+          doppler secrets download -c prd --no-file --format json \
+            | jq 'del(.DOPPLER_PROJECT, .DOPPLER_ENVIRONMENT, .DOPPLER_CONFIG)' \
+            | bunx wrangler secret bulk --name communityfix
       - name: Deploy to Cloudflare Workers (production)
         # Wrangler picks up `.wrangler/deploy/config.json`, which Nitro emits
         # during `bun run build` to redirect to `.output/server/wrangler.json`.
@@ -126,6 +135,13 @@ jobs:
         run: bun run build
       - name: Run Drizzle + custom migrations against Neon staging
         run: doppler run -c stg -- bun run server/database/migrate.ts
+      - name: Sync Doppler secrets to Cloudflare Worker (staging)
+        # Mirrors every secret from the Doppler `stg` config onto the
+        # `communityfix-staging` Worker. See production for filter rationale.
+        run: |
+          doppler secrets download -c stg --no-file --format json \
+            | jq 'del(.DOPPLER_PROJECT, .DOPPLER_ENVIRONMENT, .DOPPLER_CONFIG)' \
+            | bunx wrangler secret bulk --name communityfix-staging
       - name: Deploy to Cloudflare Workers (staging)
         # See production deploy step for how the redirected config is found.
         # `--name` overrides the worker name so this lands on the dedicated

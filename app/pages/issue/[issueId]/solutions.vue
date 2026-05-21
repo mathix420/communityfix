@@ -3,6 +3,11 @@ const route = useRoute()
 const issueId = computed(() => route.params.issueId)
 const { track } = useUmami()
 
+// Solutions can no longer be nested under other solutions — hide the
+// "Propose a solution" affordance when the parent is itself a solution.
+const parentIssue = inject<Ref<{ type: 'issue' | 'solution' } | null>>('issue', ref(null))
+const allowPropose = computed(() => parentIssue.value?.type !== 'solution')
+
 const sort = ref('trending')
 const search = ref('')
 const sortOptions = [
@@ -33,7 +38,10 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
-    <div class="flex items-stretch gap-3">
+    <div
+      v-if="(solutions?.length ?? 0) > 0 || search.trim()"
+      class="flex items-stretch gap-3"
+    >
       <UiSearchAndSortBar
         v-model:search="search"
         v-model:sort="sort"
@@ -42,7 +50,7 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
       />
       <AuthState v-slot="{ loggedIn: isLoggedIn }">
         <UiActionButton
-          v-if="isLoggedIn && !banStatus?.banned"
+          v-if="allowPropose && isLoggedIn && !banStatus?.banned"
           :to="`/new?parent=${issueId}&type=solution`"
           @click="track('Open solution form')"
         >
@@ -63,11 +71,27 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
       :issue="solution"
     />
 
-    <p
-      v-if="solutions?.length === 0"
-      class="text-toned text-center py-8"
-    >
-      {{ search.trim() ? 'No solutions match your search.' : 'No solutions proposed yet.' }}
-    </p>
+    <template v-if="solutions?.length === 0">
+      <p v-if="search.trim()" class="text-toned text-center py-8">
+        No solutions match your search.
+      </p>
+      <UiEmptyState
+        v-else-if="allowPropose"
+        icon="lucide:lightbulb"
+        title="Be the first to propose a solution"
+        description="Your idea could be the one the community rallies around and turns into action."
+        cta-label="Propose a solution"
+        :cta-to="`/new?parent=${issueId}&type=solution`"
+        cta-event="Empty state cta solutions"
+      />
+      <UiEmptyState
+        v-else
+        icon="lucide:lightbulb-off"
+        title="Solutions can't nest under solutions"
+        description="Document a real-world implementation from the Studies tab instead."
+        cta-label="Open case studies"
+        :cta-to="`/issue/${issueId}/studies`"
+      />
+    </template>
   </div>
 </template>
