@@ -77,7 +77,7 @@ async function handlePasskey() {
   }
 }
 
-async function startOAuth(provider: 'google' | 'apple') {
+async function startOAuth(provider: 'google') {
   umami.track(`Sign in with ${provider}`)
   activeProvider.value = provider
   const route = `/auth/${provider}`
@@ -150,28 +150,16 @@ async function startOAuth(provider: 'google' | 'apple') {
 
       <UiDivider text="or continue with" />
 
-      <div class="grid grid-cols-2 gap-3">
-        <UButton
-          block
-          variant="soft"
-          color="neutral"
-          icon="i-fa6-brands-google"
-          :loading="activeProvider === 'google'"
-          @click="startOAuth('google')"
-        >
-          Google
-        </UButton>
-        <UButton
-          block
-          variant="soft"
-          color="neutral"
-          icon="i-fa6-brands-apple"
-          :loading="activeProvider === 'apple'"
-          @click="startOAuth('apple')"
-        >
-          Apple
-        </UButton>
-      </div>
+      <UButton
+        block
+        variant="soft"
+        color="neutral"
+        icon="i-fa6-brands-google"
+        :loading="activeProvider === 'google'"
+        @click="startOAuth('google')"
+      >
+        Google
+      </UButton>
 
       <p class="text-xs text-center text-gray-400 font-mono">
         Passwordless by design
