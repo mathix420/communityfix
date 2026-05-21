@@ -112,9 +112,12 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
     <div class="flex flex-col gap-3 min-w-0">
       <!-- Title row: location is the anchor, outcome+verified are right-aligned signals -->
       <div class="flex items-start justify-between gap-3 min-w-0">
-        <div class="flex items-center gap-2 min-w-0">
+        <NuxtLink
+          :to="`/case-study/${study.id}`"
+          class="flex items-center gap-2 min-w-0 group"
+        >
           <UIcon name="lucide:map-pin" class="size-4 shrink-0 text-gray-400" />
-          <h3 class="font-title text-lg text-gray-900 leading-snug truncate">
+          <h3 class="font-title text-lg text-gray-900 leading-snug truncate group-hover:underline decoration-primary">
             {{ study.locationName }}
           </h3>
           <UIcon
@@ -123,7 +126,7 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
             class="size-4 shrink-0 text-green-600"
             title="Verified"
           />
-        </div>
+        </NuxtLink>
         <UiBadge :variant="outcomeVariant[study.outcome]" class="shrink-0">
           {{ outcomeLabel[study.outcome] }}
         </UiBadge>
