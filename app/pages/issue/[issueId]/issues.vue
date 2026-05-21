@@ -27,7 +27,10 @@ const { data: subIssues } = await useFetch(() => `/api/issue/${issueId.value}/is
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
-    <div class="flex items-stretch gap-3">
+    <div
+      v-if="(subIssues?.length ?? 0) > 0 || search.trim()"
+      class="flex items-stretch gap-3"
+    >
       <UiSearchAndSortBar
         v-model:search="search"
         v-model:sort="sort"
@@ -51,11 +54,20 @@ const { data: subIssues } = await useFetch(() => `/api/issue/${issueId.value}/is
       :issue="issue"
     />
 
+    <UiEmptyState
+      v-if="subIssues?.length === 0 && !search.trim()"
+      icon="lucide:circle-alert"
+      title="Help break this problem down"
+      description="Each sub-issue gives the community a sharper target to rally around."
+      cta-label="Add a sub-issue"
+      :cta-to="`/new?parent=${issueId}&type=issue`"
+      cta-event="Empty state cta sub-issues"
+    />
     <p
-      v-if="subIssues?.length === 0"
+      v-else-if="subIssues?.length === 0"
       class="text-toned text-center py-8"
     >
-      {{ search.trim() ? 'No sub-issues match your search.' : 'No sub-issues yet.' }}
+      No sub-issues match your search.
     </p>
   </div>
 </template>

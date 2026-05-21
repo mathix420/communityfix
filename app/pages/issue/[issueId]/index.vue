@@ -29,6 +29,43 @@ function onMapTransitionEnd(e: TransitionEvent) {
   }
 }
 
+const isSolution = computed(() => issue.value?.type === 'solution')
+
+// Preview lists for the Overview tab. Each tab still owns full rendering;
+// these are just teaser slices so users can see what's there without clicking.
+const PREVIEW_LIMIT = 3
+
+const { data: subIssuesPreview } = await useFetch(
+  () => `/api/issue/${issueId}/issues`,
+  { query: { sort: 'most_voted' }, default: () => [] },
+)
+const { data: solutionsPreview } = await useFetch(
+  () => `/api/issue/${issueId}/solutions`,
+  { query: { sort: 'most_voted' }, default: () => [], immediate: !isSolution.value },
+)
+const { data: caseStudiesPreview } = await useFetch(
+  () => `/api/issue/${issueId}/case-studies`,
+  { default: () => [], immediate: isSolution.value },
+)
+
+const topSubIssues = computed(() => (subIssuesPreview.value ?? []).slice(0, PREVIEW_LIMIT))
+const topSolutions = computed(() => (solutionsPreview.value ?? []).slice(0, PREVIEW_LIMIT))
+const topCaseStudies = computed(() => (caseStudiesPreview.value ?? []).slice(0, PREVIEW_LIMIT))
+
+// Use the fetched list length — those endpoints already filter to status='approved',
+// so the count reflects only published items. The raw `solutionCount` /
+// `subIssueCount` columns include pending rows and would over-count here.
+const subIssueTotal = computed(() => subIssuesPreview.value?.length ?? 0)
+const solutionTotal = computed(() => solutionsPreview.value?.length ?? 0)
+const caseStudyTotal = computed(() => caseStudiesPreview.value?.length ?? 0)
+
+function outcomeLabel(o: string) {
+  return { success: 'Success', partial: 'Partial', failed: 'Failed', inconclusive: 'Inconclusive', ongoing: 'Ongoing' }[o] ?? o
+}
+function outcomeVariant(o: string): 'success' | 'default' | 'error' | 'warning' {
+  return ({ success: 'success', partial: 'default', failed: 'error', inconclusive: 'default', ongoing: 'warning' } as const)[o as 'success'] ?? 'default'
+}
+
 const appealReason = ref('')
 const appealSubmitting = ref(false)
 
@@ -69,14 +106,14 @@ async function submitAppeal() {
 
     <div
       v-if="issue.status === 'pending'"
-      class="bg-yellow-50 text-yellow-700 rounded-lg px-4 py-3 text-sm font-mono text-center"
+      class="bg-yellow-50 text-yellow-700 rounded-2xl p-4 sm:p-6 text-sm font-mono text-center"
     >
       This issue is pending review and has not been published yet.
     </div>
 
     <div
       v-if="issue.status === 'rejected'"
-      class="bg-red-50 rounded-lg px-4 py-4 space-y-3"
+      class="bg-red-50 rounded-2xl px-4 py-4 space-y-3"
     >
       <p class="text-red-700 text-sm font-semibold">
         This issue was rejected by moderation.
@@ -130,7 +167,7 @@ async function submitAppeal() {
       >
         <div
           v-if="issue.tags?.length"
-          class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+          class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
         >
           <div class="flex items-center gap-2 mb-2.5">
             <UIcon name="lucide:tags" class="size-4 text-gray-400" />
@@ -152,7 +189,7 @@ async function submitAppeal() {
 
         <div
           v-if="issue.sustainableDevelopmentGoals?.length"
-          class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+          class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
         >
           <div class="flex items-center gap-2 mb-2.5">
             <UIcon name="lucide:globe" class="size-4 text-gray-400" />
@@ -181,11 +218,11 @@ async function submitAppeal() {
 
       <div
         v-if="issue.locationName || issue.scale"
-        class="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden"
+        class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
       >
         <component
           :is="hasCoords ? 'button' : 'div'"
-          class="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+          class="w-full flex items-center gap-3 p-4 sm:p-6 text-left transition-colors"
           :class="[hasCoords && 'hover:bg-gray-100 cursor-pointer', mapExpanded && 'border-b border-gray-200']"
           @click="hasCoords && toggleMap()"
         >
@@ -233,7 +270,7 @@ async function submitAppeal() {
 
       <div
         v-if="issue.description"
-        class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+        class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
       >
         <div class="flex items-center gap-2 mb-2.5">
           <UIcon name="lucide:file-text" class="size-4 text-gray-400" />
@@ -246,11 +283,211 @@ async function submitAppeal() {
           class="prose-sm text-gray-700"
         />
       </div>
+
+      <div
+        v-if="isSolution && issue.links?.length"
+        class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
+      >
+        <div class="flex items-center gap-2 p-4 sm:p-6 border-b border-gray-200">
+          <UIcon name="lucide:paperclip" class="size-4 text-gray-400" />
+          <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+            Links
+          </p>
+          <span class="text-xs font-mono text-gray-400">{{ issue.links.length }}</span>
+        </div>
+        <ul class="divide-y divide-gray-200 bg-white">
+          <li v-for="(l, i) in issue.links" :key="i">
+            <a
+              :href="l.url"
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
+              @click="track('Solution link click', { issueId: Number(issueId) })"
+            >
+              <UIcon name="lucide:external-link" class="size-3.5 text-gray-400 shrink-0" />
+              <span class="truncate text-sm text-primary-700">
+                {{ l.title || l.url }}
+              </span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Sub-issues preview -->
+      <section class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 p-4 sm:p-6 border-b border-gray-200">
+          <div class="flex items-center gap-2 min-w-0">
+            <UIcon name="lucide:circle-alert" class="size-4 text-gray-400" />
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+              Sub-issues
+            </p>
+            <span class="text-xs font-mono text-gray-400">{{ subIssueTotal }}</span>
+          </div>
+          <NuxtLink
+            :to="`/issue/${issueId}/issues`"
+            class="text-xs font-mono text-primary-700 hover:text-primary-900 inline-flex items-center gap-1"
+            @click="track('Overview preview view all', { tab: 'issues' })"
+          >
+            View all
+            <UIcon name="lucide:arrow-right" class="size-3" />
+          </NuxtLink>
+        </div>
+        <ul v-if="topSubIssues.length" class="divide-y divide-gray-200 bg-white">
+          <li v-for="it in topSubIssues" :key="it.id">
+            <NuxtLink
+              :to="`/issue/${it.id}`"
+              class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors min-w-0"
+            >
+              <UIcon name="lucide:circle-alert" class="size-3.5 text-gray-400 shrink-0" />
+              <span class="text-gray-400 font-mono text-xs shrink-0">{{ formatNumber(it.id) }}</span>
+              <span class="truncate text-sm text-gray-800 flex-1">{{ it.title }}</span>
+              <span class="text-xs font-mono text-gray-500 inline-flex items-center gap-1 shrink-0">
+                <UIcon name="lucide:arrow-up" class="size-3" />
+                {{ it.voteScore ?? 0 }}
+              </span>
+            </NuxtLink>
+          </li>
+        </ul>
+        <div v-else class="bg-white p-4 sm:p-6 text-sm text-gray-500">
+          No sub-issues yet.
+          <NuxtLink
+            :to="`/new?parent=${issueId}&type=issue`"
+            class="text-primary-700 hover:text-primary-900 underline underline-offset-2"
+            @click="track('Overview preview empty cta', { tab: 'issues' })"
+          >
+            Add the first one →
+          </NuxtLink>
+        </div>
+      </section>
+
+      <!-- Solutions preview (issue pages only) -->
+      <section v-if="!isSolution" class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 p-4 sm:p-6 border-b border-gray-200">
+          <div class="flex items-center gap-2 min-w-0">
+            <UIcon name="lucide:lightbulb" class="size-4 text-primary-600" />
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+              Top solutions
+            </p>
+            <span class="text-xs font-mono text-gray-400">{{ solutionTotal }}</span>
+          </div>
+          <NuxtLink
+            :to="`/issue/${issueId}/solutions`"
+            class="text-xs font-mono text-primary-700 hover:text-primary-900 inline-flex items-center gap-1"
+            @click="track('Overview preview view all', { tab: 'solutions' })"
+          >
+            View all
+            <UIcon name="lucide:arrow-right" class="size-3" />
+          </NuxtLink>
+        </div>
+        <ul v-if="topSolutions.length" class="divide-y divide-gray-200 bg-white">
+          <li v-for="sol in topSolutions" :key="sol.id">
+            <NuxtLink
+              :to="`/issue/${sol.id}`"
+              class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors min-w-0"
+            >
+              <UIcon name="lucide:lightbulb" class="size-3.5 text-primary-600 shrink-0" />
+              <span class="text-gray-400 font-mono text-xs shrink-0">{{ formatNumber(sol.id) }}</span>
+              <span class="truncate text-sm text-gray-800 flex-1">{{ sol.title }}</span>
+              <UiBadge v-if="sol.solutionStatus === 'plan'">Plan</UiBadge>
+              <UiBadge v-else-if="sol.solutionStatus === 'in-progress'" variant="warning">In progress</UiBadge>
+              <UiBadge v-else-if="sol.solutionStatus === 'done'" variant="success">Done</UiBadge>
+              <span class="text-xs font-mono text-gray-500 inline-flex items-center gap-1 shrink-0">
+                <UIcon name="lucide:arrow-up" class="size-3" />
+                {{ sol.voteScore ?? 0 }}
+              </span>
+            </NuxtLink>
+          </li>
+        </ul>
+        <div v-else class="bg-white p-4 sm:p-6 text-sm text-gray-500">
+          No solutions proposed yet.
+          <NuxtLink
+            :to="`/new?parent=${issueId}&type=solution`"
+            class="text-primary-700 hover:text-primary-900 underline underline-offset-2"
+            @click="track('Overview preview empty cta', { tab: 'solutions' })"
+          >
+            Propose the first one →
+          </NuxtLink>
+        </div>
+      </section>
+
+      <!-- Case studies preview (solution pages only) -->
+      <section v-if="isSolution" class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 p-4 sm:p-6 border-b border-gray-200">
+          <div class="flex items-center gap-2 min-w-0">
+            <UIcon name="lucide:map-pin" class="size-4 text-gray-400" />
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+              Case studies
+            </p>
+            <span class="text-xs font-mono text-gray-400">{{ caseStudyTotal }}</span>
+          </div>
+          <NuxtLink
+            :to="`/issue/${issueId}/studies`"
+            class="text-xs font-mono text-primary-700 hover:text-primary-900 inline-flex items-center gap-1"
+            @click="track('Overview preview view all', { tab: 'studies' })"
+          >
+            View all
+            <UIcon name="lucide:arrow-right" class="size-3" />
+          </NuxtLink>
+        </div>
+        <ul v-if="topCaseStudies.length" class="divide-y divide-gray-200 bg-white">
+          <li v-for="cs in topCaseStudies" :key="cs.id">
+            <NuxtLink
+              :to="`/issue/${issueId}/studies`"
+              class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors min-w-0"
+            >
+              <UIcon name="lucide:map-pin" class="size-3.5 text-gray-400 shrink-0" />
+              <span class="truncate text-sm text-gray-800 flex-1">
+                {{ cs.locationName }}
+                <span v-if="cs.implementer" class="text-gray-500"> · {{ cs.implementer }}</span>
+              </span>
+              <UiBadge v-if="cs.verified" variant="success">Verified</UiBadge>
+              <UiBadge :variant="outcomeVariant(cs.outcome)">{{ outcomeLabel(cs.outcome) }}</UiBadge>
+            </NuxtLink>
+          </li>
+        </ul>
+        <div v-else class="bg-white p-4 sm:p-6 text-sm text-gray-500">
+          No case studies documented yet.
+          <NuxtLink
+            :to="`/issue/${issueId}/studies`"
+            class="text-primary-700 hover:text-primary-900 underline underline-offset-2"
+          >
+            Document the first one →
+          </NuxtLink>
+        </div>
+      </section>
+
+      <!-- Funding + Tree quick links -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <NuxtLink
+          :to="`/issue/${issueId}/funding`"
+          class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6 hover:bg-gray-100 transition-colors flex items-center gap-3"
+          @click="track('Overview preview view all', { tab: 'funding' })"
+        >
+          <UIcon name="lucide:wallet" class="size-4 text-gray-400 shrink-0" />
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">Funding</p>
+            <p class="text-sm text-gray-700 truncate">Coming soon — back this work</p>
+          </div>
+          <UIcon name="lucide:arrow-right" class="size-3.5 text-gray-400 shrink-0" />
+        </NuxtLink>
+        <NuxtLink
+          :to="`/issue/${issueId}/tree`"
+          class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6 hover:bg-gray-100 transition-colors flex items-center gap-3"
+          @click="track('Overview preview view all', { tab: 'tree' })"
+        >
+          <UIcon name="lucide:git-fork" class="size-4 text-gray-400 shrink-0" />
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">Tree view</p>
+            <p class="text-sm text-gray-700 truncate">Browse the full descendant tree</p>
+          </div>
+          <UIcon name="lucide:arrow-right" class="size-3.5 text-gray-400 shrink-0" />
+        </NuxtLink>
+      </div>
     </div>
   </div>
   <div
     v-else
-    class="mt-3 bg-white rounded-lg p-6 text-center"
+    class="mt-3 bg-white rounded-2xl p-6 text-center"
   >
     <p class="text-gray-500">
       Loading issue details...

@@ -73,31 +73,26 @@ async function handleShare() {
 </script>
 
 <template>
-  <article class="bg-white rounded-lg">
-    <div class="p-4 flex flex-col gap-4 min-w-0">
-      <h2 class="font-title text-xl flex items-center gap-2 flex-wrap">
-        <span class="text-gray-400 select-none text-base font-light font-mono mr-1">
-          {{ formatNumber(issue.id) }}
-        </span>
-        <NuxtLink
+  <UiCard padding="md">
+    <div class="flex flex-col gap-4 min-w-0">
+      <h2 class="font-title text-xl">
+        <span class="text-gray-400 select-none text-lg font-light font-mono mr-2">{{ formatNumber(issue.id) }}</span><NuxtLink
           class="interactive-underline"
           :to="`/issue/${issue.id}`"
-        >
-          {{ issue.title }}
-        </NuxtLink>
-        <UiBadge v-if="issue.status === 'rejected'" variant="error">
+        >{{ issue.title }}</NuxtLink>
+        <UiBadge v-if="issue.status === 'rejected'" variant="error" class="ml-1 align-middle">
           Rejected
         </UiBadge>
-        <UiBadge v-else-if="issue.status === 'pending'" variant="warning">
+        <UiBadge v-else-if="issue.status === 'pending'" variant="warning" class="ml-1 align-middle">
           Pending
         </UiBadge>
-        <UiBadge v-if="issue.solutionStatus === 'plan'" variant="default">
+        <UiBadge v-if="issue.solutionStatus === 'plan'" variant="default" class="ml-1 align-middle">
           Plan
         </UiBadge>
-        <UiBadge v-else-if="issue.solutionStatus === 'in-progress'" variant="warning">
+        <UiBadge v-else-if="issue.solutionStatus === 'in-progress'" variant="warning" class="ml-1 align-middle">
           In progress
         </UiBadge>
-        <UiBadge v-else-if="issue.solutionStatus === 'done'" variant="success">
+        <UiBadge v-else-if="issue.solutionStatus === 'done'" variant="success" class="ml-1 align-middle">
           Done
         </UiBadge>
       </h2>
@@ -114,8 +109,8 @@ async function handleShare() {
           {{ issue.scale }}
         </span>
       </div>
-      <div class="flex justify-between flex-wrap gap-2">
-        <div class="flex gap-2 my-2 flex-wrap items-center">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex gap-2 flex-wrap items-center">
           <div class="inline-flex items-stretch rounded-md overflow-hidden bg-gray-100 text-sm font-mono">
             <button
               :class="[
@@ -167,34 +162,8 @@ async function handleShare() {
             </span>
           </NuxtLink>
         </div>
-        <NuxtLink
-          v-if="issue.authorId"
-          :to="`/user/${issue.authorId}`"
-          class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md hover:bg-gray-100 transition-colors"
-        >
-          <img
-            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
-            alt="Author Avatar"
-            class="size-5 rounded-full shrink-0"
-          >
-          <span class="whitespace-nowrap text-gray-700 font-mono">
-            {{ issue.author }}
-          </span>
-        </NuxtLink>
-        <span
-          v-else
-          class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md"
-        >
-          <img
-            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${issue.author}`"
-            alt="Author Avatar"
-            class="size-5 rounded-full shrink-0"
-          >
-          <span class="whitespace-nowrap text-gray-700 font-mono">
-            {{ issue.author }}
-          </span>
-        </span>
+        <UserButton :author-id="issue.authorId" :name="issue.author" />
       </div>
     </div>
-  </article>
+  </UiCard>
 </template>

@@ -2,9 +2,10 @@
 // and the MCP create_issue tool call into here so input sanitization,
 // counter bumps, and the moderation trigger stay in one place.
 import { eq, sql } from 'drizzle-orm'
-import { issues } from '../database/schema'
+import { issues, users } from '../database/schema'
 import type { IssueType, LocationScale, SolutionStatus } from '../database/schema'
 import { assertNotBanned } from './check-ban'
+import { isAdminEmail } from './admin'
 
 // Summary doubles as the card snippet — markdown there ships as literal
 // `**bold**` to the viewer. Strip the formatting (and clamp length) so the
@@ -36,6 +37,22 @@ export function sanitizeSummary(input: string): string {
   return s
 }
 
+export type Link = { url: string, title?: string }
+
+export function sanitizeLinks(input: unknown): Link[] | null {
+  if (!Array.isArray(input)) return null
+  const cleaned = input
+    .map((raw) => {
+      if (!raw || typeof raw !== 'object') return null
+      const url = String((raw as { url?: unknown }).url ?? '').trim()
+      if (!url) return null
+      const title = String((raw as { title?: unknown }).title ?? '').trim()
+      return title ? { url, title } : { url }
+    })
+    .filter((l): l is Link => l !== null)
+  return cleaned.length ? cleaned : null
+}
+
 export interface CreateIssueInput {
   title: string
   summary: string
@@ -46,6 +63,8 @@ export interface CreateIssueInput {
   latitude?: number | null
   longitude?: number | null
   scale?: LocationScale | null
+  // Honored only for solutions.
+  links?: Link[] | null
 }
 
 export async function createIssue(authorId: string, input: CreateIssueInput) {
@@ -57,17 +76,29 @@ export async function createIssue(authorId: string, input: CreateIssueInput) {
   await assertNotBanned(authorId)
   const db = useDB()
 
+  let parentType: IssueType | null = null
   if (input.parentId) {
     const parent = await db.query.issues.findFirst({
       where: eq(issues.id, input.parentId),
-      columns: { id: true },
+      columns: { id: true, type: true },
     })
     if (!parent) {
       throw createError({ statusCode: 404, statusMessage: 'Parent issue not found' })
     }
+    parentType = parent.type
   }
 
   const type: IssueType = input.parentId ? (input.type ?? 'issue') : 'issue'
+
+  // Solutions document an approach to an issue — nesting a solution under
+  // another solution doesn't fit that model. To document a concrete
+  // implementation of a solution, create a case study instead.
+  if (type === 'solution' && parentType === 'solution') {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Solutions cannot be nested under other solutions. Create a case study to document a concrete implementation.',
+    })
+  }
 
   const rows = await db.insert(issues).values({
     title,
@@ -81,6 +112,7 @@ export async function createIssue(authorId: string, input: CreateIssueInput) {
       ? { x: input.longitude, y: input.latitude }
       : null,
     scale: input.scale ?? null,
+    links: type === 'solution' ? sanitizeLinks(input.links) : null,
   }).returning()
   const created = rows[0]!
 
@@ -104,9 +136,11 @@ export interface UpdateIssueInput {
   latitude?: number | null
   longitude?: number | null
   scale?: LocationScale | null
+  // Honored only when the target row is a solution.
+  links?: Link[] | null
 }
 
-export async function updateIssue(authorId: string, input: UpdateIssueInput, expectedType?: IssueType) {
+export async function updateIssue(userId: string, input: UpdateIssueInput, expectedType?: IssueType) {
   const db = useDB()
   const existing = await db.query.issues.findFirst({ where: eq(issues.id, input.id) })
   if (!existing) throw createError({ statusCode: 404, statusMessage: `Issue ${input.id} not found` })
@@ -116,10 +150,15 @@ export async function updateIssue(authorId: string, input: UpdateIssueInput, exp
       statusMessage: `Node ${input.id} is a ${existing.type} — use update_${existing.type} instead`,
     })
   }
-  if (existing.authorId !== authorId) {
-    throw createError({ statusCode: 403, statusMessage: 'Only the author can update this issue' })
+
+  // Admins can edit anyone's content (moderation, fixups). The author's own
+  // edit still goes through the ban check; admin edits skip it.
+  const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } })
+  const isAdmin = isAdminEmail(me?.email)
+  if (existing.authorId !== userId && !isAdmin) {
+    throw createError({ statusCode: 403, statusMessage: 'Only the author or an admin can update this issue' })
   }
-  await assertNotBanned(authorId)
+  if (!isAdmin) await assertNotBanned(userId)
 
   const patch: Partial<typeof issues.$inferInsert> = { updatedAt: new Date() }
   if (input.title != null) patch.title = input.title.trim()
@@ -136,6 +175,9 @@ export async function updateIssue(authorId: string, input: UpdateIssueInput, exp
     const lat = input.latitude ?? (existing.location as { y: number } | null)?.y
     const lng = input.longitude ?? (existing.location as { x: number } | null)?.x
     patch.location = (lat != null && lng != null) ? { x: lng, y: lat } : null
+  }
+  if (input.links !== undefined && existing.type === 'solution') {
+    patch.links = sanitizeLinks(input.links)
   }
 
   // Content edits send the row back through moderation.
