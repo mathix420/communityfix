@@ -48,15 +48,13 @@ const filtered = computed(() => {
           class="flex-1"
         />
       </div>
-      <AuthState v-slot="{ loggedIn: isLoggedIn }">
-        <UiActionButton
-          v-if="isSolution && isLoggedIn && !banStatus?.banned"
-          :to="`/new-case-study?solution=${issueId}`"
-          @click="track('Open case study form')"
-        >
-          Document a case study
-        </UiActionButton>
-      </AuthState>
+      <UiActionButton
+        v-if="isSolution && !banStatus?.banned"
+        :to="`/new-case-study?solution=${issueId}`"
+        @click="track('Open case study form')"
+      >
+        Document a case study
+      </UiActionButton>
     </div>
 
     <BanNotice

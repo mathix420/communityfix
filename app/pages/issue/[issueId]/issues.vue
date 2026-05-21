@@ -37,15 +37,12 @@ const { data: subIssues } = await useFetch(() => `/api/issue/${issueId.value}/is
         :sort-options="sortOptions"
         placeholder="Search sub-issues..."
       />
-      <AuthState v-slot="{ loggedIn }">
-        <UiActionButton
-          v-if="loggedIn"
-          :to="`/new?parent=${issueId}&type=issue`"
-          @click="track('Open sub-issue form')"
-        >
-          Propose a sub-issue
-        </UiActionButton>
-      </AuthState>
+      <UiActionButton
+        :to="`/new?parent=${issueId}&type=issue`"
+        @click="track('Open sub-issue form')"
+      >
+        Propose a sub-issue
+      </UiActionButton>
     </div>
 
     <CardIssue

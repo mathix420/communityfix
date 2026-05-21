@@ -48,15 +48,13 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
         :sort-options="sortOptions"
         placeholder="Search solutions..."
       />
-      <AuthState v-slot="{ loggedIn: isLoggedIn }">
-        <UiActionButton
-          v-if="allowPropose && isLoggedIn && !banStatus?.banned"
-          :to="`/new?parent=${issueId}&type=solution`"
-          @click="track('Open solution form')"
-        >
-          Propose a solution
-        </UiActionButton>
-      </AuthState>
+      <UiActionButton
+        v-if="allowPropose && !banStatus?.banned"
+        :to="`/new?parent=${issueId}&type=solution`"
+        @click="track('Open solution form')"
+      >
+        Propose a solution
+      </UiActionButton>
     </div>
 
     <BanNotice

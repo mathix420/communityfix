@@ -1,9 +1,5 @@
-const POST_LOGIN_COOKIE = 'mcp_continue'
-
-// Called by AuthForm after a passkey login. Returns only same-origin /oauth/
-// paths so the cookie can't be abused as an open redirector.
+// Called by AuthForm after a passkey login. Returns the safe same-origin path
+// stored in the redirect cookie (or '' if none / unsafe).
 export default defineEventHandler((event) => {
-  const url = getCookie(event, POST_LOGIN_COOKIE) ?? ''
-  if (url) deleteCookie(event, POST_LOGIN_COOKIE, { path: '/' })
-  return { url: url.startsWith('/oauth/') ? url : '' }
+  return { url: consumePostLoginRedirect(event) ?? '' }
 })

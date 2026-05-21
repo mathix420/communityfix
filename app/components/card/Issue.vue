@@ -20,6 +20,7 @@ const props = defineProps<{
 
 const toast = useToast()
 const { loggedIn } = useUserSession()
+const { requireAuth } = useAuthRedirect()
 const { score, userVote, loading, vote, fetchVotes } = useVote(props.issue.id, props.issue.voteScore ?? 0)
 
 onMounted(() => {
@@ -30,10 +31,7 @@ onMounted(() => {
 
 
 function handleVote(value: 1 | -1) {
-  if (!loggedIn.value) {
-    toast.add({ title: 'Sign in to vote', color: 'warning' })
-    return
-  }
+  if (!requireAuth('vote')) return
   vote(value)
   track('Vote', { issueId: props.issue.id, value })
 }

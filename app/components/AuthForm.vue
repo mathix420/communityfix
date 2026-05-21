@@ -6,12 +6,24 @@ const props = withDefaults(defineProps<{
 })
 
 const { track } = useUmami()
+const route = useRoute()
 const email = ref('')
 const toast = useToast()
 const activeProvider = ref<string | null>(null)
 const isPasskeyLoading = ref(false)
 
 const { openInPopup, fetch: fetchUserSession } = useUserSession()
+
+// If the user landed here via an auth gate (?redirect=/foo), stash the path
+// server-side so it survives full-page OAuth round-trips. Passkey reads it
+// back via GET /api/_auth/post-login-redirect; OAuth callbacks consume the
+// same cookie via consumePostLoginRedirect.
+onMounted(() => {
+  const r = route.query.redirect
+  if (typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) {
+    $fetch('/api/_auth/post-login-redirect', { method: 'POST', body: { url: r } }).catch(() => {})
+  }
+})
 const { register: registerPasskey, authenticate } = useWebAuthn({
   registerEndpoint: '/api/webauthn/register',
   authenticateEndpoint: '/api/webauthn/authenticate',
