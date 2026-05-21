@@ -21,30 +21,33 @@ const { track } = useUmami()
 
 <template>
   <div
-    class="flex flex-col items-center text-center gap-3"
-    :class="compact ? 'py-8 px-4' : 'py-14 px-6'"
+    class="rounded-2xl border border-gray-200/60 bg-white/80 backdrop-blur-sm text-center"
+    :class="compact ? 'p-5' : 'px-6 py-7'"
   >
-    <div
-      class="inline-flex items-center justify-center rounded-full bg-gray-100 text-gray-400"
-      :class="compact ? 'size-10' : 'size-14'"
-    >
-      <UIcon :name="icon" :class="compact ? 'size-5' : 'size-6'" />
+    <div class="flex flex-col items-center gap-3">
+      <div
+        class="inline-flex items-center justify-center rounded-xl bg-primary-50 text-primary-600"
+        :class="compact ? 'size-9' : 'size-10'"
+      >
+        <UIcon :name="icon" class="size-5" />
+      </div>
+
+      <div class="flex flex-col gap-1 max-w-sm">
+        <p class="font-title text-base text-gray-900">
+          {{ title }}
+        </p>
+        <p v-if="description" class="text-sm text-gray-600 leading-snug">
+          {{ description }}
+        </p>
+      </div>
+
+      <UiActionButton
+        v-if="ctaLabel && ctaTo"
+        :to="ctaTo"
+        @click="ctaEvent && track(ctaEvent)"
+      >
+        {{ ctaLabel }}
+      </UiActionButton>
     </div>
-    <div class="flex flex-col gap-1 max-w-md">
-      <p class="font-title text-gray-900" :class="compact ? 'text-base' : 'text-lg'">
-        {{ title }}
-      </p>
-      <p v-if="description" class="text-sm text-gray-500 leading-relaxed">
-        {{ description }}
-      </p>
-    </div>
-    <UiActionButton
-      v-if="ctaLabel && ctaTo"
-      :to="ctaTo"
-      class="mt-1"
-      @click="ctaEvent && track(ctaEvent)"
-    >
-      {{ ctaLabel }}
-    </UiActionButton>
   </div>
 </template>

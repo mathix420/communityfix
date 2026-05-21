@@ -34,7 +34,10 @@ const filtered = computed(() => {
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
-    <div class="flex items-stretch gap-3">
+    <div
+      v-if="(studies?.length ?? 0) > 0 || search.trim()"
+      class="flex items-stretch gap-3"
+    >
       <div class="flex items-stretch flex-1 rounded-md overflow-hidden border border-gray-200">
         <UInput
           v-model="search"
@@ -87,8 +90,8 @@ const filtered = computed(() => {
       <UiEmptyState
         v-else-if="isSolution"
         icon="lucide:map-pin"
-        title="No case studies yet"
-        description="Was this solution implemented somewhere? Document where it ran, what happened, and what others can learn from it."
+        title="Share where this has worked"
+        description="Real implementations help others replicate the wins and avoid the pitfalls."
         cta-label="Document a case study"
         :cta-to="`/new-case-study?solution=${issueId}`"
         cta-event="Empty state cta case studies"
@@ -96,8 +99,8 @@ const filtered = computed(() => {
       <UiEmptyState
         v-else
         icon="lucide:map-pin"
-        title="No case studies yet"
-        description="Case studies attach to a solution. Open one of this issue's solutions and add a case study from its Studies tab."
+        title="Case studies live on solutions"
+        description="Open a solution and add one from its Studies tab."
         cta-label="View solutions"
         :cta-to="`/issue/${issueId}/solutions`"
       />

@@ -38,7 +38,10 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
-    <div class="flex items-stretch gap-3">
+    <div
+      v-if="(solutions?.length ?? 0) > 0 || search.trim()"
+      class="flex items-stretch gap-3"
+    >
       <UiSearchAndSortBar
         v-model:search="search"
         v-model:sort="sort"
@@ -75,8 +78,8 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
       <UiEmptyState
         v-else-if="allowPropose"
         icon="lucide:lightbulb"
-        title="No solutions proposed yet"
-        description="Got an idea that could move the needle? Share it — the community will vote and iterate on it."
+        title="Be the first to propose a solution"
+        description="Your idea could be the one the community rallies around and turns into action."
         cta-label="Propose a solution"
         :cta-to="`/new?parent=${issueId}&type=solution`"
         cta-event="Empty state cta solutions"
@@ -85,7 +88,7 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
         v-else
         icon="lucide:lightbulb-off"
         title="Solutions can't nest under solutions"
-        description="To document a real-world implementation of this solution, add a case study from the Studies tab."
+        description="Document a real-world implementation from the Studies tab instead."
         cta-label="Open case studies"
         :cta-to="`/issue/${issueId}/studies`"
       />
