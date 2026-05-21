@@ -46,6 +46,7 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
       longitude: (issue.location as { x: number, y: number }).x,
     } : null,
     scale: issue.scale,
+    links: issue.links ?? null,
     ...(includeModeration && {
       rejectionReason: issue.rejectionReason,
       rejectedAt: issue.rejectedAt,

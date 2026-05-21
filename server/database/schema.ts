@@ -110,6 +110,8 @@ export const issues = pgTable('issues', {
   scale: text('scale').$type<LocationScale>(),
   // Only meaningful when type='solution'.
   solutionStatus: text('solution_status').$type<SolutionStatus>(),
+  // External resources — only surfaced for solutions.
+  links: jsonb('links').$type<Array<{ url: string, title?: string }>>(),
   embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -266,7 +268,9 @@ export const caseStudies = pgTable('case_studies', {
   // Each entry is one stand-alone lesson — matches the row shape of metrics
   // and sources so the form/card render the same way.
   lessonsLearned: jsonb('lessons_learned').$type<string[]>(),
-  media: jsonb('media').$type<Array<{ url: string, type?: string, caption?: string }>>(),
+  // External resources documenting the deployment. Separate from `sources`,
+  // which is reserved for citations backing the claims.
+  links: jsonb('links').$type<Array<{ url: string, title?: string }>>(),
   embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

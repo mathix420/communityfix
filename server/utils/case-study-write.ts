@@ -7,10 +7,10 @@ import type { CaseStudyOutcome, LocationScale } from '../database/schema'
 import { assertNotBanned } from './check-ban'
 import { isAdminEmail } from './admin'
 import { generateEmbedding } from './embeddings'
+import { sanitizeLinks, type Link } from './issue-write'
 
 type Metric = { label: string, baseline?: string, result?: string, unit?: string }
 type Source = { url: string, title?: string }
-type Media = { url: string, type?: string, caption?: string }
 
 export interface CreateCaseStudyInput {
   solutionId: number
@@ -29,7 +29,7 @@ export interface CreateCaseStudyInput {
   fundingSource?: string | null
   sources?: Source[] | null
   lessonsLearned?: string[] | null
-  media?: Media[] | null
+  links?: Link[] | null
 }
 
 export interface UpdateCaseStudyInput extends Partial<Omit<CreateCaseStudyInput, 'solutionId'>> {
@@ -105,7 +105,7 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
     fundingSource: input.fundingSource?.toString().trim() || null,
     sources: input.sources ?? null,
     lessonsLearned: input.lessonsLearned?.length ? input.lessonsLearned : null,
-    media: input.media ?? null,
+    links: sanitizeLinks(input.links),
     ...(embedding ? { embedding } : {}),
   }).returning()
 
@@ -143,7 +143,7 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
   if (input.fundingSource !== undefined) patch.fundingSource = input.fundingSource?.toString().trim() || null
   if (input.sources !== undefined) patch.sources = input.sources
   if (input.lessonsLearned !== undefined) patch.lessonsLearned = input.lessonsLearned?.length ? input.lessonsLearned : null
-  if (input.media !== undefined) patch.media = input.media
+  if (input.links !== undefined) patch.links = sanitizeLinks(input.links)
 
   // Only admins can flip the verified flag.
   if (input.verified !== undefined && isAdmin) patch.verified = input.verified
@@ -201,7 +201,7 @@ export function transformCaseStudy(row: typeof caseStudies.$inferSelect & { auth
     fundingSource: row.fundingSource,
     sources: row.sources,
     lessonsLearned: row.lessonsLearned,
-    media: row.media,
+    links: row.links,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt?.toISOString() ?? null,
   }

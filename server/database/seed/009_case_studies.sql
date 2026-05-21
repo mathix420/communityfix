@@ -7,7 +7,7 @@ INSERT INTO case_studies (
   location_name, location, verified,
   implementer, start_date, end_date,
   description, metrics, cost, currency, funding_source,
-  sources, lessons_learned, created_at, updated_at
+  sources, lessons_learned, links, created_at, updated_at
 ) VALUES
 -- Composting hubs in San Francisco — success, verified
 (
@@ -28,6 +28,11 @@ INSERT INTO case_studies (
     "Curbside collection turned out to drive volume far more than drop-off hubs alone.",
     "Restaurant outreach was the single biggest lever for organic-waste capture.",
     "Contamination from non-compostable plastics required ongoing public education."
+  ]'::jsonb,
+  '[
+    {"url": "https://github.com/SFEnvironment/zerowaste-toolkit", "title": "Zero Waste Toolkit (GitHub)"},
+    {"url": "https://www.youtube.com/watch?v=fL75GyNTbVU", "title": "SF Zero Waste — short documentary"},
+    {"url": "https://drive.google.com/file/d/sf-compost-program-2018-report", "title": "2018 program report (PDF)"}
   ]'::jsonb,
   '2024-11-10T09:00:00Z', '2024-11-10T09:00:00Z'
 ),
@@ -51,6 +56,10 @@ INSERT INTO case_studies (
     "Aluminum cans were initially excluded — re-including them took a decade of legal wrangling.",
     "Informal collectors became unintended partners; some cities offered drop-off boxes to support them."
   ]'::jsonb,
+  '[
+    {"url": "https://www.youtube.com/watch?v=pfann5lcVrM", "title": "How the Pfand system works"},
+    {"url": "https://www.notion.so/pfand-policy-playbook", "title": "Policy playbook (Notion)"}
+  ]'::jsonb,
   '2024-12-02T11:30:00Z', '2024-12-02T11:30:00Z'
 ),
 
@@ -73,6 +82,7 @@ INSERT INTO case_studies (
     "Cross-subsidising private rideshare risks vendor lock-in for the municipality.",
     "Best as a complement to fixed routes during off-peak hours, not a wholesale replacement."
   ]'::jsonb,
+  NULL,
   '2025-01-15T14:00:00Z', '2025-01-15T14:00:00Z'
 ),
 
@@ -94,6 +104,11 @@ INSERT INTO case_studies (
     "Open data alone is not a product — fund a reference app to seed the ecosystem.",
     "Real-time accuracy depends on GPS hardware on the bus fleet, not just the API."
   ]'::jsonb,
+  '[
+    {"url": "https://github.com/HSLdevcom/digitransit-ui", "title": "Digitransit reference app (GitHub)"},
+    {"url": "https://github.com/HSLdevcom/transitdata", "title": "Real-time data pipeline (GitHub)"},
+    {"url": "https://digitransit.fi/", "title": "Digitransit live site"}
+  ]'::jsonb,
   '2025-02-08T10:20:00Z', '2025-02-08T10:20:00Z'
 ),
 
@@ -114,6 +129,9 @@ INSERT INTO case_studies (
     "Operational success doesn''t translate to political durability without organised rider support.",
     "Three months is too short — opponents mobilise faster than commuters re-route their habits.",
     "Restoring the lane elsewhere required a community-engagement budget the original pilot lacked."
+  ]'::jsonb,
+  '[
+    {"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "title": "Washington St pilot — community townhall recording"}
   ]'::jsonb,
   '2025-03-04T13:15:00Z', '2025-03-04T13:15:00Z'
 ),
@@ -137,6 +155,10 @@ INSERT INTO case_studies (
     "Filter replacement schedules need radio-friendly messaging, not just leaflets.",
     "Carrying-case design mattered as much as the filter itself for adoption."
   ]'::jsonb,
+  '[
+    {"url": "https://github.com/potters-for-peace/filter-design", "title": "Filter CAD/CAM files (GitHub)"},
+    {"url": "https://www.youtube.com/watch?v=ceramic-filter-build", "title": "Build process — short video"}
+  ]'::jsonb,
   '2025-04-12T08:45:00Z', '2025-04-12T08:45:00Z'
 ),
 
@@ -158,6 +180,7 @@ INSERT INTO case_studies (
     "Pilots tied to monsoon cycles need a 5+ year baseline before drawing conclusions.",
     "Maintenance contracts were the first thing dropped when budgets tightened — built into the design from day one next time."
   ]'::jsonb,
+  NULL,
   '2025-05-20T16:00:00Z', '2025-05-20T16:00:00Z'
 ),
 
@@ -179,6 +202,10 @@ INSERT INTO case_studies (
     "Resale formula must balance long-term affordability against owner wealth-building, or buyers will exit.",
     "Stewardship costs scale with portfolio age — budget for capital reserves from year one."
   ]'::jsonb,
+  '[
+    {"url": "https://www.notion.so/cht-resale-formula-explainer", "title": "Resale formula explainer (Notion)"},
+    {"url": "https://www.youtube.com/watch?v=cht-burlington-doc", "title": "Champlain Housing Trust documentary"}
+  ]'::jsonb,
   '2025-06-08T12:00:00Z', '2025-06-08T12:00:00Z'
 ),
 
@@ -199,6 +226,9 @@ INSERT INTO case_studies (
   '[
     "Bill-crediting mechanics need to be transparent or subscribers churn early.",
     "Low-income participation needs explicit subscription assistance — flat carve-outs don''t fill on their own."
+  ]'::jsonb,
+  '[
+    {"url": "https://github.com/cooperative-energy/community-solar-models", "title": "Subscription-model spreadsheets (GitHub)"}
   ]'::jsonb,
   '2025-07-22T15:30:00Z', '2025-07-22T15:30:00Z'
 ),
@@ -224,6 +254,10 @@ INSERT INTO case_studies (
     "Strong free public-parking belt outside the centre absorbed displaced cars.",
     "The mayor''s persistent two-decade tenure mattered — short electoral cycles would have killed the rollout."
   ]'::jsonb,
+  '[
+    {"url": "https://www.youtube.com/watch?v=pontevedra-carfree", "title": "Pontevedra walkthrough — 20 years on"},
+    {"url": "https://drive.google.com/file/d/pontevedra-mobility-plan", "title": "Mobility plan (PDF, ES)"}
+  ]'::jsonb,
   '2025-08-14T09:00:00Z', '2025-08-14T09:00:00Z'
 ),
 
@@ -246,6 +280,7 @@ INSERT INTO case_studies (
     "Co-op boards added decision-making lead time that the original timeline didn''t account for.",
     "Contractor capacity, not demand, became the bottleneck after year two."
   ]'::jsonb,
+  NULL,
   '2025-09-01T11:00:00Z', '2025-09-01T11:00:00Z'
 ),
 
@@ -266,6 +301,10 @@ INSERT INTO case_studies (
   '[
     "Don''t equate ''thinning'' with ''logging'' in public messaging — the framing affects permitting timelines.",
     "Bark-beetle monitoring needs to span at least two summer cycles before drawing conclusions."
+  ]'::jsonb,
+  '[
+    {"url": "https://github.com/lesy-cr/treatment-protocol", "title": "Treatment protocol (GitHub)"},
+    {"url": "https://drive.google.com/file/d/vysocina-thinning-2024-update", "title": "2024 mid-pilot update (PDF, CS)"}
   ]'::jsonb,
   '2025-10-30T14:00:00Z', '2025-10-30T14:00:00Z'
 );

@@ -286,12 +286,40 @@ if (study.value) {
               <a
                 :href="s.url"
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="nofollow noopener noreferrer"
                 class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
               >
                 <UIcon name="lucide:external-link" class="size-3.5 text-gray-400 shrink-0" />
                 <span class="truncate text-sm text-primary-700">
                   {{ s.title || s.url }}
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div
+          v-if="study.links?.length"
+          class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
+        >
+          <div class="flex items-center gap-2 p-4 sm:p-6 border-b border-gray-200">
+            <UIcon name="lucide:paperclip" class="size-4 text-gray-400" />
+            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+              Links
+            </p>
+            <span class="text-xs font-mono text-gray-400">{{ study.links.length }}</span>
+          </div>
+          <ul class="divide-y divide-gray-200 bg-white">
+            <li v-for="(l, i) in study.links" :key="i">
+              <a
+                :href="l.url"
+                target="_blank"
+                rel="nofollow noopener noreferrer"
+                class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
+              >
+                <UIcon name="lucide:external-link" class="size-3.5 text-gray-400 shrink-0" />
+                <span class="truncate text-sm text-primary-700">
+                  {{ l.title || l.url }}
                 </span>
               </a>
             </li>

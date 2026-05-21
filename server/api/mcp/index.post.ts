@@ -35,7 +35,9 @@ Every issue and solution has two text fields:
 - \`summary\` — required short plaintext card snippet (trimmed to 280 chars).
 - \`description\` — optional long-form markdown body, no length limit.
 
-Case studies are structured instead: they have \`outcome\` (success / partial / failed / inconclusive / ongoing), required \`locationName\` + \`latitude\`/\`longitude\`, plus optional \`description\`, \`implementer\`, \`startDate\`/\`endDate\`, \`metrics\`, \`cost\`/\`currency\`/\`fundingSource\`, \`sources\`, \`lessonsLearned\`, \`media\`.
+Case studies are structured instead: they have \`outcome\` (success / partial / failed / inconclusive / ongoing), required \`locationName\` + \`latitude\`/\`longitude\`, plus optional \`description\`, \`implementer\`, \`startDate\`/\`endDate\`, \`metrics\`, \`cost\`/\`currency\`/\`fundingSource\`, \`sources\`, \`lessonsLearned\`, \`links\`.
+
+Solutions and case studies both accept a \`links\` array of \`{ url, title? }\` — use it to point at external resources hosting documents the platform itself does not store (GitHub repos, hosted PDFs, demo videos, Notion playbooks, photo albums). For case studies, keep \`sources\` for citations that back the claims; put supplementary artifacts in \`links\`. Do NOT use \`links\` for issues.
 
 CRITICAL CONTENT RULE:
 Both \`summary\` and \`description\` must cover ONLY the node itself — the problem (for an issue) or the proposed approach (for a solution). Keep each node tightly scoped.
@@ -138,6 +140,15 @@ const TOOLS = [
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: ['neighborhood', 'city', 'region', 'national', 'global'] },
+        links: {
+          type: 'array',
+          description: 'External resources backing this solution (GitHub repos, design docs, demo videos, hosted PDFs). The platform does not store files itself.',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
+            required: ['url'],
+          },
+        },
       },
       required: ['title', 'summary', 'parentId'],
     },
@@ -175,6 +186,15 @@ const TOOLS = [
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: ['neighborhood', 'city', 'region', 'national', 'global'] },
+        links: {
+          type: 'array',
+          description: 'External resources backing this solution. Pass `[]` to clear.',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
+            required: ['url'],
+          },
+        },
       },
       required: ['id'],
     },
@@ -274,12 +294,12 @@ const TOOLS = [
           description: 'One stand-alone takeaway per entry.',
           items: { type: 'string' },
         },
-        media: {
+        links: {
           type: 'array',
-          description: 'Images or other media documenting the deployment.',
+          description: 'External resources documenting the deployment (GitHub repo, hosted PDF report, demo video, photo album). Use `sources` for citations backing claims; use `links` for supplementary artifacts.',
           items: {
             type: 'object',
-            properties: { url: { type: 'string' }, type: { type: 'string' }, caption: { type: 'string' } },
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
             required: ['url'],
           },
         },
@@ -328,11 +348,12 @@ const TOOLS = [
           },
         },
         lessonsLearned: { type: 'array', items: { type: 'string' } },
-        media: {
+        links: {
           type: 'array',
+          description: 'External artifacts. Pass `[]` to clear.',
           items: {
             type: 'object',
-            properties: { url: { type: 'string' }, type: { type: 'string' }, caption: { type: 'string' } },
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
             required: ['url'],
           },
         },

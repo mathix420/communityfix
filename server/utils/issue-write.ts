@@ -37,6 +37,22 @@ export function sanitizeSummary(input: string): string {
   return s
 }
 
+export type Link = { url: string, title?: string }
+
+export function sanitizeLinks(input: unknown): Link[] | null {
+  if (!Array.isArray(input)) return null
+  const cleaned = input
+    .map((raw) => {
+      if (!raw || typeof raw !== 'object') return null
+      const url = String((raw as { url?: unknown }).url ?? '').trim()
+      if (!url) return null
+      const title = String((raw as { title?: unknown }).title ?? '').trim()
+      return title ? { url, title } : { url }
+    })
+    .filter((l): l is Link => l !== null)
+  return cleaned.length ? cleaned : null
+}
+
 export interface CreateIssueInput {
   title: string
   summary: string
@@ -47,6 +63,8 @@ export interface CreateIssueInput {
   latitude?: number | null
   longitude?: number | null
   scale?: LocationScale | null
+  // Honored only for solutions.
+  links?: Link[] | null
 }
 
 export async function createIssue(authorId: string, input: CreateIssueInput) {
@@ -94,6 +112,7 @@ export async function createIssue(authorId: string, input: CreateIssueInput) {
       ? { x: input.longitude, y: input.latitude }
       : null,
     scale: input.scale ?? null,
+    links: type === 'solution' ? sanitizeLinks(input.links) : null,
   }).returning()
   const created = rows[0]!
 
@@ -117,6 +136,8 @@ export interface UpdateIssueInput {
   latitude?: number | null
   longitude?: number | null
   scale?: LocationScale | null
+  // Honored only when the target row is a solution.
+  links?: Link[] | null
 }
 
 export async function updateIssue(userId: string, input: UpdateIssueInput, expectedType?: IssueType) {
@@ -154,6 +175,9 @@ export async function updateIssue(userId: string, input: UpdateIssueInput, expec
     const lat = input.latitude ?? (existing.location as { y: number } | null)?.y
     const lng = input.longitude ?? (existing.location as { x: number } | null)?.x
     patch.location = (lat != null && lng != null) ? { x: lng, y: lat } : null
+  }
+  if (input.links !== undefined && existing.type === 'solution') {
+    patch.links = sanitizeLinks(input.links)
   }
 
   // Content edits send the row back through moderation.

@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     fundingSource?: string
     sources?: Array<{ url: string, title?: string }>
     lessonsLearned?: string[]
-    media?: Array<{ url: string, type?: string, caption?: string }>
+    links?: Array<{ url: string, title?: string }>
   }>(event)
 
   if (!body.solutionId || !Number.isInteger(body.solutionId)) {
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
     fundingSource: body.fundingSource,
     sources: body.sources,
     lessonsLearned: body.lessonsLearned,
-    media: body.media,
+    links: body.links,
   })
 
   const hydrated = await useDB().query.caseStudies.findFirst({

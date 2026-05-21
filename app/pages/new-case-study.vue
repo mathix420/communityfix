@@ -34,13 +34,21 @@ function removeLesson(i: number) {
   lessons.value.splice(i, 1)
 }
 
-interface SourceRow { url: string, title: string }
-const sources = ref<SourceRow[]>([])
+interface LinkRow { url: string, title: string }
+const sources = ref<LinkRow[]>([])
 function addSource() {
   sources.value.push({ url: '', title: '' })
 }
 function removeSource(i: number) {
   sources.value.splice(i, 1)
+}
+
+const links = ref<LinkRow[]>([])
+function addLink() {
+  links.value.push({ url: '', title: '' })
+}
+function removeLink(i: number) {
+  links.value.splice(i, 1)
 }
 
 interface MetricRow { label: string, baseline: string, result: string, unit: string }
@@ -91,6 +99,9 @@ async function submit() {
     const cleanedSources = sources.value
       .map(s => ({ url: s.url.trim(), title: s.title.trim() || undefined }))
       .filter(s => s.url)
+    const cleanedLinks = links.value
+      .map(l => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
+      .filter(l => l.url)
     const cleanedMetrics = metrics.value
       .map(m => ({
         label: m.label.trim(),
@@ -121,6 +132,7 @@ async function submit() {
         fundingSource: fundingSource.value || undefined,
         lessonsLearned: cleanedLessons.length ? cleanedLessons : undefined,
         sources: cleanedSources.length ? cleanedSources : undefined,
+        links: cleanedLinks.length ? cleanedLinks : undefined,
         metrics: cleanedMetrics.length ? cleanedMetrics : undefined,
       },
     })
@@ -357,6 +369,39 @@ definePageMeta({
             </div>
             <p v-if="!sources.length" class="text-xs text-gray-400 font-mono">
               No sources added yet — reports, articles, official documentation strengthen credibility.
+            </p>
+          </section>
+
+          <section class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-700">Links</span>
+              <button
+                type="button"
+                class="text-xs font-mono text-primary-700 hover:text-primary-900 inline-flex items-center gap-1"
+                @click="addLink"
+              >
+                <UIcon name="lucide:plus" class="size-3.5" />
+                Add link
+              </button>
+            </div>
+            <div
+              v-for="(l, i) in links"
+              :key="i"
+              class="grid grid-cols-[1fr_1fr_auto] gap-2"
+            >
+              <UInput v-model="l.url" type="url" placeholder="https://..." size="md" />
+              <UInput v-model="l.title" type="text" placeholder="Title (optional)" size="md" />
+              <button
+                type="button"
+                class="text-gray-400 hover:text-red-600 px-2"
+                aria-label="Remove link"
+                @click="removeLink(i)"
+              >
+                <UIcon name="lucide:x" class="size-4" />
+              </button>
+            </div>
+            <p v-if="!links.length" class="text-xs text-gray-400 font-mono">
+              No links yet — GitHub repo, hosted PDFs, demo videos, photo album, design files.
             </p>
           </section>
 
