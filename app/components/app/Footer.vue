@@ -46,7 +46,6 @@ function scrollToTop() {
       Published under <span class="font-bold">MIT License</span>
     </UButton>
 
-    <!-- links -->
     <nav class="flex gap-3 justify-center">
       <UButton
         v-for="link in links"
@@ -60,7 +59,6 @@ function scrollToTop() {
       </UButton>
     </nav>
 
-    <!-- socials -->
     <nav class="flex gap-4 sm:justify-end justify-center items-center">
       <UButton
         v-for="social in socials"

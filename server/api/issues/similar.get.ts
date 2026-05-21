@@ -8,7 +8,7 @@ const SIMILARITY_THRESHOLD = 0.3
 interface SimilarMatch {
   id: number
   title: string
-  description: string
+  summary: string
   similarity: number
 }
 
@@ -20,15 +20,15 @@ interface SimilarResponse {
 export default defineEventHandler(async (event): Promise<SimilarResponse> => {
   const query = getQuery(event)
   const title = (query.title as string)?.trim()
-  const description = (query.description as string)?.trim()
+  const summary = (query.summary as string)?.trim()
 
-  if (!title || title.length < 5 || !description || description.length < 10) {
+  if (!title || title.length < 5 || !summary || summary.length < 10) {
     return { status: 'too_short', results: [] }
   }
 
   let embedding: number[]
   try {
-    embedding = await generateEmbedding(`${title}\n${description}`)
+    embedding = await generateEmbedding(`${title}\n${summary}`)
   }
   catch (err) {
     // Surface unavailability so the frontend can tell the user the
@@ -41,8 +41,8 @@ export default defineEventHandler(async (event): Promise<SimilarResponse> => {
   const db = useDB()
   const embeddingStr = `[${embedding.join(',')}]`
 
-  const results = await db.execute<{ id: number, title: string, description: string, similarity: number }>(
-    sql`SELECT id, title, description, 1 - (embedding <=> ${embeddingStr}::vector) as similarity
+  const results = await db.execute<{ id: number, title: string, summary: string, similarity: number }>(
+    sql`SELECT id, title, summary, 1 - (embedding <=> ${embeddingStr}::vector) as similarity
         FROM issues
         WHERE status = 'approved'
           AND embedding IS NOT NULL
@@ -51,12 +51,12 @@ export default defineEventHandler(async (event): Promise<SimilarResponse> => {
         LIMIT 5`,
   )
 
-  const matches: SimilarMatch[] = (results as Array<{ id: number, title: string, description: string, similarity: number }>)
+  const matches: SimilarMatch[] = (results as Array<{ id: number, title: string, summary: string, similarity: number }>)
     .filter(r => r.similarity > SIMILARITY_THRESHOLD)
     .map(r => ({
       id: r.id,
       title: r.title,
-      description: r.description,
+      summary: r.summary,
       similarity: Math.round(r.similarity * 100),
     }))
 

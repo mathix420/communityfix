@@ -22,6 +22,13 @@
 - Seed: `bun run db:seed` (runs `psql $NUXT_DATABASE_URL` against each file in `server/database/seed/*.sql`)
 - Drizzle Studio: `bun run db:studio`
 
+## Deployment
+
+- Builds and deploys run from GitHub Actions (`.github/workflows/ci.yml`), not Cloudflare Workers Builds. Pushing to `master` runs migrations against Neon production then `wrangler deploy`s the `communityfix` Worker; pushing to `staging` does the same against Neon staging and deploys to `communityfix-staging` via `wrangler deploy --name communityfix-staging`.
+- The branch-aware Hyperdrive / KV IDs in `nuxt.config.ts` are picked by the `WORKERS_CI_BRANCH` env var, which the workflow sets explicitly (`master` or `staging`) before each build.
+- Required GitHub repo secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DOPPLER_TOKEN`. Runtime Worker secrets (`NUXT_DATABASE_URL`, `NUXT_SESSION_PASSWORD`, etc.) live on the Worker itself — set via `wrangler secret put` or the Cloudflare dashboard, not via CI.
+- PRs run `typecheck`, `test`, and `build` (Worker bundle compiles cleanly). All three are required checks on `master` and `staging` per `.github/rulesets/`.
+
 ## Nitro Tasks
 
 - Docs: https://nitro.build/guide/tasks
@@ -30,6 +37,20 @@
 - Scheduled tasks (cron) configured in `nitro.scheduledTasks`
 - Run programmatically with `runTask('task:name', { payload: { ... } })`
 - Dev endpoints: `/_nitro/tasks` (list) and `/_nitro/tasks/:name` (run)
+
+## MCP server
+
+CommunityFix exposes an MCP (Model Context Protocol) server at `POST /api/mcp` so AI clients (Claude Desktop, IDE plugins, etc.) can search, browse, and create issues on a user's behalf.
+
+- OAuth 2.1 + PKCE authorization served by this app — no external auth provider needed
+- Discovery: `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`
+- Dynamic client registration: `POST /oauth/register` (RFC 7591, public clients only — PKCE required)
+- Authorization endpoint: `GET /oauth/authorize` (renders an HTML consent screen for the logged-in user; bounces unauthenticated users through `/login` and resumes via the `mcp_continue` cookie)
+- Token endpoint: `POST /oauth/token` (grants: `authorization_code`, `refresh_token`)
+- Access tokens are opaque, valid 1h, sha256-hashed in `oauth_tokens`. Refresh tokens rotate on every use.
+- Tools exposed: `search_issues_solutions` (vector search), `get_issue`, `get_tree`, `create_issue` / `create_solution`, `update_issue` / `update_solution` (split by node kind — solutions require `parentId`; updates error if `id` resolves to the other kind), `suggest_more`, `whoami`, `get_user`, `search_tags`. Issues and solutions have two text fields: `summary` (required, plaintext, ≤280 chars) and `description` (optional, markdown).
+- Tool business logic lives in `server/utils/mcp-tools.ts`; the JSON-RPC plumbing in `server/api/mcp/index.post.ts`
+- New tables: `oauth_clients`, `oauth_codes`, `oauth_tokens` (see migration `0007_cool_peter_quill.sql`)
 
 ## Auth
 

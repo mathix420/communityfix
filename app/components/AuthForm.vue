@@ -48,7 +48,8 @@ async function handlePasskey() {
     }
     await fetchUserSession()
     umami.track(props.mode === 'login' ? 'Sign in with passkey' : 'Register with passkey')
-    await navigateTo(props.mode === 'register' ? '/settings' : '/')
+    const { url: continueUrl } = await $fetch<{ url: string }>('/api/_auth/post-login-redirect').catch(() => ({ url: '' }))
+    await navigateTo(continueUrl || (props.mode === 'register' ? '/settings' : '/'))
   }
   catch (error: any) {
     console.error(error)

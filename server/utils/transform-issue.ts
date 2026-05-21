@@ -4,11 +4,14 @@ import type { issues, tags, sdgs } from '../database/schema'
 type DbIssue = InferSelectModel<typeof issues> & {
   issueTags: { tag: InferSelectModel<typeof tags> }[]
   issueSdgs: { sdg: InferSelectModel<typeof sdgs> }[]
+  author?: { name: string | null } | null
 }
 
 export const issueWithRelations = {
   issueTags: { with: { tag: true } },
   issueSdgs: { with: { sdg: true } },
+  // Email is never selected here — author display name comes from users.name only.
+  author: { columns: { name: true } },
 } as const
 
 export function transformIssue(issue: DbIssue, { includeModeration = false } = {}) {
@@ -19,10 +22,10 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
     id: issue.id,
     parentId: issue.parentId,
     title: issue.title,
+    summary: issue.summary,
     description: issue.description,
-    detailedDescription: issue.detailedDescription,
     authorId: issue.authorId,
-    author: issue.authorName ?? 'Anonymous',
+    author: issue.author?.name ?? 'Anonymous',
     date: issue.createdAt.toISOString().slice(0, 10),
     solutionCount: issue.solutionCount,
     subIssueCount: issue.subIssueCount,

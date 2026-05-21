@@ -4,7 +4,7 @@ const props = defineProps<{
   issue: {
     id: number
     title: string
-    description: string
+    summary: string
     authorId?: string | null
     author: string
     date: string
@@ -41,7 +41,7 @@ function handleVote(value: 1 | -1) {
 async function handleShare() {
   const url = `${window.location.origin}/issue/${props.issue.id}`
   const title = props.issue.title
-  const text = props.issue.description
+  const text = props.issue.summary
 
   if (navigator.share) {
     try {
@@ -101,9 +101,10 @@ async function handleShare() {
           Done
         </UiBadge>
       </h2>
-      <p class="text-gray-700">
-        {{ issue.description }}
-      </p>
+      <UiMarkdown
+        :value="issue.summary"
+        class="prose-sm text-gray-700"
+      />
       <div v-if="issue.locationName || (issue.scale && issue.scale !== 'global')" class="flex items-center gap-2 flex-wrap text-sm text-gray-500">
         <span v-if="issue.locationName" class="flex items-center gap-1">
           <UIcon name="lucide:map-pin" class="size-3.5" />
@@ -115,7 +116,6 @@ async function handleShare() {
       </div>
       <div class="flex justify-between flex-wrap gap-2">
         <div class="flex gap-2 my-2 flex-wrap items-center">
-          <!-- Vote pill [UP | score | DOWN] -->
           <div class="inline-flex items-stretch rounded-md overflow-hidden bg-gray-100 text-sm font-mono">
             <button
               :class="[
