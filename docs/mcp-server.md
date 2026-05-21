@@ -74,7 +74,7 @@ bun run build
 cat .output/server/wrangler.json | jq '.hyperdrive, .kv_namespaces'
 ```
 
-The IDs are branched by `WORKERS_CI_BRANCH` (master → prod, anything else → staging). If you're cutting a one-off deploy from a third long-lived branch, add a case to the `process.env.WORKERS_CI_BRANCH` checks in `nuxt.config.ts`.
+The IDs are branched by `WORKERS_CI_BRANCH` (master → prod, anything else → staging). The GitHub Actions deploy workflow sets that var explicitly per job; if you're cutting a one-off deploy from a third long-lived branch, add a case to the `process.env.WORKERS_CI_BRANCH` checks in `nuxt.config.ts` and a matching job in `.github/workflows/ci.yml`.
 
 ### 4. CORS / proxy posture
 
