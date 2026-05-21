@@ -13,11 +13,10 @@ concurrency:
 env:
   DOPPLER_PROJECT: communityfix
 
-# Cloudflare Workers Builds handles the actual build + deploy on every push
-# (production for `master`, staging for any other branch via the `env.staging`
-# block in wrangler.jsonc). This workflow only handles the things CF Workers
-# Builds doesn't: typechecking PRs and running database migrations against
-# the right Neon branch before each push goes live.
+# Build + deploy run entirely here. Production goes to the `communityfix`
+# Worker on every master push; staging goes to `communityfix-staging` on every
+# staging push. The branch-aware Hyperdrive / KV IDs in nuxt.config.ts are
+# selected by `WORKERS_CI_BRANCH`, which we set explicitly per job.
 
 jobs:
   # ────────────────────────────────────────────────────────────────
@@ -53,39 +52,82 @@ jobs:
         run: bunx vitest run tests/unit
 
   # ────────────────────────────────────────────────────────────────
-  # PRODUCTION MIGRATIONS — runs on every master push, before CF
-  # Workers Builds rolls out the new Worker. Uses Doppler `prd`
-  # which holds the Neon production direct (non-pooled) URL.
+  # BUILD — compiles the Worker bundle so broken builds are caught
+  # before merge. Required check for PRs (see master/staging
+  # rulesets). Replaces the old "Workers Builds: communityfix"
+  # check that came from Cloudflare's connected-repo builder.
   # ────────────────────────────────────────────────────────────────
-  migrate-production:
+  build:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Build Worker bundle
+        env:
+          # Non-master branches resolve to staging bindings in nuxt.config.ts,
+          # which matches what would be deployed if this PR landed.
+          WORKERS_CI_BRANCH: ${{ github.head_ref }}
+        run: bun run build
+
+  # ────────────────────────────────────────────────────────────────
+  # PRODUCTION DEPLOY — runs on every master push. Builds the Worker
+  # against production bindings, runs Drizzle + custom migrations on
+  # the Neon production direct URL, then `wrangler deploy`s to the
+  # `communityfix` Worker.
+  # ────────────────────────────────────────────────────────────────
+  deploy-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment: production
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
+      - name: Build Worker bundle (production bindings)
+        env:
+          WORKERS_CI_BRANCH: master
+        run: bun run build
       - name: Run Drizzle + custom migrations against Neon production
         run: doppler run -c prd -- bun run server/database/migrate.ts
+      - name: Deploy to Cloudflare Workers (production)
+        # Wrangler picks up `.wrangler/deploy/config.json`, which Nitro emits
+        # during `bun run build` to redirect to `.output/server/wrangler.json`.
+        run: bunx wrangler deploy
 
   # ────────────────────────────────────────────────────────────────
-  # STAGING MIGRATIONS — runs on every staging push, before CF
-  # Workers Builds rolls out the staging Worker. Uses Doppler `stg`
-  # which holds the Neon staging direct (non-pooled) URL.
+  # STAGING DEPLOY — runs on every staging push. Same shape as
+  # production, but with staging bindings and `--name` overridden so
+  # the deploy lands on the dedicated `communityfix-staging` Worker
+  # instead of the production one.
   # ────────────────────────────────────────────────────────────────
-  migrate-staging:
+  deploy-staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     environment: preview
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
+      - name: Build Worker bundle (staging bindings)
+        env:
+          WORKERS_CI_BRANCH: staging
+        run: bun run build
       - name: Run Drizzle + custom migrations against Neon staging
         run: doppler run -c stg -- bun run server/database/migrate.ts
+      - name: Deploy to Cloudflare Workers (staging)
+        # See production deploy step for how the redirected config is found.
+        # `--name` overrides the worker name so this lands on the dedicated
+        # staging Worker instead of the production one.
+        run: bunx wrangler deploy --name communityfix-staging
