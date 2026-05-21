@@ -16,7 +16,7 @@ const isPasskeyLoading = ref(false)
 const isSendingCode = ref(false)
 const isVerifying = ref(false)
 
-const { openInPopup, fetch: fetchUserSession } = useUserSession()
+const { fetch: fetchUserSession } = useUserSession()
 
 // If the user landed here via an auth gate (?redirect=/foo), stash the path
 // server-side so it survives full-page OAuth round-trips. Passkey reads it
@@ -150,30 +150,12 @@ function changeEmail() {
   code.value = ''
 }
 
-async function startOAuth(provider: 'google') {
+function startOAuth(provider: 'google') {
   track(`Sign in with ${provider}`)
   activeProvider.value = provider
-  const oauthRoute = `/auth/${provider}`
-
-  try {
-    if (openInPopup) {
-      openInPopup(oauthRoute)
-    }
-    else {
-      await navigateTo(oauthRoute)
-    }
-  }
-  catch (error: any) {
-    console.error(error)
-    toast.add({
-      title: 'Could not start login',
-      description: 'Check your OAuth config and try again.',
-      color: 'error',
-    })
-  }
-  finally {
-    activeProvider.value = null
-  }
+  // Full-page redirect so Google brings the user back to the same window;
+  // the popup flow leaves the opener stuck on /login.
+  window.location.href = `/auth/${provider}`
 }
 </script>
 
