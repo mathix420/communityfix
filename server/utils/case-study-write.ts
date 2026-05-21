@@ -2,7 +2,7 @@
 // future MCP tool) so embedding generation, validation, and admin-only flags
 // stay in one place.
 import { and, eq } from 'drizzle-orm'
-import { caseStudies, issues } from '../database/schema'
+import { caseStudies, issues, users } from '../database/schema'
 import type { CaseStudyOutcome, LocationScale } from '../database/schema'
 import { assertNotBanned } from './check-ban'
 import { isAdminEmail } from './admin'
@@ -112,16 +112,17 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
   return rows[0]!
 }
 
-export async function updateCaseStudy(userId: string, userEmail: string | null, input: UpdateCaseStudyInput) {
+export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInput) {
   const db = useDB()
   const existing = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, input.id) })
   if (!existing) throw createError({ statusCode: 404, statusMessage: `Case study ${input.id} not found` })
 
-  const isAdmin = userEmail ? isAdminEmail(userEmail) : false
+  const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } })
+  const isAdmin = isAdminEmail(me?.email)
   if (existing.authorId !== userId && !isAdmin) {
     throw createError({ statusCode: 403, statusMessage: 'Only the author or an admin can update this case study' })
   }
-  await assertNotBanned(userId)
+  if (!isAdmin) await assertNotBanned(userId)
 
   const patch: Partial<typeof caseStudies.$inferInsert> = { updatedAt: new Date() }
   if (input.outcome !== undefined) patch.outcome = input.outcome

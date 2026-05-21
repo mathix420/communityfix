@@ -1,32 +1,41 @@
 import { authenticateBearer, getOrigin } from '../../utils/oauth'
 import {
+  createCaseStudyAs,
   createIssueAs,
   createSolutionAs,
+  getCaseStudyById,
   getIssueById,
   getMe,
   getTree,
   getUserProfile,
+  listCaseStudiesFor,
   searchByQuery,
   searchTags,
   suggestMore,
+  updateCaseStudyAs,
   updateIssueAs,
   updateSolutionAs,
 } from '../../utils/mcp-tools'
+import { CASE_STUDY_OUTCOMES, LOCATION_SCALES } from '../../database/schema'
 
 const PROTOCOL_VERSION = '2025-06-18'
 const SERVER_INFO = { name: 'communityfix-mcp', version: '0.1.0' }
 
-const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutions. Every node is one of:
+const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutions, with case studies attached to solutions. Every node is one of:
 - an **issue** — a problem worth solving, or a more specific facet of a parent issue (a "sub-issue")
-- a **solution** — a proposed way to address its parent issue. Solutions are leaves: they cannot have sub-solutions. To document a concrete real-world implementation of a solution, attach a **case study** to it instead.
+- a **solution** — a proposed way to address its parent issue. Solutions are leaves in the tree: they cannot have sub-solutions.
+- a **case study** — a structured record of one real-world implementation of a solution (where it was tried, by whom, what happened, metrics, sources, lessons). Case studies attach to a solution and are NOT part of the issue/solution tree.
 
-Tools come in matched pairs by node kind:
+Tools come in matched groups by node kind:
 - create_issue / update_issue — for problems (top-level or sub-issue under any parent)
 - create_solution / update_solution — for proposed approaches (always require parentId pointing at the issue they address; the parent must itself be an issue, not a solution)
+- create_case_study / update_case_study / get_case_study / list_case_studies — for concrete deployments of a solution (require solutionId)
 
-Every node has two text fields:
+Every issue and solution has two text fields:
 - \`summary\` — required short plaintext card snippet (trimmed to 280 chars).
 - \`description\` — optional long-form markdown body, no length limit.
+
+Case studies are structured instead: they have \`outcome\` (success / partial / failed / inconclusive / ongoing), required \`locationName\` + \`latitude\`/\`longitude\`, plus optional \`description\`, \`implementer\`, \`startDate\`/\`endDate\`, \`metrics\`, \`cost\`/\`currency\`/\`fundingSource\`, \`sources\`, \`lessonsLearned\`, \`media\`.
 
 CRITICAL CONTENT RULE:
 Both \`summary\` and \`description\` must cover ONLY the node itself — the problem (for an issue) or the proposed approach (for a solution). Keep each node tightly scoped.
@@ -36,9 +45,9 @@ Do NOT stuff a single node with:
 - alternative solutions, competing approaches, or variants → create sibling solutions with create_solution on the same parent issue
 - evaluations of related work, "state of the art" surveys, lists of prior attempts → those are not part of one node's body
 - pros/cons lists comparing approaches → each approach is its own solution
-- concrete deployments of a solution (a city that did this, a pilot, an NGO program) → those are case studies, not solutions
+- concrete deployments of a solution (a city that did this, a pilot, an NGO program) → those are case studies — emit create_case_study against the solution
 
-If you catch yourself writing headings like "Alternatives", "Sub-issues", "Why X did not work", "Other approaches", stop and emit additional create_issue / create_solution calls instead. A good node reads like a focused statement of one thing; a bad one reads like an essay covering the whole problem space.`
+If you catch yourself writing headings like "Alternatives", "Sub-issues", "Why X did not work", "Other approaches", stop and emit additional create_issue / create_solution / create_case_study calls instead. A good node reads like a focused statement of one thing; a bad one reads like an essay covering the whole problem space.`
 
 interface JsonRpcRequest {
   jsonrpc: '2.0'
@@ -199,6 +208,140 @@ const TOOLS = [
     },
   },
   {
+    name: 'get_case_study',
+    description: 'Fetch a single case study by numeric id. Case studies document one real-world implementation of a solution (outcome, location, implementer, metrics, sources, lessons learned).',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'integer' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'list_case_studies',
+    description: 'List case studies under a node. Pass a solution id to get that solution\'s own case studies, or an issue id to aggregate case studies across all approved solution children of that issue. Returns rows ordered by verified (admin-marked) then most-recent first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'integer', description: 'Issue or solution id whose case studies to list.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'create_case_study',
+    description: 'Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that\'s three separate `create_case_study` calls — do not combine them.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        solutionId: { type: 'integer', description: 'Id of the solution this case study implements. Required. Must be a solution, not an issue.' },
+        outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES], description: 'What happened: success, partial, failed, inconclusive, or ongoing.' },
+        locationName: { type: 'string', description: 'Human-readable location label (e.g. "Bogotá, Colombia"). Required.' },
+        latitude: { type: 'number', description: 'Decimal latitude of the deployment. Required.' },
+        longitude: { type: 'number', description: 'Decimal longitude of the deployment. Required.' },
+        scale: { type: 'string', enum: [...LOCATION_SCALES], description: 'Geographic scope of the deployment.' },
+        description: { type: 'string', description: 'Optional markdown narrative — what was done, context, anything not captured by the structured fields.' },
+        implementer: { type: 'string', description: 'Organization, agency, or person that ran the deployment.' },
+        startDate: { type: 'string', description: 'ISO date (YYYY-MM-DD) the deployment started.' },
+        endDate: { type: 'string', description: 'ISO date (YYYY-MM-DD) the deployment ended. Omit if ongoing.' },
+        metrics: {
+          type: 'array',
+          description: 'Quantitative outcomes — one row per measurement.',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              baseline: { type: 'string' },
+              result: { type: 'string' },
+              unit: { type: 'string' },
+            },
+            required: ['label'],
+          },
+        },
+        cost: { type: ['number', 'string'], description: 'Total cost as a number or numeric string.' },
+        currency: { type: 'string', description: 'ISO currency code (e.g. "USD", "EUR").' },
+        fundingSource: { type: 'string', description: 'Who paid for it.' },
+        sources: {
+          type: 'array',
+          description: 'Citations / supporting links.',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
+            required: ['url'],
+          },
+        },
+        lessonsLearned: {
+          type: 'array',
+          description: 'One stand-alone takeaway per entry.',
+          items: { type: 'string' },
+        },
+        media: {
+          type: 'array',
+          description: 'Images or other media documenting the deployment.',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, type: { type: 'string' }, caption: { type: 'string' } },
+            required: ['url'],
+          },
+        },
+      },
+      required: ['solutionId', 'outcome', 'locationName', 'latitude', 'longitude'],
+    },
+  },
+  {
+    name: 'update_case_study',
+    description: 'Edit an existing case study. Only the author or an admin may update. The `verified` flag is admin-only — non-admin callers cannot change it. Pass only the fields you want to change.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'integer' },
+        outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES] },
+        locationName: { type: 'string' },
+        latitude: { type: 'number' },
+        longitude: { type: 'number' },
+        scale: { type: 'string', enum: [...LOCATION_SCALES] },
+        description: { type: 'string' },
+        implementer: { type: 'string' },
+        startDate: { type: 'string' },
+        endDate: { type: 'string' },
+        metrics: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              baseline: { type: 'string' },
+              result: { type: 'string' },
+              unit: { type: 'string' },
+            },
+            required: ['label'],
+          },
+        },
+        cost: { type: ['number', 'string'] },
+        currency: { type: 'string' },
+        fundingSource: { type: 'string' },
+        sources: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
+            required: ['url'],
+          },
+        },
+        lessonsLearned: { type: 'array', items: { type: 'string' } },
+        media: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, type: { type: 'string' }, caption: { type: 'string' } },
+            required: ['url'],
+          },
+        },
+        verified: { type: 'boolean', description: 'Admin-only: mark as independently verified.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
     name: 'search_tags',
     description: 'Semantic tag search via embeddings — finds tags by meaning, not just substring. A query like "transportation" will surface "transit". Omit `query` to list all tags alphabetically. Falls back to case-insensitive substring match if the embedding service is unavailable. Useful before create_issue so you can reference existing tags rather than inventing strings.',
     inputSchema: {
@@ -272,6 +415,26 @@ async function callTool(name: string, args: any, userId: string): Promise<{ cont
       }
       case 'search_tags': {
         return wrap(await searchTags({ query: args?.query, limit: args?.limit }))
+      }
+      case 'get_case_study': {
+        if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
+        const row = await getCaseStudyById(args.id)
+        return row ? wrap(row) : wrapErr(`Case study ${args.id} not found`)
+      }
+      case 'list_case_studies': {
+        if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
+        const rows = await listCaseStudiesFor(args.id)
+        return rows === null ? wrapErr(`Issue or solution ${args.id} not found`) : wrap(rows)
+      }
+      case 'create_case_study': {
+        if (!Number.isInteger(args?.solutionId)) {
+          return wrapErr('solutionId is required and must be an integer (the solution this case study implements)')
+        }
+        return wrap(await createCaseStudyAs(userId, args))
+      }
+      case 'update_case_study': {
+        if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
+        return wrap(await updateCaseStudyAs(userId, args))
       }
       default:
         return wrapErr(`Unknown tool: ${name}`)
