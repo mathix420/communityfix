@@ -8,10 +8,15 @@ import {
 } from '../../database/schema'
 import { transformCaseStudy } from '../../utils/case-study-write'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing user ID' })
+  // The literal strings "undefined" / "null" sneak through truthy checks when
+  // a caller stringifies a missing reactive value (`/user/${user?.id}`), so
+  // reject anything that isn't a real UUID before it reaches Postgres.
+  if (!id || !UUID_RE.test(id)) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' })
   }
 
   const db = useDB()

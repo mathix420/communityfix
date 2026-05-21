@@ -16,10 +16,16 @@ const headline = ref('')
 const bio = ref('')
 const location = ref('')
 
-// Pull existing profile (the session only carries name + email).
-const { data: profile, refresh: refreshProfile } = await useFetch(
-  () => `/api/user/${user.value?.id}` as '/api/user/:id',
-  { immediate: !!user.value?.id },
+// Pull existing profile (the session only carries name + email). useFetch
+// auto-refetches whenever a watched value changes, which would request
+// `/api/user/undefined` whenever the session ref briefly transitions through
+// undefined. useAsyncData lets us short-circuit the fetcher.
+const { data: profile, refresh: refreshProfile } = await useAsyncData(
+  'settings-profile',
+  () => user.value?.id
+    ? $fetch(`/api/user/${user.value.id}` as '/api/user/:id')
+    : Promise.resolve(null),
+  { watch: [() => user.value?.id] },
 )
 watchEffect(() => {
   if (profile.value) {

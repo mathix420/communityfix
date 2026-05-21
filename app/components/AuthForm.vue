@@ -6,12 +6,28 @@ const props = withDefaults(defineProps<{
 })
 
 const { track } = useUmami()
+const route = useRoute()
 const email = ref('')
+const code = ref('')
+const step = ref<'email' | 'code'>('email')
 const toast = useToast()
 const activeProvider = ref<string | null>(null)
 const isPasskeyLoading = ref(false)
+const isSendingCode = ref(false)
+const isVerifying = ref(false)
 
 const { openInPopup, fetch: fetchUserSession } = useUserSession()
+
+// If the user landed here via an auth gate (?redirect=/foo), stash the path
+// server-side so it survives full-page OAuth round-trips. Passkey reads it
+// back via GET /api/_auth/post-login-redirect; OAuth callbacks consume the
+// same cookie via consumePostLoginRedirect.
+onMounted(() => {
+  const r = route.query.redirect
+  if (typeof r === 'string' && r.startsWith('/') && !r.startsWith('//')) {
+    $fetch('/api/_auth/post-login-redirect', { method: 'POST', body: { url: r } }).catch(() => {})
+  }
+})
 const { register: registerPasskey, authenticate } = useWebAuthn({
   registerEndpoint: '/api/webauthn/register',
   authenticateEndpoint: '/api/webauthn/authenticate',
@@ -21,9 +37,12 @@ const title = computed(() => props.mode === 'login' ? 'Welcome back' : 'Create a
 const lead = computed(() => props.mode === 'login'
   ? 'Sign in to pick up where you left off.'
   : 'Join thousands fixing their communities. It takes seconds.')
-const passkeyLabel = computed(() => props.mode === 'login' ? 'Sign in with passkey' : 'Create passkey')
 
 const trimmedEmail = computed(() => email.value.trim())
+
+function fetchErrorMessage(error: any, fallback: string): string {
+  return error?.data?.message || error?.message || fallback
+}
 
 function ensureEmail() {
   if (trimmedEmail.value) { return true }
@@ -35,28 +54,25 @@ function ensureEmail() {
   return false
 }
 
-async function handlePasskey() {
-  if (props.mode === 'register' && !ensureEmail()) { return }
+async function postLoginNavigate() {
+  const { url: continueUrl } = await $fetch<{ url: string }>('/api/_auth/post-login-redirect').catch(() => ({ url: '' }))
+  await navigateTo(continueUrl || (props.mode === 'register' ? '/settings' : '/'))
+}
 
+async function handleLogin() {
   isPasskeyLoading.value = true
   try {
-    if (props.mode === 'login') {
-      await authenticate()
-    }
-    else {
-      await registerPasskey({ userName: trimmedEmail.value })
-    }
+    await authenticate()
     await fetchUserSession()
-    umami.track(props.mode === 'login' ? 'Sign in with passkey' : 'Register with passkey')
-    const { url: continueUrl } = await $fetch<{ url: string }>('/api/_auth/post-login-redirect').catch(() => ({ url: '' }))
-    await navigateTo(continueUrl || (props.mode === 'register' ? '/settings' : '/'))
+    track('Sign in with passkey')
+    await postLoginNavigate()
   }
   catch (error: any) {
     console.error(error)
-    umami.track('Passkey failed', { mode: props.mode })
+    track('Passkey failed', { mode: props.mode })
     toast.add({
       title: 'Passkey failed',
-      description: error?.message || 'Try again or use social login.',
+      description: fetchErrorMessage(error, 'Try again or use social login.'),
       color: 'error',
     })
   }
@@ -65,17 +81,86 @@ async function handlePasskey() {
   }
 }
 
-async function startOAuth(provider: 'google' | 'apple') {
-  umami.track(`Sign in with ${provider}`)
+async function sendCode() {
+  if (!ensureEmail()) return
+  isSendingCode.value = true
+  try {
+    await $fetch('/api/_auth/email-pin/send', {
+      method: 'POST',
+      body: { email: trimmedEmail.value },
+    })
+    step.value = 'code'
+    code.value = ''
+    track('Email pin sent')
+    toast.add({
+      title: 'Check your email',
+      description: `We sent a 6-digit code to ${trimmedEmail.value}.`,
+      color: 'success',
+    })
+  }
+  catch (error: any) {
+    console.error(error)
+    toast.add({
+      title: 'Could not send code',
+      description: fetchErrorMessage(error, 'Try again in a moment.'),
+      color: 'error',
+    })
+  }
+  finally {
+    isSendingCode.value = false
+  }
+}
+
+async function verifyAndRegister() {
+  const pin = code.value.trim()
+  if (!/^\d{6}$/.test(pin)) {
+    toast.add({ title: 'Enter the 6-digit code', color: 'warning' })
+    return
+  }
+  isVerifying.value = true
+  try {
+    await $fetch('/api/_auth/email-pin/verify', {
+      method: 'POST',
+      body: { email: trimmedEmail.value, pin },
+    })
+    track('Email pin verified')
+    // Email is proven; the WebAuthn register handler will consume the
+    // verification flag and bind the credential to the (new) user row.
+    await registerPasskey({ userName: trimmedEmail.value })
+    await fetchUserSession()
+    track('Register with passkey')
+    await postLoginNavigate()
+  }
+  catch (error: any) {
+    console.error(error)
+    track('Passkey register failed')
+    toast.add({
+      title: 'Could not finish signup',
+      description: fetchErrorMessage(error, 'Try again or use Google.'),
+      color: 'error',
+    })
+  }
+  finally {
+    isVerifying.value = false
+  }
+}
+
+function changeEmail() {
+  step.value = 'email'
+  code.value = ''
+}
+
+async function startOAuth(provider: 'google') {
+  track(`Sign in with ${provider}`)
   activeProvider.value = provider
-  const route = `/auth/${provider}`
+  const oauthRoute = `/auth/${provider}`
 
   try {
     if (openInPopup) {
-      openInPopup(route)
+      openInPopup(oauthRoute)
     }
     else {
-      await navigateTo(route)
+      await navigateTo(oauthRoute)
     }
   }
   catch (error: any) {
@@ -104,15 +189,31 @@ async function startOAuth(provider: 'google' | 'apple') {
       padding="lg"
       class="flex flex-col gap-5"
     >
+      <!-- Login: single-button passkey -->
       <form
+        v-if="props.mode === 'login'"
         class="grid gap-4"
-        @submit.prevent="handlePasskey"
+        @submit.prevent="handleLogin"
       >
-        <UFormField
-          v-if="props.mode === 'register'"
-          label="Email"
-          name="email"
+        <UButton
+          type="submit"
+          block
+          size="lg"
+          color="primary"
+          icon="i-lucide-key-round"
+          :loading="isPasskeyLoading"
         >
+          Sign in with passkey
+        </UButton>
+      </form>
+
+      <!-- Register step 1: collect email, send PIN -->
+      <form
+        v-else-if="step === 'email'"
+        class="grid gap-4"
+        @submit.prevent="sendCode"
+      >
+        <UFormField label="Email" name="email">
           <UInput
             v-model="email"
             type="email"
@@ -129,37 +230,78 @@ async function startOAuth(provider: 'google' | 'apple') {
           block
           size="lg"
           color="primary"
-          icon="i-lucide-key-round"
-          :loading="isPasskeyLoading"
+          icon="i-lucide-mail"
+          :loading="isSendingCode"
         >
-          {{ passkeyLabel }}
+          Send verification code
         </UButton>
+      </form>
+
+      <!-- Register step 2: enter PIN, verify, then register passkey -->
+      <form
+        v-else
+        class="grid gap-4"
+        @submit.prevent="verifyAndRegister"
+      >
+        <div class="text-sm text-gray-600">
+          We sent a 6-digit code to
+          <span class="font-mono">{{ trimmedEmail }}</span>.
+          <button
+            type="button"
+            class="text-primary-600 hover:underline ml-1"
+            @click="changeEmail"
+          >
+            Change
+          </button>
+        </div>
+
+        <UFormField label="Verification code" name="code">
+          <UInput
+            v-model="code"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            placeholder="123456"
+            maxlength="6"
+            size="lg"
+            class="w-full font-mono tracking-widest"
+            required
+          />
+        </UFormField>
+
+        <UButton
+          type="submit"
+          block
+          size="lg"
+          color="primary"
+          icon="i-lucide-key-round"
+          :loading="isVerifying"
+        >
+          Verify and create passkey
+        </UButton>
+
+        <button
+          type="button"
+          class="text-xs text-center text-gray-500 hover:text-gray-700"
+          :disabled="isSendingCode"
+          @click="sendCode"
+        >
+          {{ isSendingCode ? 'Resending…' : 'Resend code' }}
+        </button>
       </form>
 
       <UiDivider text="or continue with" />
 
-      <div class="grid grid-cols-2 gap-3">
-        <UButton
-          block
-          variant="soft"
-          color="neutral"
-          icon="i-fa6-brands-google"
-          :loading="activeProvider === 'google'"
-          @click="startOAuth('google')"
-        >
-          Google
-        </UButton>
-        <UButton
-          block
-          variant="soft"
-          color="neutral"
-          icon="i-fa6-brands-apple"
-          :loading="activeProvider === 'apple'"
-          @click="startOAuth('apple')"
-        >
-          Apple
-        </UButton>
-      </div>
+      <UButton
+        block
+        variant="soft"
+        color="neutral"
+        icon="i-fa6-brands-google"
+        :loading="activeProvider === 'google'"
+        @click="startOAuth('google')"
+      >
+        Google
+      </UButton>
 
       <p class="text-xs text-center text-gray-400 font-mono">
         Passwordless by design

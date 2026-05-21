@@ -45,11 +45,10 @@ const caseStudiesSectionLabel = computed(() => {
 
 const endorsing = ref<number | null>(null)
 
+const { requireAuth } = useAuthRedirect()
+
 async function endorse(qualificationId: number) {
-  if (!user.value?.viewer.isAuthenticated) {
-    toast.add({ title: 'Sign in to endorse credentials', color: 'warning' })
-    return
-  }
+  if (!requireAuth('endorse credential')) return
   endorsing.value = qualificationId
   try {
     await $fetch(`/api/qualifications/${qualificationId}/endorse` as '/api/qualifications/:id/endorse', {
@@ -349,7 +348,7 @@ useSeoMeta({
                     color="primary"
                     variant="outline"
                     :icon="user.viewer.isAdmin ? 'lucide:badge-check' : 'lucide:thumbs-up'"
-                    :disabled="!user.viewer.canEndorse"
+                    :disabled="user.viewer.isAuthenticated && !user.viewer.canEndorse"
                     :loading="endorsing === q.id"
                     :title="!user.viewer.isAuthenticated
                       ? 'Sign in to endorse credentials'

@@ -50,6 +50,10 @@ export default defineNuxtConfig({
     // credentials on behalf of users who emailed proofs to support). Set via
     // `doppler secrets set NUXT_ADMIN_EMAILS=a@x.com,b@y.com`.
     adminEmails: '',
+    // From address used for transactional mail (e.g. "CommunityFix
+    // <noreply@communityfix.org>"). The domain must be onboarded to
+    // Cloudflare Email Sending — see `wrangler email sending enable`.
+    emailFrom: '',
   },
 
   routeRules: {
@@ -119,6 +123,9 @@ export default defineNuxtConfig({
               ? 'b0d3e44f92ae4be0a0c57903404f62fb' // communityfix-auth-staging
               : '10ae9211092f42d4a90cd17a938c360a', // communityfix-auth (prod)
           },
+        ],
+        send_email: [
+          { name: 'EMAIL' },
         ],
       },
     },

@@ -62,15 +62,12 @@ defineOgImage('Home')
         :sort-options="sortOptions"
         placeholder="Search issues..."
       />
-      <AuthState v-slot="{ loggedIn }">
-        <UiActionButton
-          v-if="loggedIn"
-          to="/new"
-          @click="track('Homepage new issue')"
-        >
-          New Issue
-        </UiActionButton>
-      </AuthState>
+      <UiActionButton
+        to="/new"
+        @click="track('Homepage new issue')"
+      >
+        New Issue
+      </UiActionButton>
     </div>
 
     <div class="flex flex-col max-w-3xl mx-auto gap-6">
