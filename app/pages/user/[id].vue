@@ -28,8 +28,20 @@ const joinedDate = computed(() => {
 })
 
 const totalContributions = computed(
-  () => (user.value?.issues?.length ?? 0) + (user.value?.solutions?.length ?? 0),
+  () => (user.value?.issues?.length ?? 0)
+    + (user.value?.solutions?.length ?? 0)
+    + (user.value?.caseStudies?.length ?? 0),
 )
+
+// Section labels stay in sync with the prior sections being visible. Bio is
+// section 02, then we add 01 per visible section before this one.
+const caseStudiesSectionLabel = computed(() => {
+  let n = 2 // "Credentials" is always 01 in the layout; 02 starts the dynamic numbering
+  if (user.value?.bio) n++
+  if ((user.value?.issues?.length ?? 0) > 0) n++
+  if ((user.value?.solutions?.length ?? 0) > 0) n++
+  return String(n).padStart(2, '0')
+})
 
 const endorsing = ref<number | null>(null)
 
@@ -394,9 +406,7 @@ useSeoMeta({
           <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
             {{ user.bio ? '03' : '02' }}
           </span>
-          <UiSectionTitle>
-            {{ user.issues.length }} issue{{ user.issues.length === 1 ? '' : 's' }} submitted
-          </UiSectionTitle>
+          <UiSectionTitle>Issues submitted</UiSectionTitle>
         </div>
         <div class="flex flex-col gap-6">
           <CardIssue
@@ -415,9 +425,7 @@ useSeoMeta({
           <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
             {{ user.bio ? (user.issues.length > 0 ? '04' : '03') : (user.issues.length > 0 ? '03' : '02') }}
           </span>
-          <UiSectionTitle>
-            {{ user.solutions.length }} solution{{ user.solutions.length === 1 ? '' : 's' }} proposed
-          </UiSectionTitle>
+          <UiSectionTitle>Solutions proposed</UiSectionTitle>
         </div>
         <div class="flex flex-col gap-6">
           <CardIssue
@@ -428,8 +436,27 @@ useSeoMeta({
         </div>
       </section>
 
+      <section
+        v-if="user.caseStudies && user.caseStudies.length > 0"
+        class="mb-12"
+      >
+        <div class="mb-4 flex items-baseline gap-3">
+          <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
+            {{ caseStudiesSectionLabel }}
+          </span>
+          <UiSectionTitle>Case studies documented</UiSectionTitle>
+        </div>
+        <div class="flex flex-col gap-6">
+          <CardCaseStudy
+            v-for="study in user.caseStudies"
+            :key="study.id"
+            :study="study"
+          />
+        </div>
+      </section>
+
       <div
-        v-if="user.issues.length === 0 && user.solutions.length === 0"
+        v-if="user.issues.length === 0 && user.solutions.length === 0 && (!user.caseStudies || user.caseStudies.length === 0)"
         class="text-center text-gray-500 mt-12"
       >
         <p class="font-mono text-sm uppercase tracking-wide">

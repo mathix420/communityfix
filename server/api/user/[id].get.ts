@@ -4,7 +4,9 @@ import {
   issues,
   qualifications,
   qualificationEndorsements,
+  caseStudies,
 } from '../../database/schema'
+import { transformCaseStudy } from '../../utils/case-study-write'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -125,6 +127,14 @@ export default defineEventHandler(async (event) => {
     with: issueWithRelations,
   })
 
+  // Case studies authored by this user. No status/moderation field yet — every
+  // row is publicly visible; the verified flag is a separate signal.
+  const userCaseStudies = await db.query.caseStudies.findMany({
+    where: eq(caseStudies.authorId, user.id),
+    with: { author: { columns: { name: true } } },
+    orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
+  })
+
   const filterSpam = (items: typeof userIssues) =>
     isOwner ? items.filter(i => !i.isSpam) : items
 
@@ -156,5 +166,6 @@ export default defineEventHandler(async (event) => {
     },
     issues: filterSpam(userIssues).map(i => transformIssue(i, { includeModeration: isOwner })),
     solutions: filterSpam(userSolutions).map(i => transformIssue(i, { includeModeration: isOwner })),
+    caseStudies: userCaseStudies.map(transformCaseStudy),
   }
 })

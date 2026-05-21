@@ -18,11 +18,11 @@ const SERVER_INFO = { name: 'communityfix-mcp', version: '0.1.0' }
 
 const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutions. Every node is one of:
 - an **issue** — a problem worth solving, or a more specific facet of a parent issue (a "sub-issue")
-- a **solution** — a proposed way to address its parent issue
+- a **solution** — a proposed way to address its parent issue. Solutions are leaves: they cannot have sub-solutions. To document a concrete real-world implementation of a solution, attach a **case study** to it instead.
 
 Tools come in matched pairs by node kind:
 - create_issue / update_issue — for problems (top-level or sub-issue under any parent)
-- create_solution / update_solution — for proposed approaches (always require parentId on the issue they address)
+- create_solution / update_solution — for proposed approaches (always require parentId pointing at the issue they address; the parent must itself be an issue, not a solution)
 
 Every node has two text fields:
 - \`summary\` — required short plaintext card snippet (trimmed to 280 chars).
@@ -36,6 +36,7 @@ Do NOT stuff a single node with:
 - alternative solutions, competing approaches, or variants → create sibling solutions with create_solution on the same parent issue
 - evaluations of related work, "state of the art" surveys, lists of prior attempts → those are not part of one node's body
 - pros/cons lists comparing approaches → each approach is its own solution
+- concrete deployments of a solution (a city that did this, a pilot, an NGO program) → those are case studies, not solutions
 
 If you catch yourself writing headings like "Alternatives", "Sub-issues", "Why X did not work", "Other approaches", stop and emit additional create_issue / create_solution calls instead. A good node reads like a focused statement of one thing; a bad one reads like an essay covering the whole problem space.`
 
@@ -116,14 +117,14 @@ const TOOLS = [
   },
   {
     name: 'create_solution',
-    description: 'Propose a solution to an existing issue. `parentId` is required and should point at the issue this solution addresses. Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
+    description: 'Propose a solution to an existing issue. `parentId` is required and must point at an **issue** (not a solution — solutions cannot be nested). Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`. To document a concrete real-world implementation of a solution, attach a case study to it instead of creating a nested solution.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'One-line statement of the proposed approach.' },
         summary: { type: 'string', description: 'Required short plaintext snippet of THIS proposed approach only — what it does, briefly. Stay strictly in scope: no alternative solutions, no surveys of prior attempts. Trimmed to 280 chars; longer content belongs in `description`.' },
         description: { type: 'string', description: 'Optional markdown long-form body for THIS approach only: mechanism, where it fits, operating profile, evidence. Do NOT survey alternative approaches or list sub-problems — emit additional `create_solution` (siblings) or `create_issue` (sub-problems) calls for those.' },
-        parentId: { type: 'integer', description: 'Id of the issue this solution addresses. Required.' },
+        parentId: { type: 'integer', description: 'Id of the issue this solution addresses. Required. Must be an issue, not a solution.' },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },

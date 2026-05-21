@@ -51,11 +51,20 @@ const { data: subIssues } = await useFetch(() => `/api/issue/${issueId.value}/is
       :issue="issue"
     />
 
+    <UiEmptyState
+      v-if="subIssues?.length === 0 && !search.trim()"
+      icon="lucide:circle-alert"
+      title="No sub-issues yet"
+      description="Break this problem into more specific facets so the community can attack them one at a time."
+      cta-label="Add a sub-issue"
+      :cta-to="`/new?parent=${issueId}&type=issue`"
+      cta-event="Empty state cta sub-issues"
+    />
     <p
-      v-if="subIssues?.length === 0"
+      v-else-if="subIssues?.length === 0"
       class="text-toned text-center py-8"
     >
-      {{ search.trim() ? 'No sub-issues match your search.' : 'No sub-issues yet.' }}
+      No sub-issues match your search.
     </p>
   </div>
 </template>

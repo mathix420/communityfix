@@ -2,9 +2,10 @@
 // and the MCP create_issue tool call into here so input sanitization,
 // counter bumps, and the moderation trigger stay in one place.
 import { eq, sql } from 'drizzle-orm'
-import { issues } from '../database/schema'
+import { issues, users } from '../database/schema'
 import type { IssueType, LocationScale, SolutionStatus } from '../database/schema'
 import { assertNotBanned } from './check-ban'
+import { isAdminEmail } from './admin'
 
 // Summary doubles as the card snippet — markdown there ships as literal
 // `**bold**` to the viewer. Strip the formatting (and clamp length) so the
@@ -57,17 +58,29 @@ export async function createIssue(authorId: string, input: CreateIssueInput) {
   await assertNotBanned(authorId)
   const db = useDB()
 
+  let parentType: IssueType | null = null
   if (input.parentId) {
     const parent = await db.query.issues.findFirst({
       where: eq(issues.id, input.parentId),
-      columns: { id: true },
+      columns: { id: true, type: true },
     })
     if (!parent) {
       throw createError({ statusCode: 404, statusMessage: 'Parent issue not found' })
     }
+    parentType = parent.type
   }
 
   const type: IssueType = input.parentId ? (input.type ?? 'issue') : 'issue'
+
+  // Solutions document an approach to an issue — nesting a solution under
+  // another solution doesn't fit that model. To document a concrete
+  // implementation of a solution, create a case study instead.
+  if (type === 'solution' && parentType === 'solution') {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Solutions cannot be nested under other solutions. Create a case study to document a concrete implementation.',
+    })
+  }
 
   const rows = await db.insert(issues).values({
     title,
@@ -106,7 +119,7 @@ export interface UpdateIssueInput {
   scale?: LocationScale | null
 }
 
-export async function updateIssue(authorId: string, input: UpdateIssueInput, expectedType?: IssueType) {
+export async function updateIssue(userId: string, input: UpdateIssueInput, expectedType?: IssueType) {
   const db = useDB()
   const existing = await db.query.issues.findFirst({ where: eq(issues.id, input.id) })
   if (!existing) throw createError({ statusCode: 404, statusMessage: `Issue ${input.id} not found` })
@@ -116,10 +129,15 @@ export async function updateIssue(authorId: string, input: UpdateIssueInput, exp
       statusMessage: `Node ${input.id} is a ${existing.type} — use update_${existing.type} instead`,
     })
   }
-  if (existing.authorId !== authorId) {
-    throw createError({ statusCode: 403, statusMessage: 'Only the author can update this issue' })
+
+  // Admins can edit anyone's content (moderation, fixups). The author's own
+  // edit still goes through the ban check; admin edits skip it.
+  const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } })
+  const isAdmin = isAdminEmail(me?.email)
+  if (existing.authorId !== userId && !isAdmin) {
+    throw createError({ statusCode: 403, statusMessage: 'Only the author or an admin can update this issue' })
   }
-  await assertNotBanned(authorId)
+  if (!isAdmin) await assertNotBanned(userId)
 
   const patch: Partial<typeof issues.$inferInsert> = { updatedAt: new Date() }
   if (input.title != null) patch.title = input.title.trim()

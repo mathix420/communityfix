@@ -3,6 +3,11 @@ const route = useRoute()
 const issueId = computed(() => route.params.issueId)
 const { track } = useUmami()
 
+// Solutions can no longer be nested under other solutions — hide the
+// "Propose a solution" affordance when the parent is itself a solution.
+const parentIssue = inject<Ref<{ type: 'issue' | 'solution' } | null>>('issue', ref(null))
+const allowPropose = computed(() => parentIssue.value?.type !== 'solution')
+
 const sort = ref('trending')
 const search = ref('')
 const sortOptions = [
@@ -42,7 +47,7 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
       />
       <AuthState v-slot="{ loggedIn: isLoggedIn }">
         <UiActionButton
-          v-if="isLoggedIn && !banStatus?.banned"
+          v-if="allowPropose && isLoggedIn && !banStatus?.banned"
           :to="`/new?parent=${issueId}&type=solution`"
           @click="track('Open solution form')"
         >
@@ -63,11 +68,27 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
       :issue="solution"
     />
 
-    <p
-      v-if="solutions?.length === 0"
-      class="text-toned text-center py-8"
-    >
-      {{ search.trim() ? 'No solutions match your search.' : 'No solutions proposed yet.' }}
-    </p>
+    <template v-if="solutions?.length === 0">
+      <p v-if="search.trim()" class="text-toned text-center py-8">
+        No solutions match your search.
+      </p>
+      <UiEmptyState
+        v-else-if="allowPropose"
+        icon="lucide:lightbulb"
+        title="No solutions proposed yet"
+        description="Got an idea that could move the needle? Share it — the community will vote and iterate on it."
+        cta-label="Propose a solution"
+        :cta-to="`/new?parent=${issueId}&type=solution`"
+        cta-event="Empty state cta solutions"
+      />
+      <UiEmptyState
+        v-else
+        icon="lucide:lightbulb-off"
+        title="Solutions can't nest under solutions"
+        description="To document a real-world implementation of this solution, add a case study from the Studies tab."
+        cta-label="Open case studies"
+        :cta-to="`/issue/${issueId}/studies`"
+      />
+    </template>
   </div>
 </template>

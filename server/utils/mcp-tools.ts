@@ -1,5 +1,5 @@
 import { and, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
-import { issues, qualificationEndorsements, qualifications, tags, users } from '../database/schema'
+import { caseStudies, issues, qualificationEndorsements, qualifications, tags, users } from '../database/schema'
 import type { IssueType } from '../database/schema'
 import { generateEmbedding } from './embeddings'
 import { isAdminEmail } from './admin'
@@ -212,6 +212,10 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     .select({ solutionsCount: count(issues.id).as('solutionsCount') })
     .from(issues)
     .where(and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), visibility ?? sql`true`)) as [{ solutionsCount: number }]
+  const [{ caseStudiesCount }] = await db
+    .select({ caseStudiesCount: count(caseStudies.id).as('caseStudiesCount') })
+    .from(caseStudies)
+    .where(eq(caseStudies.authorId, user.id)) as [{ caseStudiesCount: number }]
 
   return {
     id: user.id,
@@ -224,6 +228,7 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     endorsementsReceived: [...endorseCount.values()].reduce((sum, n) => sum + n, 0),
     issuesAuthored: Number(issuesCount),
     solutionsAuthored: Number(solutionsCount),
+    caseStudiesAuthored: Number(caseStudiesCount),
     qualifications: ownQualifications.map(q => ({
       id: q.id,
       title: q.title,

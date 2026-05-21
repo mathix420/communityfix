@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, boolean, timestamp, uuid, jsonb, primaryKey, unique, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, serial, boolean, timestamp, uuid, jsonb, primaryKey, unique, index, numeric, date } from 'drizzle-orm/pg-core'
 import { vector } from 'drizzle-orm/pg-core'
 import { geometry } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
@@ -20,6 +20,9 @@ export type LocationScale = typeof LOCATION_SCALES[number]
 
 export const SOLUTION_STATUSES = ['plan', 'in-progress', 'done'] as const
 export type SolutionStatus = typeof SOLUTION_STATUSES[number]
+
+export const CASE_STUDY_OUTCOMES = ['success', 'partial', 'failed', 'inconclusive', 'ongoing'] as const
+export type CaseStudyOutcome = typeof CASE_STUDY_OUTCOMES[number]
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -119,6 +122,7 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
   issueTags: many(issueTags),
   issueSdgs: many(issueSdgs),
   votes: many(votes),
+  caseStudies: many(caseStudies),
 }))
 
 export const votes = pgTable('votes', {
@@ -236,6 +240,44 @@ export const oauthCodes = pgTable('oauth_codes', {
   consumedAt: timestamp('consumed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+// A case study documents one real-world implementation of a solution. The
+// solution row itself stays abstract; case studies capture where it was
+// actually run, what happened, and what to learn from it.
+export const caseStudies = pgTable('case_studies', {
+  id: serial('id').primaryKey(),
+  solutionId: integer('solution_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+  description: text('description'),
+  outcome: text('outcome').notNull().$type<CaseStudyOutcome>(),
+  scale: text('scale').$type<LocationScale>(),
+  locationName: text('location_name').notNull(),
+  location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }).notNull(),
+  // Admin-set: lets us mark a case study as independently verified.
+  verified: boolean('verified').notNull().default(false),
+  implementer: text('implementer'),
+  startDate: date('start_date', { mode: 'string' }),
+  endDate: date('end_date', { mode: 'string' }),
+  metrics: jsonb('metrics').$type<Array<{ label: string, baseline?: string, result?: string, unit?: string }>>(),
+  cost: numeric('cost'),
+  currency: text('currency'),
+  fundingSource: text('funding_source'),
+  sources: jsonb('sources').$type<Array<{ url: string, title?: string }>>(),
+  // Each entry is one stand-alone lesson — matches the row shape of metrics
+  // and sources so the form/card render the same way.
+  lessonsLearned: jsonb('lessons_learned').$type<string[]>(),
+  media: jsonb('media').$type<Array<{ url: string, type?: string, caption?: string }>>(),
+  embedding: vector('embedding', { dimensions: 1536 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  index('case_studies_solution_idx').on(t.solutionId),
+])
+
+export const caseStudiesRelations = relations(caseStudies, ({ one }) => ({
+  solution: one(issues, { fields: [caseStudies.solutionId], references: [issues.id] }),
+  author: one(users, { fields: [caseStudies.authorId], references: [users.id] }),
+}))
 
 export const oauthTokens = pgTable('oauth_tokens', {
   // sha256 of the raw token — raw value never persisted.
