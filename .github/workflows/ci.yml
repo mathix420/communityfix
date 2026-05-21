@@ -29,6 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bunx vue-tsc --noEmit
@@ -44,6 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - name: Run unit tests
@@ -62,6 +68,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - name: Build Worker bundle
@@ -87,6 +96,9 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
@@ -126,6 +138,9 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
