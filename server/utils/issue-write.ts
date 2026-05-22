@@ -190,6 +190,14 @@ export async function updateIssue(userId: string, input: UpdateIssueInput, expec
     patch.rejectedAt = null
   }
 
+  // Rejection decremented the parent counter; reversing the rejection must re-bump it.
+  const rejectedToPending = contentChanged && existing.status === 'rejected' && existing.parentId
   const rows = await db.update(issues).set(patch).where(eq(issues.id, input.id)).returning()
+  if (rejectedToPending) {
+    const counter = existing.type === 'solution'
+      ? { solutionCount: sql`${issues.solutionCount} + 1` }
+      : { subIssueCount: sql`${issues.subIssueCount} + 1` }
+    await db.update(issues).set(counter).where(eq(issues.id, existing.parentId!))
+  }
   return { issue: rows[0]!, contentChanged }
 }
