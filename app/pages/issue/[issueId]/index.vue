@@ -52,9 +52,6 @@ const topSubIssues = computed(() => (subIssuesPreview.value ?? []).slice(0, PREV
 const topSolutions = computed(() => (solutionsPreview.value ?? []).slice(0, PREVIEW_LIMIT))
 const topCaseStudies = computed(() => (caseStudiesPreview.value ?? []).slice(0, PREVIEW_LIMIT))
 
-// Use the fetched list length — those endpoints already filter to status='approved',
-// so the count reflects only published items. The raw `solutionCount` /
-// `subIssueCount` columns include pending rows and would over-count here.
 const subIssueTotal = computed(() => subIssuesPreview.value?.length ?? 0)
 const solutionTotal = computed(() => solutionsPreview.value?.length ?? 0)
 const caseStudyTotal = computed(() => caseStudiesPreview.value?.length ?? 0)
