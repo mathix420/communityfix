@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql } from 'drizzle-orm'
+import { eq, ne, and, desc, asc, sql } from 'drizzle-orm'
 import { issues } from '../../../database/schema'
 
 export default defineEventHandler(async (event) => {
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
   const conditions = [
     eq(issues.parentId, parseInt(id, 10)),
-    eq(issues.status, 'approved'),
+    ne(issues.status, 'rejected'),
     eq(issues.type, 'issue'),
   ]
 

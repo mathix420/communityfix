@@ -250,7 +250,7 @@ definePageMeta({
       >
         <div class="flex items-center gap-4 pb-4 border-b border-gray-100">
           <img
-            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${name || user?.email}`"
+            :src="`https://api.dicebear.com/9.x/glass/svg?seed=${user?.id || 'anonymous'}`"
             :alt="`${name || 'avatar'}`"
             class="size-16 rounded-full"
           >

@@ -12,7 +12,7 @@ defineProps<{
     class="inline-flex items-center gap-2 px-2.5 py-1.5 text-sm rounded-md shrink-0 hover:bg-gray-100 transition-colors"
   >
     <img
-      :src="`https://api.dicebear.com/9.x/glass/svg?seed=${name}`"
+      :src="`https://api.dicebear.com/9.x/glass/svg?seed=${authorId}`"
       alt="Author Avatar"
       class="size-5 rounded-full shrink-0"
     >

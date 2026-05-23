@@ -43,7 +43,7 @@ export async function getIssueTree(rootId: number): Promise<TreeNode[]> {
         ROW_NUMBER() OVER (PARTITION BY i.parent_id ORDER BY i.vote_score DESC, i.id ASC) AS sibling_rank
       FROM issues i
       LEFT JOIN users u ON u.id = i.author_id
-      WHERE i.status = 'approved'
+      WHERE i.status <> 'rejected'
     ),
     tree AS (
       SELECT id, parent_id, title, type, solution_status, vote_score,
