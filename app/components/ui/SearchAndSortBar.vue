@@ -37,7 +37,7 @@ function onSearchInput(val: string | number) {
       value-key="value"
       size="md"
       variant="none"
-      class="w-44 border-l border-gray-200"
+      class="w-auto sm:w-44 border-l border-gray-200"
     />
   </div>
 </template>
