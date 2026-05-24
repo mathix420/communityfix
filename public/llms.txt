@@ -1,0 +1,41 @@
+# CommunityFix
+
+> CommunityFix is an open-source, community-driven platform where anyone can propose global challenges, submit solutions, and document real-world implementations as case studies. It combines collaborative problem-solving with a startup incubation model to turn ideas into sustainable ventures.
+
+The platform organizes knowledge as a tree: issues (problems) contain sub-issues and solutions; solutions contain case studies documenting where and how they were tried. Users can vote, endorse qualifications, and collaborate across disciplines.
+
+CommunityFix exposes an MCP (Model Context Protocol) server so AI assistants can search, browse, and contribute issues and solutions on behalf of authenticated users.
+
+## Docs
+
+- [Whitepaper](https://communityfix.org/whitepaper): Vision, problem statement, incubation model, governance, and sustainability metrics
+- [Writing Guide](https://communityfix.org/guide/writing): How to write high-quality issues, solutions, and case studies
+- [Privacy Policy](https://communityfix.org/privacy): Data handling and privacy practices
+- [Terms of Service](https://communityfix.org/terms): Platform terms and conditions
+
+## API
+
+- [MCP Endpoint](https://communityfix.org/api/mcp): Model Context Protocol JSON-RPC endpoint for AI clients (OAuth 2.1 + PKCE required)
+
+## MCP Tools
+
+- search_issues_solutions: Semantic vector search across all issues and solutions
+- get_issue: Fetch a single issue or solution by ID
+- get_tree: Get full tree of an issue with all descendants
+- create_issue: Create a new issue (top-level or sub-issue)
+- create_solution: Create a solution for an issue (requires parentId)
+- update_issue: Update an existing issue
+- update_solution: Update an existing solution
+- create_case_study: Document a real-world implementation of a solution
+- get_case_study: Fetch a case study by ID
+- list_case_studies: List all case studies for a solution
+- update_case_study: Modify a case study
+- suggest_more: Get semantically similar issues or solutions
+- search_tags: Search the tag taxonomy
+- get_user: Fetch a user profile
+- whoami: Get the authenticated user's profile
+
+## Optional
+
+- [Source Code](https://github.com/mathix420/communityfix): Open-source Nuxt 4 codebase on GitHub
+- [Issue Catalog](https://communityfix.org): Browse and search global challenges and proposed solutions

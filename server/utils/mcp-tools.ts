@@ -1,7 +1,7 @@
 import { and, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { caseStudies, issues, qualificationEndorsements, qualifications, tags, users } from '../database/schema'
 import type { IssueType } from '../database/schema'
-import { generateEmbedding } from './embeddings'
+import { generateEmbedding, findSimilar } from './embeddings'
 import { isAdminEmail } from './admin'
 import { issueWithRelations, transformIssue } from './transform-issue'
 import { createIssue, updateIssue } from './issue-write'
@@ -31,20 +31,16 @@ export async function searchByQuery(input: {
     return { status: 'embeddings_unavailable' as const, results: [] }
   }
 
-  // Two-step: raw SQL ranks ids, then the typed query hydrates rows so the
-  // response goes through the canonical transformIssue.
-  const embeddingStr = `[${embedding.join(',')}]`
   const typeFilter = (input.type && input.type !== 'any') ? sql` AND type = ${input.type}` : sql``
   const db = useDB()
-  const ranked = await db.execute<{ id: number, similarity: number }>(
-    sql`SELECT id, 1 - (embedding <=> ${embeddingStr}::vector) AS similarity
-        FROM issues
-        WHERE status = 'approved' AND embedding IS NOT NULL${typeFilter}
-        ORDER BY embedding <=> ${embeddingStr}::vector
-        LIMIT ${limit}`,
-  )
-  const rankedList = ranked as unknown as Array<{ id: number, similarity: number }>
-  const above = rankedList.filter(r => r.similarity > SEARCH_SIMILARITY_THRESHOLD)
+  const above = await findSimilar<{ id: number, similarity: number }>({
+    table: 'issues',
+    columns: 'id',
+    embedding,
+    where: sql`status = 'approved'${typeFilter}`,
+    limit,
+    threshold: SEARCH_SIMILARITY_THRESHOLD,
+  })
   if (above.length === 0) return { status: 'ok' as const, results: [] }
 
   const ids = above.map(r => r.id)
@@ -180,15 +176,13 @@ export async function suggestMore(seedId: number, limit = SUGGEST_LIMIT) {
   if (!seed) return { status: 'not_found' as const, results: [] }
   if (!seed.embedding) return { status: 'no_embedding' as const, results: [] }
 
-  const embeddingStr = `[${(seed.embedding as number[]).join(',')}]`
-  const ranked = await db.execute<{ id: number, similarity: number }>(
-    sql`SELECT id, 1 - (embedding <=> ${embeddingStr}::vector) AS similarity
-        FROM issues
-        WHERE status = 'approved' AND embedding IS NOT NULL AND id <> ${seedId}
-        ORDER BY embedding <=> ${embeddingStr}::vector
-        LIMIT ${Math.min(Math.max(limit, 1), 25)}`,
-  )
-  const rankedList = ranked as unknown as Array<{ id: number, similarity: number }>
+  const rankedList = await findSimilar<{ id: number, similarity: number }>({
+    table: 'issues',
+    columns: 'id',
+    embedding: seed.embedding as number[],
+    where: sql`status = 'approved' AND id <> ${seedId}`,
+    limit,
+  })
   if (rankedList.length === 0) {
     return { status: 'ok' as const, seed: transformIssue(seed), results: [] }
   }
@@ -341,16 +335,13 @@ export async function searchTags(input: { query?: string, limit?: number }) {
     }
   }
 
-  const embeddingStr = `[${embedding.join(',')}]`
-  const ranked = await db.execute<{ id: number, similarity: number }>(
-    sql`SELECT id, 1 - (embedding <=> ${embeddingStr}::vector) AS similarity
-        FROM tags
-        WHERE embedding IS NOT NULL
-        ORDER BY embedding <=> ${embeddingStr}::vector
-        LIMIT ${limit}`,
-  )
-  const rankedList = ranked as unknown as Array<{ id: number, similarity: number }>
-  const above = rankedList.filter(r => r.similarity > TAG_SIMILARITY_THRESHOLD)
+  const above = await findSimilar<{ id: number, similarity: number }>({
+    table: 'tags',
+    columns: 'id',
+    embedding,
+    limit,
+    threshold: TAG_SIMILARITY_THRESHOLD,
+  })
   if (above.length === 0) return { status: 'ok' as const, query: trimmed, results: [] }
 
   const ids = above.map(r => r.id)
