@@ -1,8 +1,6 @@
 import { sql } from 'drizzle-orm'
-import { generateEmbedding } from '../../utils/embeddings'
+import { generateEmbedding, findSimilar } from '../../utils/embeddings'
 
-// Cosine-similarity threshold below which matches are too weak to surface.
-// 0.3 ≈ tangentially related; 0.5+ ≈ near-duplicate for `text-embedding-3-small`.
 const SIMILARITY_THRESHOLD = 0.3
 
 interface SimilarMatch {
@@ -31,34 +29,26 @@ export default defineEventHandler(async (event): Promise<SimilarResponse> => {
     embedding = await generateEmbedding(`${title}\n${summary}`)
   }
   catch (err) {
-    // Surface unavailability so the frontend can tell the user the
-    // similarity check is offline rather than silently claiming "no
-    // duplicates" — that would defeat the purpose of dedup.
     console.error('[similar] Embedding generation failed:', err)
     return { status: 'unavailable', results: [] }
   }
 
-  const db = useDB()
-  const embeddingStr = `[${embedding.join(',')}]`
+  const rows = await findSimilar<SimilarMatch>({
+    table: 'issues',
+    columns: 'id, title, summary',
+    embedding,
+    where: sql`status = 'approved' AND parent_id IS NULL`,
+    limit: 5,
+    threshold: SIMILARITY_THRESHOLD,
+  })
 
-  const results = await db.execute<{ id: number, title: string, summary: string, similarity: number }>(
-    sql`SELECT id, title, summary, 1 - (embedding <=> ${embeddingStr}::vector) as similarity
-        FROM issues
-        WHERE status = 'approved'
-          AND embedding IS NOT NULL
-          AND parent_id IS NULL
-        ORDER BY embedding <=> ${embeddingStr}::vector
-        LIMIT 5`,
-  )
-
-  const matches: SimilarMatch[] = (results as Array<{ id: number, title: string, summary: string, similarity: number }>)
-    .filter(r => r.similarity > SIMILARITY_THRESHOLD)
-    .map(r => ({
+  return {
+    status: 'ok',
+    results: rows.map(r => ({
       id: r.id,
       title: r.title,
       summary: r.summary,
       similarity: Math.round(r.similarity * 100),
-    }))
-
-  return { status: 'ok', results: matches }
+    })),
+  }
 })

@@ -44,6 +44,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    anthropicApiKey: '',
     openaiApiKey: '',
     databaseUrl: '',
     // Comma-separated list of emails granted admin powers (e.g. endorsing
