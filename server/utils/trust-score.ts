@@ -1,6 +1,7 @@
 import { eq, sql, and, ne } from 'drizzle-orm'
 import { users, issues, votes, qualifications, qualificationEndorsements } from '../database/schema'
 import { isAdminEmail } from './admin'
+import { createAuditLog } from './audit-log'
 
 export interface TrustScoreFactors {
   isAdmin: boolean
@@ -141,11 +142,27 @@ export function trustScoreToVoteWeight(trustScore: number): number {
 
 export async function updateUserTrustScore(userId: string): Promise<number> {
   const db = useDB()
+
+  const current = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { trustScore: true },
+  })
+  const oldScore = current?.trustScore ?? 0
+
   const score = await computeUserTrustScore(userId)
 
   await db.update(users)
     .set({ trustScore: score, trustScoreUpdatedAt: new Date() })
     .where(eq(users.id, userId))
+
+  if (score !== oldScore) {
+    await createAuditLog({
+      type: 'trust_score',
+      action: 'score_update',
+      userId,
+      details: { oldScore, newScore: score },
+    })
+  }
 
   return score
 }

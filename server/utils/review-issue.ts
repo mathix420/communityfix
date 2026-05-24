@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm'
 import { issues, tags, sdgs, issueTags, issueSdgs } from '../database/schema'
 import { chatJson } from './ai'
 import { generateEmbedding, findSimilar } from './embeddings'
+import { createAuditLog } from './audit-log'
 
 interface ModerationResult {
   approved: boolean
@@ -154,6 +155,20 @@ If the submission is very similar to an existing issue (similarity above 90%), s
         isSpam: moderation.isSpam ?? false,
       })
       .where(eq(issues.id, issueId))
+
+    await createAuditLog({
+      type: 'moderation',
+      action: moderation.isSpam ? 'flag_spam' : (moderation.duplicateOfId ? 'flag_duplicate' : 'reject'),
+      issueId,
+      userId: issue.authorId,
+      reason: moderation.reason,
+      details: {
+        duplicateOfId: moderation.duplicateOfId ?? null,
+        isSpam: moderation.isSpam,
+        similarIssues: similarIssues.slice(0, 3).map(s => ({ id: s.id, similarity: s.similarity })),
+      },
+    })
+
     if (issue.authorId) {
       await checkAndApplyBan(issue.authorId)
       await updateUserTrustScore(issue.authorId)
@@ -194,7 +209,20 @@ If the submission is very similar to an existing issue (similarity above 90%), s
     }
   })
 
+  await createAuditLog({
+    type: 'moderation',
+    action: 'approve',
+    issueId,
+    userId: issue.authorId,
+    reason: moderation.reason,
+    details: { tags: validTagIds, sdgs: validSdgIds, newTags: tagResult.newTagNames },
+  })
+
   if (issue.authorId) {
     await updateUserTrustScore(issue.authorId)
   }
+
+  runTask('review:structure', { payload: { issueId } }).catch((err) => {
+    console.error(`[review:issue] Failed to queue structural review for issue ${issueId}:`, err)
+  })
 }

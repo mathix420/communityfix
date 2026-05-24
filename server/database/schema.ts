@@ -24,6 +24,22 @@ export type SolutionStatus = typeof SOLUTION_STATUSES[number]
 export const CASE_STUDY_OUTCOMES = ['success', 'partial', 'failed', 'inconclusive', 'ongoing'] as const
 export type CaseStudyOutcome = typeof CASE_STUDY_OUTCOMES[number]
 
+export const AUDIT_LOG_TYPES = ['moderation', 'structure', 'trust_score', 'auto_ban', 'appeal', 'admin_override'] as const
+export type AuditLogType = typeof AUDIT_LOG_TYPES[number]
+
+export const AUDIT_LOG_ACTIONS = [
+  'approve', 'reject', 'flag_spam', 'flag_duplicate',
+  'reparent', 'convert_to_case_study',
+  'ban', 'unban',
+  'score_update',
+  'appeal_submitted', 'appeal_approved', 'appeal_denied',
+  'override_approve', 'override_reject',
+] as const
+export type AuditLogAction = typeof AUDIT_LOG_ACTIONS[number]
+
+export const AUDIT_LOG_STATUSES = ['auto_resolved', 'needs_review', 'reviewed', 'overridden'] as const
+export type AuditLogStatus = typeof AUDIT_LOG_STATUSES[number]
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
@@ -281,6 +297,33 @@ export const caseStudies = pgTable('case_studies', {
 export const caseStudiesRelations = relations(caseStudies, ({ one }) => ({
   solution: one(issues, { fields: [caseStudies.solutionId], references: [issues.id] }),
   author: one(users, { fields: [caseStudies.authorId], references: [users.id] }),
+}))
+
+export const auditLogs = pgTable('audit_logs', {
+  id: serial('id').primaryKey(),
+  type: text('type').notNull().$type<AuditLogType>(),
+  action: text('action').notNull().$type<AuditLogAction>(),
+  status: text('status').notNull().default('auto_resolved').$type<AuditLogStatus>(),
+  issueId: integer('issue_id').references(() => issues.id, { onDelete: 'set null' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  reason: text('reason'),
+  details: jsonb('details').$type<Record<string, unknown>>(),
+  reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewNote: text('review_note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  index('audit_logs_type_idx').on(t.type),
+  index('audit_logs_status_idx').on(t.status),
+  index('audit_logs_issue_id_idx').on(t.issueId),
+  index('audit_logs_user_id_idx').on(t.userId),
+  index('audit_logs_created_at_idx').on(t.createdAt),
+])
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  issue: one(issues, { fields: [auditLogs.issueId], references: [issues.id] }),
+  user: one(users, { fields: [auditLogs.userId], references: [users.id] }),
+  reviewer: one(users, { fields: [auditLogs.reviewedBy], references: [users.id], relationName: 'auditReviewer' }),
 }))
 
 export const oauthTokens = pgTable('oauth_tokens', {

@@ -1,5 +1,6 @@
 import { eq, desc } from 'drizzle-orm'
 import { issues, users } from '../database/schema'
+import { createAuditLog } from './audit-log'
 
 // Number of rejected posts (out of the most recent 10) that triggers a ban.
 export const BAN_REJECTION_THRESHOLD = 4
@@ -41,14 +42,24 @@ export async function checkAndApplyBan(userId: string) {
   const rejectedCount = recentPosts.filter(p => p.status === 'rejected').length
 
   if (shouldBan(rejectedCount)) {
+    const bannedUntil = computeBanExpiry()
     await db.update(users)
       .set({
-        bannedUntil: computeBanExpiry(),
+        bannedUntil,
         banReason: `Automatically banned: ${rejectedCount} of your last ${recentPosts.length} posts were rejected by moderation.`,
         banAppealedAt: null,
         banAppealStatus: null,
       })
       .where(eq(users.id, userId))
+
+    await createAuditLog({
+      type: 'auto_ban',
+      action: 'ban',
+      status: 'needs_review',
+      userId,
+      reason: `Automatically banned: ${rejectedCount} of last ${recentPosts.length} posts rejected`,
+      details: { rejectedCount, lookbackWindow: recentPosts.length, bannedUntil: bannedUntil.toISOString() },
+    })
   }
 }
 
