@@ -1,12 +1,14 @@
 import { eq, sql } from 'drizzle-orm'
 import { issues, tags, sdgs, issueTags, issueSdgs } from '../database/schema'
-import { chatJson } from './openai'
-import { generateEmbedding } from './embeddings'
+import { chatJson } from './ai'
+import { generateEmbedding, findSimilar } from './embeddings'
+import { createAuditLog } from './audit-log'
 
 interface ModerationResult {
   approved: boolean
   reason: string
   isSpam: boolean
+  duplicateOfId?: number | null
 }
 
 interface TagResult {
@@ -17,6 +19,8 @@ interface TagResult {
 interface SdgResult {
   sdgIds: number[]
 }
+
+const DUPLICATE_THRESHOLD = 0.92
 
 export async function reviewIssue(issueId: number) {
   const db = useDB()
@@ -31,16 +35,41 @@ export async function reviewIssue(issueId: number) {
 
   if (issue.status !== 'pending') return
 
-  const [allTags, allSdgs] = await Promise.all([
-    db.select().from(tags),
-    db.select().from(sdgs),
-  ])
-
   const issueText = [
     `Title: ${issue.title}`,
     `Summary: ${issue.summary}`,
     issue.description ? `Description: ${issue.description}` : '',
   ].filter(Boolean).join('\n')
+
+  // Generate embedding early so we can use it for both duplicate detection and storage
+  let embedding: number[] | null = null
+  try {
+    embedding = await generateEmbedding(`${issue.title}\n${issue.summary}`)
+  }
+  catch (err) {
+    console.error(`[review-issue] Embedding generation failed for issue ${issueId}:`, err)
+  }
+
+  let similarIssues: Array<{ id: number, title: string, summary: string, similarity: number }> = []
+  if (embedding) {
+    similarIssues = await findSimilar({
+      table: 'issues',
+      columns: 'id, title, summary',
+      embedding,
+      where: sql`status = 'approved' AND id <> ${issueId} AND type = ${issue.type}${issue.parentId ? sql` AND parent_id = ${issue.parentId}` : sql``}`,
+      limit: 5,
+      threshold: 0.75,
+    })
+  }
+
+  const [allTags, allSdgs] = await Promise.all([
+    db.select().from(tags),
+    db.select().from(sdgs),
+  ])
+
+  const duplicateContext = similarIssues.length > 0
+    ? `\n\nExisting similar issues (high similarity may indicate a duplicate):\n${similarIssues.map(s => `- [id:${s.id}, similarity:${(s.similarity * 100).toFixed(0)}%] "${s.title}" — ${s.summary}`).join('\n')}`
+    : ''
 
   let moderation: ModerationResult
   let tagResult: TagResult
@@ -49,18 +78,48 @@ export async function reviewIssue(issueId: number) {
   try {
     [moderation, tagResult, sdgResult] = await Promise.all([
       chatJson<ModerationResult>({
-        system: 'You are a content moderator for a community problem-solving platform. Evaluate if this submission is a legitimate community issue. Reject spam, gibberish, hate speech, or off-topic content. Set isSpam to true for spam, gibberish, or bot content; false for off-topic or low-quality content that was submitted in good faith. Respond with JSON: { "approved": boolean, "reason": string, "isSpam": boolean }',
-        user: issueText,
+        system: `You are a content moderator for a community problem-solving platform. Evaluate if this submission is a legitimate community issue. Reject spam, gibberish, hate speech, or off-topic content. Set isSpam to true for spam, gibberish, or bot content; false for off-topic or low-quality content that was submitted in good faith.
+
+If the submission is very similar to an existing issue (similarity above 90%), set duplicateOfId to that issue's id and reject it as a duplicate — unless it adds a meaningfully different angle or scope.`,
+        user: issueText + duplicateContext,
+        schema: {
+          type: 'object',
+          properties: {
+            approved: { type: 'boolean' },
+            reason: { type: 'string' },
+            isSpam: { type: 'boolean' },
+            duplicateOfId: { type: ['integer', 'null'] },
+          },
+          required: ['approved', 'reason', 'isSpam', 'duplicateOfId'],
+          additionalProperties: false,
+        },
         context: `moderation for issue ${issueId}`,
       }),
       chatJson<TagResult>({
-        system: `You classify community issues into relevant tags. Pick 1-3 tags from the provided list that best describe this issue. If no existing tag fits, suggest one new tag name. Respond with JSON: { "existingTagIds": number[], "newTagNames": string[] }\n\nAvailable tags:\n${allTags.map(t => `- id:${t.id} "${t.name}"`).join('\n')}`,
+        system: `You classify community issues into relevant tags. Pick 1-3 tags from the provided list that best describe this issue. If no existing tag fits, suggest one new tag name.\n\nAvailable tags:\n${allTags.map(t => `- id:${t.id} "${t.name}"`).join('\n')}`,
         user: issueText,
+        schema: {
+          type: 'object',
+          properties: {
+            existingTagIds: { type: 'array', items: { type: 'integer' } },
+            newTagNames: { type: 'array', items: { type: 'string' } },
+          },
+          required: ['existingTagIds', 'newTagNames'],
+          additionalProperties: false,
+        },
         context: `tag classification for issue ${issueId}`,
       }),
       chatJson<SdgResult>({
-        system: `You map community issues to relevant UN Sustainable Development Goals. Pick 1-3 SDGs that this issue relates to. Respond with JSON: { "sdgIds": number[] }\n\nAvailable SDGs:\n${allSdgs.map(s => `- id:${s.id} "${s.name}"`).join('\n')}`,
+        system: `You map community issues to relevant UN Sustainable Development Goals. Pick 1-3 SDGs that this issue relates to.\n\nAvailable SDGs:\n${allSdgs.map(s => `- id:${s.id} "${s.name}"`).join('\n')}`,
         user: issueText,
+        schema: {
+          type: 'object',
+          properties: {
+            sdgIds: { type: 'array', items: { type: 'integer' } },
+          },
+          required: ['sdgIds'],
+          additionalProperties: false,
+        },
         context: `SDG mapping for issue ${issueId}`,
       }),
     ])
@@ -68,6 +127,15 @@ export async function reviewIssue(issueId: number) {
   catch (err) {
     console.error(`[review-issue] AI review failed for issue ${issueId}:`, err)
     throw err
+  }
+
+  // Auto-reject obvious duplicates even if the LLM approved — the vector
+  // similarity is a hard signal that doesn't need LLM judgement.
+  const nearDuplicate = similarIssues.find(s => s.similarity >= DUPLICATE_THRESHOLD)
+  if (nearDuplicate && moderation.approved) {
+    moderation.approved = false
+    moderation.reason = `Near-duplicate of existing issue #${nearDuplicate.id} (${(nearDuplicate.similarity * 100).toFixed(0)}% similarity)`
+    moderation.duplicateOfId = nearDuplicate.id
   }
 
   if (!moderation.approved) {
@@ -87,6 +155,20 @@ export async function reviewIssue(issueId: number) {
         isSpam: moderation.isSpam ?? false,
       })
       .where(eq(issues.id, issueId))
+
+    await createAuditLog({
+      type: 'moderation',
+      action: moderation.isSpam ? 'flag_spam' : (moderation.duplicateOfId ? 'flag_duplicate' : 'reject'),
+      issueId,
+      userId: issue.authorId,
+      reason: moderation.reason,
+      details: {
+        duplicateOfId: moderation.duplicateOfId ?? null,
+        isSpam: moderation.isSpam,
+        similarIssues: similarIssues.slice(0, 3).map(s => ({ id: s.id, similarity: s.similarity })),
+      },
+    })
+
     if (issue.authorId) {
       await checkAndApplyBan(issue.authorId)
       await updateUserTrustScore(issue.authorId)
@@ -107,9 +189,6 @@ export async function reviewIssue(issueId: number) {
     }
   }
 
-  // Dedupe — the LLM occasionally returns the same id twice, and a duplicated
-  // (issueId, tagId) pair would violate the issue_tags primary key and roll
-  // back the entire approval transaction below.
   const allTagIds = [...(tagResult.existingTagIds ?? []), ...newTagIds]
   const validTagIds = Array.from(new Set(
     allTagIds.filter(id => allTags.some(t => t.id === id) || newTagIds.includes(id)),
@@ -117,17 +196,6 @@ export async function reviewIssue(issueId: number) {
   const validSdgIds = Array.from(new Set(
     (sdgResult.sdgIds ?? []).filter(id => allSdgs.some(s => s.id === id)),
   ))
-
-  // Generate embedding for approved issues
-  let embedding: number[] | null = null
-  try {
-    const embeddingText = `${issue.title}\n${issue.summary}`
-    embedding = await generateEmbedding(embeddingText)
-  }
-  catch (err) {
-    console.error(`[review-issue] Embedding generation failed for issue ${issueId}:`, err)
-    // Non-fatal — issue still gets approved without embedding
-  }
 
   await db.transaction(async (tx) => {
     await tx.update(issues)
@@ -141,7 +209,20 @@ export async function reviewIssue(issueId: number) {
     }
   })
 
+  await createAuditLog({
+    type: 'moderation',
+    action: 'approve',
+    issueId,
+    userId: issue.authorId,
+    reason: moderation.reason,
+    details: { tags: validTagIds, sdgs: validSdgIds, newTags: tagResult.newTagNames },
+  })
+
   if (issue.authorId) {
     await updateUserTrustScore(issue.authorId)
   }
+
+  runTask('review:structure', { payload: { issueId } }).catch((err) => {
+    console.error(`[review:issue] Failed to queue structural review for issue ${issueId}:`, err)
+  })
 }

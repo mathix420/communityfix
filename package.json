@@ -20,6 +20,7 @@
     "test:watch": "doppler run -- vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@nuxt/content": "3.12.0",
     "@nuxt/eslint": "1.15.1",
     "@nuxt/fonts": "0.14.0",
