@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import { issues, users, votes } from '../../../database/schema'
+import { cfWaitUntil } from '../../../utils/wait-until'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -58,13 +59,11 @@ export default defineEventHandler(async (event) => {
     columns: { voteScore: true, authorId: true },
   })
 
-  // Recalculate issue author's trust score. On Workers, register with
-  // waitUntil so the recompute survives past the response being returned.
   if (updated?.authorId) {
     const authorId = updated.authorId
     const trustPromise = updateUserTrustScore(authorId).catch(err =>
       console.error(`[vote.post] Trust score update failed for author ${authorId}:`, err))
-    ;(event.context as any).cloudflare?.context?.waitUntil?.(trustPromise)
+    cfWaitUntil(trustPromise)
   }
 
   return { score: updated?.voteScore ?? 0, userVote: body.value }

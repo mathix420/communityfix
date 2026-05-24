@@ -9,6 +9,7 @@ import type { CreateIssueInput, UpdateIssueInput } from './issue-write'
 import { createCaseStudy, transformCaseStudy, updateCaseStudy } from './case-study-write'
 import type { CreateCaseStudyInput, UpdateCaseStudyInput } from './case-study-write'
 import { getIssueTree } from './issue-tree'
+import { cfWaitUntil } from './wait-until'
 
 const SEARCH_SIMILARITY_THRESHOLD = 0.25
 const SUGGEST_LIMIT = 8
@@ -79,8 +80,9 @@ export async function getTree(rootId: number) {
 
 async function createNode(userId: string, input: CreateIssueInput, label: 'create_issue' | 'create_solution') {
   const created = await createIssue(userId, input)
-  runTask('review:issue', { payload: { issueId: created.id } })
+  const reviewPromise = runTask('review:issue', { payload: { issueId: created.id } })
     .catch(err => console.error(`[mcp.${label}] review failed for ${created.id}:`, err))
+  cfWaitUntil(reviewPromise)
   const hydrated = await useDB().query.issues.findFirst({
     where: eq(issues.id, created.id),
     with: issueWithRelations,
@@ -102,8 +104,9 @@ export async function createSolutionAs(userId: string, input: Omit<CreateIssueIn
 async function updateNode(userId: string, input: UpdateIssueInput, expectedType: IssueType, label: 'update_issue' | 'update_solution') {
   const { issue: updated, contentChanged } = await updateIssue(userId, input, expectedType)
   if (contentChanged) {
-    runTask('review:issue', { payload: { issueId: updated.id } })
+    const reviewPromise = runTask('review:issue', { payload: { issueId: updated.id } })
       .catch(err => console.error(`[mcp.${label}] review failed for ${updated.id}:`, err))
+    cfWaitUntil(reviewPromise)
   }
   const hydrated = await useDB().query.issues.findFirst({
     where: eq(issues.id, updated.id),
