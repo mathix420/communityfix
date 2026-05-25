@@ -91,6 +91,7 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
   const rows = await db.insert(caseStudies).values({
     solutionId: input.solutionId,
     authorId,
+    status: 'pending',
     outcome: input.outcome,
     locationName: input.locationName.trim(),
     location: { x: input.longitude, y: input.latitude },
@@ -109,7 +110,12 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
     ...(embedding ? { embedding } : {}),
   }).returning()
 
-  return rows[0]!
+  const created = rows[0]!
+  runTask('review:case-study', { payload: { caseStudyId: created.id } }).catch((err) => {
+    console.error(`[case-study:create] Failed to queue moderation for case study ${created.id}:`, err)
+  })
+
+  return created
 }
 
 export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInput) {
@@ -155,6 +161,10 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
     || patch.outcome !== undefined
     || patch.lessonsLearned !== undefined
   if (textChanged) {
+    patch.status = 'pending'
+    patch.rejectionReason = null
+    patch.rejectedAt = null
+    patch.isSpam = false
     try {
       const merged: Partial<CreateCaseStudyInput> = {
         outcome: (patch.outcome ?? existing.outcome) as CaseStudyOutcome,
@@ -171,6 +181,11 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
   }
 
   const rows = await db.update(caseStudies).set(patch).where(eq(caseStudies.id, input.id)).returning()
+  if (textChanged) {
+    runTask('review:case-study', { payload: { caseStudyId: input.id } }).catch((err) => {
+      console.error(`[case-study:update] Failed to queue moderation for case study ${input.id}:`, err)
+    })
+  }
   return rows[0]!
 }
 
@@ -183,6 +198,8 @@ export function transformCaseStudy(row: typeof caseStudies.$inferSelect & { auth
     solutionId: row.solutionId,
     authorId: row.authorId,
     author: row.author?.name ?? 'Anonymous',
+    status: row.status,
+    rejectionReason: row.rejectionReason ?? null,
     outcome: row.outcome,
     scale: row.scale,
     locationName: row.locationName,
