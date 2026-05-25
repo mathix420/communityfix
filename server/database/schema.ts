@@ -34,6 +34,7 @@ export const AUDIT_LOG_ACTIONS = [
   'score_update',
   'appeal_submitted', 'appeal_approved', 'appeal_denied',
   'override_approve', 'override_reject',
+  'request_info', 'flag_uncertain',
 ] as const
 export type AuditLogAction = typeof AUDIT_LOG_ACTIONS[number]
 
@@ -128,6 +129,10 @@ export const issues = pgTable('issues', {
   solutionStatus: text('solution_status').$type<SolutionStatus>(),
   // External resources — only surfaced for solutions.
   links: jsonb('links').$type<Array<{ url: string, title?: string }>>(),
+  infoRequest: text('info_request'),
+  infoRequestedAt: timestamp('info_requested_at', { withTimezone: true }),
+  infoResponse: text('info_response'),
+  infoRespondedAt: timestamp('info_responded_at', { withTimezone: true }),
   embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

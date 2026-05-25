@@ -47,6 +47,8 @@ const actionLabel: Record<string, string> = {
   reject: 'Rejected',
   flag_spam: 'Spam',
   flag_duplicate: 'Duplicate',
+  flag_uncertain: 'Uncertain',
+  request_info: 'Info requested',
   reparent: 'Reparented',
   convert_to_case_study: 'Case study',
   ban: 'Banned',
@@ -78,6 +80,8 @@ const actionVariant: Record<string, 'default' | 'success' | 'error' | 'warning' 
   reject: 'error',
   flag_spam: 'error',
   flag_duplicate: 'warning',
+  flag_uncertain: 'warning',
+  request_info: 'primary',
   ban: 'error',
   unban: 'success',
   override_approve: 'success',
@@ -115,6 +119,8 @@ function summaryLine(log: any): string {
     case 'appeal_denied': return `${issue} appeal denied`
     case 'override_approve': return `${issue} force-approved (was ${log.details?.previousStatus})`
     case 'override_reject': return `${issue} force-rejected (was ${log.details?.previousStatus})`
+    case 'flag_uncertain': return `${issue} uncertain (${Math.round((log.details?.confidence as number ?? 0) * 100)}% confidence) — ${truncate(log.reason, 60)}`
+    case 'request_info': return `${issue} info requested — ${truncate(log.reason, 60)}`
     default: return truncate(log.reason || '', 80)
   }
 }
@@ -248,6 +254,22 @@ watch([typeFilter, statusFilter], () => { page.value = 1 })
           <div v-if="expandedLogId === log.id" class="bg-gray-50/80 px-4 pb-4 pt-2 space-y-3 text-sm border-b border-gray-200">
             <!-- Reason -->
             <p v-if="log.reason" class="text-gray-600 leading-relaxed">{{ log.reason }}</p>
+
+            <!-- Confidence + AI questions -->
+            <div v-if="(log.details as any)?.confidence != null" class="flex items-center gap-2 text-xs">
+              <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium" :class="(log.details as any).confidence >= 0.7 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'">
+                <UIcon name="i-lucide-gauge" class="size-3" /> {{ Math.round((log.details as any).confidence * 100) }}% confidence
+              </span>
+              <span v-if="(log.details as any).aiDecision" class="text-toned">
+                AI leaned: {{ (log.details as any).aiDecision }}
+              </span>
+            </div>
+            <div v-if="(log.details as any)?.questions?.length" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs">
+              <p class="font-medium text-yellow-800 mb-1">AI questions for the author:</p>
+              <ul class="list-disc list-inside text-yellow-700 space-y-0.5">
+                <li v-for="(q, i) in (log.details as any).questions" :key="i">{{ q }}</li>
+              </ul>
+            </div>
 
             <!-- Metadata chips -->
             <div v-if="log.details" class="flex flex-wrap gap-1.5">

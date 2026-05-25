@@ -9,6 +9,8 @@ interface ModerationResult {
   reason: string
   isSpam: boolean
   duplicateOfId?: number | null
+  confidence: number
+  questions?: string[] | null
 }
 
 interface TagResult {
@@ -21,6 +23,7 @@ interface SdgResult {
 }
 
 const DUPLICATE_THRESHOLD = 0.92
+const CONFIDENCE_THRESHOLD = 0.7
 
 export async function reviewIssue(issueId: number) {
   const db = useDB()
@@ -39,6 +42,9 @@ export async function reviewIssue(issueId: number) {
     `Title: ${issue.title}`,
     `Summary: ${issue.summary}`,
     issue.description ? `Description: ${issue.description}` : '',
+    issue.infoRequest && issue.infoResponse
+      ? `\n--- Additional context (author responded to reviewer questions) ---\nQuestions asked: ${issue.infoRequest}\nAuthor response: ${issue.infoResponse}`
+      : '',
   ].filter(Boolean).join('\n')
 
   // Generate embedding early so we can use it for both duplicate detection and storage
@@ -80,7 +86,14 @@ export async function reviewIssue(issueId: number) {
       chatJson<ModerationResult>({
         system: `You are a content moderator for a community problem-solving platform. Evaluate if this submission is a legitimate community issue. Reject spam, gibberish, hate speech, or off-topic content. Set isSpam to true for spam, gibberish, or bot content; false for off-topic or low-quality content that was submitted in good faith.
 
-If the submission is very similar to an existing issue (similarity above 90%), set duplicateOfId to that issue's id and reject it as a duplicate — unless it adds a meaningfully different angle or scope.`,
+If the submission is very similar to an existing issue (similarity above 90%), set duplicateOfId to that issue's id and reject it as a duplicate — unless it adds a meaningfully different angle or scope.
+
+Set "confidence" to a value between 0 and 1 reflecting how certain you are about your decision:
+- 0.9-1.0: Clear-cut (obvious spam, clearly legitimate, obvious duplicate)
+- 0.7-0.9: Fairly confident but some ambiguity
+- Below 0.7: Uncertain — the submission is borderline or you need more context to decide
+
+When your confidence is below 0.7, populate "questions" with 1-3 specific questions you would ask the author to help you decide. For example: "Could you clarify what specific community this affects?" or "How does this differ from existing issue #X?"`,
         user: issueText + duplicateContext,
         schema: {
           type: 'object',
@@ -89,8 +102,10 @@ If the submission is very similar to an existing issue (similarity above 90%), s
             reason: { type: 'string' },
             isSpam: { type: 'boolean' },
             duplicateOfId: { type: ['integer', 'null'] },
+            confidence: { type: 'number', minimum: 0, maximum: 1 },
+            questions: { type: ['array', 'null'], items: { type: 'string' } },
           },
-          required: ['approved', 'reason', 'isSpam', 'duplicateOfId'],
+          required: ['approved', 'reason', 'isSpam', 'duplicateOfId', 'confidence'],
           additionalProperties: false,
         },
         context: `moderation for issue ${issueId}`,
@@ -136,6 +151,36 @@ If the submission is very similar to an existing issue (similarity above 90%), s
     moderation.approved = false
     moderation.reason = `Near-duplicate of existing issue #${nearDuplicate.id} (${(nearDuplicate.similarity * 100).toFixed(0)}% similarity)`
     moderation.duplicateOfId = nearDuplicate.id
+    moderation.confidence = 0.95
+  }
+
+  const confidence = moderation.confidence ?? 1
+  if (confidence < CONFIDENCE_THRESHOLD && !moderation.isSpam) {
+    const questions = moderation.questions?.filter(Boolean) ?? []
+    if (questions.length > 0) {
+      await db.update(issues)
+        .set({
+          infoRequest: questions.join('\n'),
+          infoRequestedAt: new Date(),
+        })
+        .where(eq(issues.id, issueId))
+    }
+    await createAuditLog({
+      type: 'moderation',
+      action: 'flag_uncertain',
+      status: 'needs_review',
+      issueId,
+      userId: issue.authorId,
+      reason: moderation.reason,
+      details: {
+        confidence,
+        aiDecision: moderation.approved ? 'approve' : 'reject',
+        questions,
+        similarIssues: similarIssues.slice(0, 3).map(s => ({ id: s.id, similarity: s.similarity })),
+      },
+    })
+    console.log(`[review-issue] Issue ${issueId} flagged as uncertain (confidence: ${confidence}). Awaiting review.`)
+    return
   }
 
   if (!moderation.approved) {
@@ -163,6 +208,7 @@ If the submission is very similar to an existing issue (similarity above 90%), s
       userId: issue.authorId,
       reason: moderation.reason,
       details: {
+        confidence,
         duplicateOfId: moderation.duplicateOfId ?? null,
         isSpam: moderation.isSpam,
         similarIssues: similarIssues.slice(0, 3).map(s => ({ id: s.id, similarity: s.similarity })),
@@ -215,7 +261,7 @@ If the submission is very similar to an existing issue (similarity above 90%), s
     issueId,
     userId: issue.authorId,
     reason: moderation.reason,
-    details: { tags: validTagIds, sdgs: validSdgIds, newTags: tagResult.newTagNames },
+    details: { confidence, tags: validTagIds, sdgs: validSdgIds, newTags: tagResult.newTagNames },
   })
 
   if (issue.authorId) {

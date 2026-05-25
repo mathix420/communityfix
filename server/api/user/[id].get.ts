@@ -132,10 +132,10 @@ export default defineEventHandler(async (event) => {
     with: issueWithRelations,
   })
 
-  // Case studies authored by this user. No status/moderation field yet — every
-  // row is publicly visible; the verified flag is a separate signal.
   const userCaseStudies = await db.query.caseStudies.findMany({
-    where: eq(caseStudies.authorId, user.id),
+    where: isOwner
+      ? eq(caseStudies.authorId, user.id)
+      : and(eq(caseStudies.authorId, user.id), eq(caseStudies.status, 'approved')),
     with: { author: { columns: { name: true } } },
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
   })
