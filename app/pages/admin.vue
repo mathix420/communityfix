@@ -3,8 +3,9 @@ definePageMeta({ middleware: ['admin'] })
 
 const tabs = [
   { name: 'Overview', path: '/admin' },
-  { name: 'Audit Logs', path: '/admin/logs' },
   { name: 'Issues', path: '/admin/issues' },
+  { name: 'Users', path: '/admin/users' },
+  { name: 'Audit Logs', path: '/admin/logs' },
 ]
 
 const autoModOpen = ref(false)
@@ -54,7 +55,7 @@ async function runAutoMod() {
         size="sm"
         color="primary"
         variant="soft"
-        icon="i-lucide-sparkles"
+        icon="lucide:sparkles"
         @click="autoModOpen = true"
       >
         Run auto-mod

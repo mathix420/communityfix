@@ -1,11 +1,21 @@
 <script setup lang="ts">
-const typeFilter = ref('')
-const statusFilter = ref('')
+// Nuxt UI's USelectMenu / ComboboxItem rejects items with an empty-string
+// `value` (it reserves '' as "no selection"). Use a sentinel for the
+// "All" option and translate it away when building the request.
+const ALL = 'all'
+
+const typeFilter = ref(ALL)
+const statusFilter = ref(ALL)
+const issueIdFilter = ref('')
+const userIdFilter = ref('')
+const search = ref('')
+const fromDate = ref('')
+const toDate = ref('')
 const page = ref(1)
-const limit = 25
+const limit = ref(25)
 
 const typeOptions = [
-  { label: 'All types', value: '' },
+  { label: 'All types', value: ALL },
   { label: 'Moderation', value: 'moderation' },
   { label: 'Structure', value: 'structure' },
   { label: 'Trust Score', value: 'trust_score' },
@@ -15,23 +25,51 @@ const typeOptions = [
 ]
 
 const statusOptions = [
-  { label: 'All statuses', value: '' },
+  { label: 'All statuses', value: ALL },
   { label: 'Needs Review', value: 'needs_review' },
   { label: 'Auto Resolved', value: 'auto_resolved' },
   { label: 'Reviewed', value: 'reviewed' },
   { label: 'Overridden', value: 'overridden' },
 ]
 
+const limitOptions = [
+  { label: '10 / page', value: 10 },
+  { label: '25 / page', value: 25 },
+  { label: '50 / page', value: 50 },
+  { label: '100 / page', value: 100 },
+]
+
+// Debounce free-text and id inputs so we don't refetch on every keystroke.
+const debouncedSearch = ref('')
+const debouncedIssueId = ref('')
+const debouncedUserId = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+watch([search, issueIdFilter, userIdFilter], () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    debouncedSearch.value = search.value.trim()
+    debouncedIssueId.value = issueIdFilter.value.trim()
+    debouncedUserId.value = userIdFilter.value.trim()
+    page.value = 1
+  }, 300)
+})
+
 const query = computed(() => ({
   page: page.value,
-  limit,
-  ...(typeFilter.value && { type: typeFilter.value }),
-  ...(statusFilter.value && { status: statusFilter.value }),
+  limit: limit.value,
+  ...(typeFilter.value !== ALL && { type: typeFilter.value }),
+  ...(statusFilter.value !== ALL && { status: statusFilter.value }),
+  ...(debouncedSearch.value && { q: debouncedSearch.value }),
+  ...(debouncedIssueId.value && { issueId: debouncedIssueId.value }),
+  ...(debouncedUserId.value && { userId: debouncedUserId.value }),
+  ...(fromDate.value && { from: fromDate.value }),
+  ...(toDate.value && { to: toDate.value }),
 }))
 
 const { data, refresh } = await useFetch('/api/admin/logs', { query })
+const { run, isPending } = useAdminAction()
 
-const totalPages = computed(() => Math.ceil((data.value?.total ?? 0) / limit))
+const totalPages = computed(() => Math.max(1, Math.ceil((data.value?.total ?? 0) / limit.value)))
 
 const typeLabel: Record<string, string> = {
   moderation: 'Moderation',
@@ -96,96 +134,108 @@ const actionVariant: Record<string, 'default' | 'success' | 'error' | 'warning' 
   remod: 'primary',
 }
 
-const expandedLogId = ref<number | null>(null)
-const reviewingLog = ref<any>(null)
-const reviewNote = ref('')
-const reviewLoading = ref(false)
-const actionLoading = ref<number | null>(null)
+interface LogRow {
+  id: number
+  type: string
+  action: string
+  status: string
+  reason: string | null
+  details: Record<string, unknown> | null
+  createdAt: string
+  reviewedAt: string | null
+  reviewNote: string | null
+  issueId: number | null
+  userId: string | null
+  issue: { id: number, title: string, type: string, status: string } | null
+  user: { id: string, name: string | null, email: string } | null
+  reviewer: { id: string, name: string | null } | null
+}
 
-function summaryLine(log: any): string {
+const expandedLogId = ref<number | null>(null)
+const reviewNote = ref('')
+
+function summaryLine(log: LogRow): string {
   const who = log.user?.name || log.user?.email || 'System'
   const issue = log.issue ? `#${log.issue.id}` : ''
+  const d = log.details ?? {}
 
   switch (log.action) {
     case 'approve': return `${issue} approved — ${truncate(log.reason, 80)}`
     case 'reject': return `${issue} rejected — ${truncate(log.reason, 80)}`
     case 'flag_spam': return `${issue} flagged as spam`
-    case 'flag_duplicate': return `${issue} duplicate of #${log.details?.duplicateOfId ?? log.details?.targetId ?? '?'}`
-    case 'reparent': return `${issue} moved under #${log.details?.targetId}`
-    case 'convert_to_case_study': return `${issue} should be a case study of #${log.details?.targetId}`
-    case 'ban': return `${who} auto-banned (${log.details?.rejectedCount}/${log.details?.lookbackWindow} rejected)`
+    case 'flag_duplicate': return `${issue} duplicate of #${(d.duplicateOfId as number | undefined) ?? (d.targetId as number | undefined) ?? '?'}`
+    case 'reparent': return `${issue} moved under #${d.targetId as number | undefined}`
+    case 'convert_to_case_study': return `${issue} should be a case study of #${d.targetId as number | undefined}`
+    case 'ban': return `${who} auto-banned (${d.rejectedCount as number | undefined}/${d.lookbackWindow as number | undefined} rejected)`
     case 'unban': return `${who} unbanned`
-    case 'score_update': return `${who}: ${log.details?.oldScore} → ${log.details?.newScore}`
+    case 'score_update': return `${who}: ${d.oldScore as number | undefined} → ${d.newScore as number | undefined}`
     case 'appeal_submitted': return `${issue} appeal by ${who}`
     case 'appeal_approved': return `${issue} appeal granted`
     case 'appeal_denied': return `${issue} appeal denied`
-    case 'override_approve': return `${issue} force-approved (was ${log.details?.previousStatus})`
-    case 'override_reject': return `${issue} force-rejected (was ${log.details?.previousStatus})`
-    case 'remod': return `${issue || (log.details?.caseStudyId ? `case study #${log.details.caseStudyId}` : '')} re-moderation triggered (was ${log.details?.previousStatus})`
-    case 'flag_uncertain': return `${issue} uncertain (${Math.round((log.details?.confidence as number ?? 0) * 100)}% confidence) — ${truncate(log.reason, 60)}`
+    case 'override_approve': return `${issue} force-approved (was ${d.previousStatus as string | undefined})`
+    case 'override_reject': return `${issue} force-rejected (was ${d.previousStatus as string | undefined})`
+    case 'remod': return `${issue || (d.caseStudyId ? `case study #${d.caseStudyId}` : '')} re-moderation triggered (was ${d.previousStatus as string | undefined})`
+    case 'flag_uncertain': return `${issue} uncertain (${Math.round(((d.confidence as number | undefined) ?? 0) * 100)}% confidence) — ${truncate(log.reason, 60)}`
     case 'request_info': return `${issue} info requested — ${truncate(log.reason, 60)}`
     default: return truncate(log.reason || '', 80)
   }
 }
 
-function truncate(s: string, n: number) {
+function truncate(s: string | null, n: number) {
+  if (!s) return ''
   return s.length > n ? s.slice(0, n) + '…' : s
 }
 
-async function markReviewed(log: any, status: 'reviewed' | 'overridden') {
-  reviewLoading.value = true
-  try {
-    await $fetch(`/api/admin/logs/${log.id}`, {
+async function markReviewed(log: LogRow, status: 'reviewed' | 'overridden') {
+  const result = await run(`mark-${log.id}-${status}`, () =>
+    $fetch(`/api/admin/logs/${log.id}`, {
       method: 'PATCH',
       body: { status, reviewNote: reviewNote.value || undefined },
-    })
+    }),
+  )
+  if (result) {
     reviewNote.value = ''
     await refresh()
-  }
-  finally {
-    reviewLoading.value = false
   }
 }
 
 async function forceApprove(issueId: number) {
-  actionLoading.value = issueId
-  try {
-    await $fetch(`/api/admin/issues/${issueId}/approve`, { method: 'POST', body: {} })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
+  const result = await run(`approve-${issueId}`, () =>
+    $fetch(`/api/admin/issues/${issueId}/approve`, { method: 'POST', body: {} }),
+  )
+  if (result) await refresh()
 }
 
-async function forceReject(issueId: number) {
-  const reason = prompt('Rejection reason:')
-  if (!reason) return
-  actionLoading.value = issueId
-  try {
-    await $fetch(`/api/admin/issues/${issueId}/reject`, { method: 'POST', body: { reason } })
+// Reject modal
+const rejectOpen = ref(false)
+const rejectIssue = ref<number | null>(null)
+function askReject(issueId: number) {
+  rejectIssue.value = issueId
+  rejectOpen.value = true
+}
+async function onReject(reason: string) {
+  if (rejectIssue.value == null) return
+  const id = rejectIssue.value
+  const result = await run(`reject-${id}`, () =>
+    $fetch(`/api/admin/issues/${id}/reject`, { method: 'POST', body: { reason } }),
+  )
+  if (result) {
+    rejectOpen.value = false
+    rejectIssue.value = null
     await refresh()
-  }
-  finally {
-    actionLoading.value = null
   }
 }
 
 async function unbanUser(userId: string) {
-  actionLoading.value = -1
-  try {
-    await $fetch(`/api/admin/users/${userId}/unban`, { method: 'POST', body: {} })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
+  const result = await run(`unban-${userId}`, () =>
+    $fetch(`/api/admin/users/${userId}/unban`, { method: 'POST', body: {} }),
+  )
+  if (result) await refresh()
 }
 
 function formatTime(date: string) {
   const d = new Date(date)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
+  const diffMs = Date.now() - d.getTime()
   const diffMin = Math.floor(diffMs / 60000)
   if (diffMin < 1) return 'just now'
   if (diffMin < 60) return `${diffMin}m ago`
@@ -200,31 +250,74 @@ function formatTimeFull(date: string) {
   })
 }
 
-watch([typeFilter, statusFilter], () => { page.value = 1 })
+function clearFilters() {
+  typeFilter.value = ALL
+  statusFilter.value = ALL
+  issueIdFilter.value = ''
+  userIdFilter.value = ''
+  search.value = ''
+  fromDate.value = ''
+  toDate.value = ''
+  page.value = 1
+}
+
+const jumpPage = ref('')
+function jumpToPage() {
+  const n = Number(jumpPage.value)
+  if (!Number.isFinite(n) || n < 1 || n > totalPages.value) return
+  page.value = n
+  jumpPage.value = ''
+}
+
+watch([typeFilter, statusFilter, fromDate, toDate, limit], () => { page.value = 1 })
+
+const hasActiveFilters = computed(() =>
+  typeFilter.value !== ALL || statusFilter.value !== ALL
+  || !!(issueIdFilter.value || userIdFilter.value || search.value || fromDate.value || toDate.value),
+)
+
+// Cast narrowed once at the boundary instead of casting at every site.
+const logs = computed<LogRow[]>(() => (data.value?.logs as LogRow[] | undefined) ?? [])
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex gap-3">
-      <USelectMenu
-        v-model="typeFilter"
-        :items="typeOptions"
-        value-key="value"
-        placeholder="Type"
-        class="w-40"
-      />
-      <USelectMenu
-        v-model="statusFilter"
-        :items="statusOptions"
-        value-key="value"
-        placeholder="Status"
-        class="w-40"
-      />
-    </div>
+    <!-- Filter bar -->
+    <UiCard padding="sm">
+      <div class="space-y-2">
+        <div class="flex flex-wrap gap-2 items-center">
+          <UInput
+            v-model="search"
+            placeholder="Search reason..."
+            icon="lucide:search"
+            class="flex-1 min-w-[180px]"
+          />
+          <USelectMenu v-model="typeFilter" :items="typeOptions" value-key="value" placeholder="Type" class="w-36" />
+          <USelectMenu v-model="statusFilter" :items="statusOptions" value-key="value" placeholder="Status" class="w-36" />
+          <USelectMenu v-model="limit" :items="limitOptions" value-key="value" class="w-32" />
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <UInput v-model="issueIdFilter" placeholder="Issue ID" type="number" class="w-32" />
+          <UInput v-model="userIdFilter" placeholder="User ID (uuid)" class="w-72" />
+          <label class="text-xs text-toned inline-flex items-center gap-1">
+            From <UInput v-model="fromDate" type="date" />
+          </label>
+          <label class="text-xs text-toned inline-flex items-center gap-1">
+            To <UInput v-model="toDate" type="date" />
+          </label>
+          <UButton v-if="hasActiveFilters" size="xs" variant="ghost" color="neutral" @click="clearFilters">
+            Clear filters
+          </UButton>
+          <span class="text-xs text-toned ml-auto">
+            {{ data?.total ?? 0 }} result{{ (data?.total ?? 0) === 1 ? '' : 's' }}
+          </span>
+        </div>
+      </div>
+    </UiCard>
 
-    <UiCard padding="none">
-      <div v-if="data?.logs?.length" class="divide-y divide-gray-100">
-        <div v-for="log in data.logs" :key="log.id">
+    <UiCard v-if="logs.length" padding="none">
+      <div class="divide-y divide-gray-100">
+        <div v-for="log in logs" :key="log.id">
           <!-- Row -->
           <button
             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors"
@@ -247,7 +340,7 @@ watch([typeFilter, statusFilter], () => { page.value = 1 })
               {{ statusLabel[log.status] ?? log.status }}
             </UiBadge>
             <UIcon
-              name="i-lucide-chevron-down"
+              name="lucide:chevron-down"
               class="size-4 text-toned shrink-0 transition-transform"
               :class="{ 'rotate-180': expandedLogId === log.id }"
             />
@@ -255,61 +348,47 @@ watch([typeFilter, statusFilter], () => { page.value = 1 })
 
           <!-- Expanded detail -->
           <div v-if="expandedLogId === log.id" class="bg-gray-50/80 px-4 pb-4 pt-2 space-y-3 text-sm border-b border-gray-200">
-            <!-- Reason -->
             <p v-if="log.reason" class="text-gray-600 leading-relaxed">{{ log.reason }}</p>
 
-            <!-- Confidence + AI questions -->
-            <div v-if="(log.details as any)?.confidence != null" class="flex items-center gap-2 text-xs">
-              <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium" :class="(log.details as any).confidence >= 0.7 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'">
-                <UIcon name="i-lucide-gauge" class="size-3" /> {{ Math.round((log.details as any).confidence * 100) }}% confidence
+            <div v-if="(log.details?.confidence as number | undefined) != null" class="flex items-center gap-2 text-xs">
+              <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium" :class="(log.details!.confidence as number) >= 0.7 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'">
+                <UIcon name="lucide:gauge" class="size-3" /> {{ Math.round((log.details!.confidence as number) * 100) }}% confidence
               </span>
-              <span v-if="(log.details as any).aiDecision" class="text-toned">
-                AI leaned: {{ (log.details as any).aiDecision }}
+              <span v-if="log.details!.aiDecision" class="text-toned">
+                AI leaned: {{ log.details!.aiDecision }}
               </span>
             </div>
-            <div v-if="(log.details as any)?.questions?.length" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs">
+
+            <div v-if="(log.details?.questions as string[] | undefined)?.length" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs">
               <p class="font-medium text-yellow-800 mb-1">AI questions for the author:</p>
               <ul class="list-disc list-inside text-yellow-700 space-y-0.5">
-                <li v-for="(q, i) in (log.details as any).questions" :key="i">{{ q }}</li>
+                <li v-for="(q, i) in (log.details!.questions as string[])" :key="i">{{ q }}</li>
               </ul>
             </div>
 
-            <!-- Metadata chips -->
             <div v-if="log.details" class="flex flex-wrap gap-1.5">
               <span v-if="log.details.isSpam" class="inline-flex items-center gap-1 bg-red-50 text-red-700 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                <UIcon name="i-lucide-shield-alert" class="size-3" /> Spam
+                <UIcon name="lucide:shield-alert" class="size-3" /> Spam
               </span>
               <NuxtLink
                 v-if="log.details.duplicateOfId"
                 :to="`/issue/${log.details.duplicateOfId}`"
                 class="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 rounded-full px-2.5 py-0.5 text-xs font-medium hover:bg-yellow-100"
               >
-                <UIcon name="i-lucide-copy" class="size-3" /> Duplicate of #{{ log.details.duplicateOfId }}
+                <UIcon name="lucide:copy" class="size-3" /> Duplicate of #{{ log.details.duplicateOfId }}
               </NuxtLink>
               <NuxtLink
                 v-if="log.details.targetId"
                 :to="`/issue/${log.details.targetId}`"
                 class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 rounded-full px-2.5 py-0.5 text-xs font-medium hover:bg-blue-100"
               >
-                <UIcon name="i-lucide-arrow-right" class="size-3" /> Target #{{ log.details.targetId }}
+                <UIcon name="lucide:arrow-right" class="size-3" /> Target #{{ log.details.targetId }}
               </NuxtLink>
               <span
                 v-if="log.details.oldScore != null"
                 class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 rounded-full px-2.5 py-0.5 text-xs font-medium"
               >
-                <UIcon name="i-lucide-trending-up" class="size-3" /> {{ log.details.oldScore }} → {{ log.details.newScore }}
-              </span>
-              <span
-                v-if="log.details.rejectedCount"
-                class="inline-flex items-center gap-1 bg-red-50 text-red-700 rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                <UIcon name="i-lucide-x-circle" class="size-3" /> {{ log.details.rejectedCount }}/{{ log.details.lookbackWindow }} rejected
-              </span>
-              <span
-                v-if="log.details.bannedUntil"
-                class="inline-flex items-center gap-1 bg-red-50 text-red-700 rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                <UIcon name="i-lucide-clock" class="size-3" /> Until {{ new Date(log.details.bannedUntil as string).toLocaleDateString() }}
+                <UIcon name="lucide:trending-up" class="size-3" /> {{ log.details.oldScore }} → {{ log.details.newScore }}
               </span>
               <span
                 v-if="log.details.previousStatus"
@@ -317,89 +396,87 @@ watch([typeFilter, statusFilter], () => { page.value = 1 })
               >
                 Was: {{ log.details.previousStatus }}
               </span>
-              <span
-                v-for="tag in (log.details.newTags ?? [])"
-                :key="tag"
-                class="inline-flex items-center gap-1 bg-green-50 text-green-700 rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                <UIcon name="i-lucide-plus" class="size-3" /> {{ tag }}
-              </span>
-              <span
-                v-if="((log.details as any)?.tags as string[] | undefined)?.length"
-                class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                <UIcon name="i-lucide-tag" class="size-3" /> {{ (log.details as any).tags.length }} tag{{ (log.details as any).tags.length > 1 ? 's' : '' }}
-              </span>
-              <span
-                v-if="((log.details as any)?.sdgs as string[] | undefined)?.length"
-                class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                <UIcon name="i-lucide-globe" class="size-3" /> {{ (log.details as any).sdgs.length }} SDG{{ (log.details as any).sdgs.length > 1 ? 's' : '' }}
-              </span>
             </div>
 
-            <!-- Similar issues -->
-            <div v-if="((log.details as any)?.similarIssues as Array<{ id: number, similarity: number }> | undefined)?.length" class="text-xs text-toned">
+            <div v-if="((log.details?.similarIssues as Array<{ id: number, similarity: number }> | undefined))?.length" class="text-xs text-toned">
               Similar:
-              <span v-for="(s, i) in (log.details as any).similarIssues as Array<{ id: number, similarity: number }>" :key="i">
+              <span v-for="(s, i) in (log.details!.similarIssues as Array<{ id: number, similarity: number }>)" :key="i">
                 {{ i > 0 ? ', ' : '' }}
                 <NuxtLink :to="`/issue/${s.id}`" class="text-primary-600 hover:underline">#{{ s.id }}</NuxtLink>
                 <span class="text-toned">({{ Math.round(s.similarity * 100) }}%)</span>
               </span>
             </div>
 
-            <!-- Admin review info -->
             <div v-if="log.reviewer || log.reviewNote" class="text-xs text-toned border-l-2 border-l-green-300 pl-2">
               <span v-if="log.reviewer">{{ log.reviewer.name }}</span>
               <span v-if="log.reviewNote"> — {{ log.reviewNote }}</span>
             </div>
 
-            <!-- References + User -->
             <div class="flex items-center gap-3 text-xs text-toned">
               <span>{{ formatTimeFull(log.createdAt) }}</span>
               <span>{{ typeLabel[log.type] ?? log.type }}</span>
               <NuxtLink v-if="log.issue" :to="`/issue/${log.issue.id}`" class="hover:text-black" @click.stop>
                 {{ log.issue.type }} #{{ log.issue.id }}
               </NuxtLink>
-              <NuxtLink v-if="log.user" :to="`/user/${log.user.id}`" class="hover:text-black" @click.stop>
+              <NuxtLink v-if="log.user" :to="`/admin/users/${log.user.id}`" class="hover:text-black" @click.stop>
                 {{ log.user.name || log.user.email }}
               </NuxtLink>
             </div>
 
-            <!-- Raw JSON toggle -->
             <details class="text-xs">
               <summary class="text-toned cursor-pointer">Raw JSON</summary>
               <pre class="mt-1 bg-gray-100 rounded p-2 overflow-x-auto text-[11px]">{{ JSON.stringify(log.details, null, 2) }}</pre>
             </details>
 
-            <!-- Quick actions bar -->
             <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200">
-              <!-- Review controls for needs_review -->
               <template v-if="log.status === 'needs_review'">
                 <UInput v-model="reviewNote" placeholder="Admin note..." class="w-48" size="xs" />
-                <UButton size="xs" color="neutral" variant="outline" :loading="reviewLoading" @click="markReviewed(log, 'reviewed')">
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="outline"
+                  :loading="isPending(`mark-${log.id}-reviewed`)"
+                  :disabled="isPending(`mark-${log.id}-reviewed`)"
+                  @click="markReviewed(log, 'reviewed')"
+                >
                   Confirm
                 </UButton>
-                <UButton size="xs" color="primary" :loading="reviewLoading" @click="markReviewed(log, 'overridden')">
+                <UButton
+                  size="xs"
+                  color="primary"
+                  :loading="isPending(`mark-${log.id}-overridden`)"
+                  :disabled="isPending(`mark-${log.id}-overridden`)"
+                  @click="markReviewed(log, 'overridden')"
+                >
                   Override
                 </UButton>
               </template>
 
-              <!-- Issue actions -->
               <template v-if="log.issueId && (log.action === 'reject' || log.action === 'flag_spam' || log.action === 'flag_duplicate' || log.action === 'convert_to_case_study')">
-                <UButton size="xs" color="primary" :loading="actionLoading === log.issueId" @click="forceApprove(log.issueId)">
+                <UButton
+                  size="xs"
+                  color="primary"
+                  :loading="isPending(`approve-${log.issueId}`)"
+                  :disabled="isPending(`approve-${log.issueId}`)"
+                  @click="forceApprove(log.issueId)"
+                >
                   Force Approve
                 </UButton>
               </template>
               <template v-if="log.issueId && log.action === 'approve'">
-                <UButton size="xs" color="neutral" variant="outline" :loading="actionLoading === log.issueId" @click="forceReject(log.issueId)">
+                <UButton size="xs" color="neutral" variant="outline" @click="askReject(log.issueId)">
                   Force Reject
                 </UButton>
               </template>
 
-              <!-- Ban actions -->
               <template v-if="log.action === 'ban' && log.userId">
-                <UButton size="xs" color="primary" :loading="actionLoading === -1" @click="unbanUser(log.userId)">
+                <UButton
+                  size="xs"
+                  color="primary"
+                  :loading="isPending(`unban-${log.userId}`)"
+                  :disabled="isPending(`unban-${log.userId}`)"
+                  @click="unbanUser(log.userId)"
+                >
                   Unban User
                 </UButton>
               </template>
@@ -407,29 +484,38 @@ watch([typeFilter, statusFilter], () => { page.value = 1 })
           </div>
         </div>
       </div>
-      <div v-else class="px-4 py-8 text-center text-toned text-sm">
-        No logs match your filters.
-      </div>
     </UiCard>
+    <UiEmptyState
+      v-else
+      icon="lucide:file-search"
+      title="No logs match"
+      description="Try widening your filters or clearing the search."
+      compact
+    />
 
-    <div v-if="totalPages > 1" class="flex justify-center gap-2">
-      <UButton
-        variant="ghost"
-        size="sm"
-        :disabled="page <= 1"
-        @click="page--"
-      >
+    <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 flex-wrap">
+      <UButton variant="ghost" size="sm" :disabled="page <= 1" @click="page = 1">
+        First
+      </UButton>
+      <UButton variant="ghost" size="sm" :disabled="page <= 1" @click="page--">
         Previous
       </UButton>
       <span class="text-sm text-toned self-center">Page {{ page }} of {{ totalPages }}</span>
-      <UButton
-        variant="ghost"
-        size="sm"
-        :disabled="page >= totalPages"
-        @click="page++"
-      >
+      <UButton variant="ghost" size="sm" :disabled="page >= totalPages" @click="page++">
         Next
       </UButton>
+      <UButton variant="ghost" size="sm" :disabled="page >= totalPages" @click="page = totalPages">
+        Last
+      </UButton>
+      <span class="text-xs text-toned ml-2">Jump:</span>
+      <UInput v-model="jumpPage" type="number" :min="1" :max="totalPages" size="xs" class="w-20" @keyup.enter="jumpToPage" />
+      <UButton size="xs" variant="outline" :disabled="!jumpPage" @click="jumpToPage">Go</UButton>
     </div>
+
+    <AdminRejectModal
+      v-model:open="rejectOpen"
+      :target="rejectIssue ? `Issue #${rejectIssue}` : undefined"
+      @submit="onReject"
+    />
   </div>
 </template>
