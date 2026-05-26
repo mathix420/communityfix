@@ -63,6 +63,32 @@ function outcomeVariant(o: string): 'success' | 'default' | 'error' | 'warning' 
   return ({ success: 'success', partial: 'default', failed: 'error', inconclusive: 'default', ongoing: 'warning' } as const)[o as 'success'] ?? 'default'
 }
 
+const infoResponseText = ref('')
+const infoSubmitting = ref(false)
+
+async function submitInfoResponse() {
+  infoSubmitting.value = true
+  try {
+    await $fetch(`/api/issue/${issueId}/respond-info`, {
+      method: 'POST' as const,
+      body: { response: infoResponseText.value },
+    })
+    track('Info response submitted', { issueId: Number(issueId) })
+    toast.add({ title: 'Response sent', description: 'Your issue will be re-reviewed with the additional context.', color: 'success' })
+    await refresh()
+  }
+  catch (error: any) {
+    toast.add({
+      title: 'Failed to send response',
+      description: error?.data?.message || error?.message || 'Please try again.',
+      color: 'error',
+    })
+  }
+  finally {
+    infoSubmitting.value = false
+  }
+}
+
 const appealReason = ref('')
 const appealSubmitting = ref(false)
 
@@ -102,10 +128,50 @@ async function submitAppeal() {
     />
 
     <div
-      v-if="issue.status === 'pending'"
+      v-if="issue.status === 'pending' && !issue.infoRequest"
       class="bg-yellow-50 text-yellow-700 rounded-2xl p-4 sm:p-6 text-sm font-mono text-center"
     >
       This issue is pending review and has not been published yet.
+    </div>
+
+    <div
+      v-if="issue.status === 'pending' && issue.infoRequest && !issue.infoResponse"
+      class="bg-blue-50 rounded-2xl px-4 py-4 sm:px-6 space-y-3"
+    >
+      <div class="flex items-center gap-2">
+        <UIcon name="i-lucide-message-circle-question" class="size-5 text-blue-600" />
+        <p class="text-blue-800 text-sm font-semibold">Additional information needed</p>
+      </div>
+      <p class="text-blue-700 text-sm">{{ issue.infoRequest }}</p>
+      <form class="flex flex-col gap-2" @submit.prevent="submitInfoResponse">
+        <UTextarea
+          v-model="infoResponseText"
+          placeholder="Provide the requested information..."
+          :rows="3"
+          class="w-full"
+        />
+        <UButton
+          type="submit"
+          color="primary"
+          size="sm"
+          :loading="infoSubmitting"
+          :disabled="!infoResponseText.trim()"
+        >
+          Send Response
+        </UButton>
+      </form>
+    </div>
+
+    <div
+      v-if="issue.status === 'pending' && issue.infoRequest && issue.infoResponse"
+      class="bg-green-50 rounded-2xl px-4 py-4 sm:px-6 space-y-2"
+    >
+      <div class="flex items-center gap-2">
+        <UIcon name="i-lucide-check-circle" class="size-5 text-green-600" />
+        <p class="text-green-800 text-sm font-semibold">Response sent — re-review in progress</p>
+      </div>
+      <p class="text-green-700 text-xs">Question: {{ issue.infoRequest }}</p>
+      <p class="text-green-700 text-sm">Your response: {{ issue.infoResponse }}</p>
     </div>
 
     <div

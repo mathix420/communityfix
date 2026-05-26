@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   if (solutionIds.length === 0) return []
 
   const rows = await db.query.caseStudies.findMany({
-    where: inArray(caseStudies.solutionId, solutionIds),
+    where: and(inArray(caseStudies.solutionId, solutionIds), eq(caseStudies.status, 'approved')),
     with: { author: { columns: { name: true } } },
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
   })
