@@ -271,6 +271,13 @@ export const caseStudies = pgTable('case_studies', {
   id: serial('id').primaryKey(),
   solutionId: integer('solution_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
   authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+  // Moderation state mirrors issues — pending until AI/admin review approves
+  // or rejects. Rejected studies stay hidden from public listings; isSpam
+  // additionally suppresses them from the author's own profile.
+  status: text('status').notNull().default('pending').$type<IssueStatus>(),
+  rejectionReason: text('rejection_reason'),
+  rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+  isSpam: boolean('is_spam').notNull().default(false),
   description: text('description'),
   outcome: text('outcome').notNull().$type<CaseStudyOutcome>(),
   scale: text('scale').$type<LocationScale>(),

@@ -322,23 +322,23 @@ watch([typeFilter, statusFilter], () => { page.value = 1 })
                 <UIcon name="i-lucide-plus" class="size-3" /> {{ tag }}
               </span>
               <span
-                v-if="log.details.tags?.length"
+                v-if="((log.details as any)?.tags as string[] | undefined)?.length"
                 class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5 text-xs font-medium"
               >
-                <UIcon name="i-lucide-tag" class="size-3" /> {{ log.details.tags.length }} tag{{ log.details.tags.length > 1 ? 's' : '' }}
+                <UIcon name="i-lucide-tag" class="size-3" /> {{ (log.details as any).tags.length }} tag{{ (log.details as any).tags.length > 1 ? 's' : '' }}
               </span>
               <span
-                v-if="log.details.sdgs?.length"
+                v-if="((log.details as any)?.sdgs as string[] | undefined)?.length"
                 class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 rounded-full px-2.5 py-0.5 text-xs font-medium"
               >
-                <UIcon name="i-lucide-globe" class="size-3" /> {{ log.details.sdgs.length }} SDG{{ log.details.sdgs.length > 1 ? 's' : '' }}
+                <UIcon name="i-lucide-globe" class="size-3" /> {{ (log.details as any).sdgs.length }} SDG{{ (log.details as any).sdgs.length > 1 ? 's' : '' }}
               </span>
             </div>
 
             <!-- Similar issues -->
-            <div v-if="log.details?.similarIssues?.length" class="text-xs text-toned">
+            <div v-if="((log.details as any)?.similarIssues as Array<{ id: number, similarity: number }> | undefined)?.length" class="text-xs text-toned">
               Similar:
-              <span v-for="(s, i) in log.details.similarIssues" :key="i">
+              <span v-for="(s, i) in (log.details as any).similarIssues as Array<{ id: number, similarity: number }>" :key="i">
                 {{ i > 0 ? ', ' : '' }}
                 <NuxtLink :to="`/issue/${s.id}`" class="text-primary-600 hover:underline">#{{ s.id }}</NuxtLink>
                 <span class="text-toned">({{ Math.round(s.similarity * 100) }}%)</span>
