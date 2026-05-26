@@ -48,11 +48,11 @@ if (issue.value) {
 
 <template>
   <AppContainer v-if="issue">
-    <div class="flex sm:items-center justify-between mb-4 sm:flex-row flex-col-reverse">
+    <div class="flex justify-between mb-4 flex-col-reverse">
       <h1 :class="underlinedTitle">
         {{ issue.title }}
       </h1>
-      <p class="text-5xl text-black/10 font-mono sm:mt-0 -mt-5">
+      <p class="text-5xl text-black/10 font-mono -mt-5">
         #{{ issue.id.toString().padStart(5, '0') }}
       </p>
     </div>

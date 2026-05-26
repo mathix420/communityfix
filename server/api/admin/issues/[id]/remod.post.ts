@@ -12,9 +12,6 @@ export default defineEventHandler(async (event) => {
   if (!issue) {
     throw createError({ statusCode: 404, message: 'Issue not found' })
   }
-  if (issue.status === 'pending') {
-    throw createError({ statusCode: 400, message: 'Issue is already pending moderation' })
-  }
 
   const previousStatus = issue.status
 
@@ -45,12 +42,12 @@ export default defineEventHandler(async (event) => {
 
   await createAuditLog({
     type: 'admin_override',
-    action: 'override_approve',
+    action: 'remod',
     status: 'auto_resolved',
     issueId: id,
     userId: issue.authorId,
     reason: `Admin triggered re-moderation (was ${previousStatus})`,
-    details: { adminId: session.user.id, previousStatus, remod: true },
+    details: { adminId: session.user.id, previousStatus },
   })
 
   const reviewPromise = runTask('review:issue', { payload: { issueId: id } })
