@@ -101,7 +101,7 @@ const TOOLS = [
   },
   {
     name: 'get_tree',
-    description: 'Return the full descendant tree (sub-issues and solutions, recursively) rooted at the given issue or solution id. Capped at depth 10 and 500 nodes.',
+    description: 'Return the full descendant tree rooted at the given issue or solution id — sub-issues and solutions recursively, with approved case studies attached as leaves under their parent solutions. Each row carries a `type` of "issue", "solution", or "case-study"; case-study rows expose `parentId` = the solution id and an `outcome` field. Capped at depth 10, 20 children per parent, and 500 nodes total.',
     inputSchema: {
       type: 'object',
       properties: { id: { type: 'integer', description: 'Root issue or solution id.' } },

@@ -35,6 +35,7 @@ export const AUDIT_LOG_ACTIONS = [
   'appeal_submitted', 'appeal_approved', 'appeal_denied',
   'override_approve', 'override_reject',
   'request_info', 'flag_uncertain',
+  'remod',
 ] as const
 export type AuditLogAction = typeof AUDIT_LOG_ACTIONS[number]
 

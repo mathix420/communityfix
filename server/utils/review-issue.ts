@@ -102,7 +102,7 @@ When your confidence is below 0.7, populate "questions" with 1-3 specific questi
             reason: { type: 'string' },
             isSpam: { type: 'boolean' },
             duplicateOfId: { type: ['integer', 'null'] },
-            confidence: { type: 'number', minimum: 0, maximum: 1 },
+            confidence: { type: 'number' },
             questions: { type: ['array', 'null'], items: { type: 'string' } },
           },
           required: ['approved', 'reason', 'isSpam', 'duplicateOfId', 'confidence'],

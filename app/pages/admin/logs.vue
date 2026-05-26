@@ -59,6 +59,7 @@ const actionLabel: Record<string, string> = {
   appeal_denied: 'Appeal denied',
   override_approve: 'Force approved',
   override_reject: 'Force rejected',
+  remod: 'Re-mod',
 }
 
 const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'primary'> = {
@@ -92,6 +93,7 @@ const actionVariant: Record<string, 'default' | 'success' | 'error' | 'warning' 
   reparent: 'primary',
   convert_to_case_study: 'primary',
   score_update: 'default',
+  remod: 'primary',
 }
 
 const expandedLogId = ref<number | null>(null)
@@ -119,6 +121,7 @@ function summaryLine(log: any): string {
     case 'appeal_denied': return `${issue} appeal denied`
     case 'override_approve': return `${issue} force-approved (was ${log.details?.previousStatus})`
     case 'override_reject': return `${issue} force-rejected (was ${log.details?.previousStatus})`
+    case 'remod': return `${issue || (log.details?.caseStudyId ? `case study #${log.details.caseStudyId}` : '')} re-moderation triggered (was ${log.details?.previousStatus})`
     case 'flag_uncertain': return `${issue} uncertain (${Math.round((log.details?.confidence as number ?? 0) * 100)}% confidence) — ${truncate(log.reason, 60)}`
     case 'request_info': return `${issue} info requested — ${truncate(log.reason, 60)}`
     default: return truncate(log.reason || '', 80)

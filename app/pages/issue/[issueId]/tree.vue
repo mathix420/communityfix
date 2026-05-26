@@ -16,23 +16,32 @@ const { data: flatNodes, pending } = await useFetch<TreeNode[]>(
 
 // Build the nested structure from the flat CTE output. Children of the
 // current page's issue are at depth=1 (the CTE excludes the root itself).
+// Case-study rows share the `issues.id` space only conceptually — a row's
+// raw id can collide with an issue id since they come from separate tables.
+// Key the lookup map by `${type}:${id}`, and resolve parents through an
+// issue-only index since a case-study's parentId points at a solution row.
 const rootChildren = computed<NestedNode[]>(() => {
   const rows = flatNodes.value
   if (!rows || rows.length === 0) return []
 
-  const byId = new Map<number, NestedNode>()
+  const byKey = new Map<string, NestedNode>()
+  const issueById = new Map<number, NestedNode>()
   for (const row of rows) {
-    byId.set(row.id, { ...row, children: [] })
+    const node: NestedNode = { ...row, children: [] }
+    byKey.set(`${row.type}:${row.id}`, node)
+    if (row.type !== 'case-study') issueById.set(row.id, node)
   }
 
   const roots: NestedNode[] = []
   const rootParentId = Number(issueId.value)
-  for (const node of byId.values()) {
-    if (node.parentId === rootParentId) {
+  for (const node of byKey.values()) {
+    // Case studies never sit at the root of the children panel — they
+    // belong under a solution row.
+    if (node.type !== 'case-study' && node.parentId === rootParentId) {
       roots.push(node)
       continue
     }
-    const parent = node.parentId != null ? byId.get(node.parentId) : undefined
+    const parent = node.parentId != null ? issueById.get(node.parentId) : undefined
     if (parent) parent.children.push(node)
     else roots.push(node) // orphan from depth truncation — keep it visible
   }
