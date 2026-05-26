@@ -54,6 +54,10 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
       appealReason: issue.appealReason,
       appealStatus: issue.appealStatus,
       appealedAt: issue.appealedAt,
+      infoRequest: issue.infoRequest,
+      infoRequestedAt: issue.infoRequestedAt,
+      infoResponse: issue.infoResponse,
+      infoRespondedAt: issue.infoRespondedAt,
     }),
   }
 }
