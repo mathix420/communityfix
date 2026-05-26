@@ -27,6 +27,38 @@ if (expandAllSignal && expandAllTarget) {
 
 const hasChildren = computed(() => props.node.children.length > 0)
 const isSolution = computed(() => props.node.type === 'solution')
+const isCaseStudy = computed(() => props.node.type === 'case-study')
+
+const linkTo = computed(() =>
+  isCaseStudy.value ? `/case-study/${props.node.id}` : `/issue/${props.node.id}`,
+)
+
+const nodeIcon = computed(() => {
+  if (isCaseStudy.value) return 'lucide:map-pin'
+  if (isSolution.value) return 'lucide:lightbulb'
+  return 'lucide:circle-alert'
+})
+
+const nodeIconClass = computed(() => {
+  if (isCaseStudy.value) return 'text-emerald-600'
+  if (isSolution.value) return 'text-primary-600'
+  return 'text-gray-400'
+})
+
+const outcomeVariant: Record<string, 'success' | 'default' | 'error' | 'warning'> = {
+  success: 'success',
+  partial: 'default',
+  failed: 'error',
+  inconclusive: 'default',
+  ongoing: 'warning',
+}
+const outcomeLabel: Record<string, string> = {
+  success: 'Success',
+  partial: 'Partial',
+  failed: 'Failed',
+  inconclusive: 'Inconclusive',
+  ongoing: 'Ongoing',
+}
 </script>
 
 <template>
@@ -47,13 +79,13 @@ const isSolution = computed(() => props.node.type === 'solution')
       <div v-else class="shrink-0 size-5" />
 
       <UIcon
-        :name="isSolution ? 'lucide:lightbulb' : 'lucide:circle-alert'"
+        :name="nodeIcon"
         class="shrink-0 size-4"
-        :class="isSolution ? 'text-primary-600' : 'text-gray-400'"
+        :class="nodeIconClass"
       />
 
       <NuxtLink
-        :to="`/issue/${node.id}`"
+        :to="linkTo"
         class="interactive-underline truncate font-title"
       >
         <span class="text-gray-400 select-none text-xs font-mono mr-1.5">
@@ -71,8 +103,17 @@ const isSolution = computed(() => props.node.type === 'solution')
       <UiBadge v-else-if="node.solutionStatus === 'done'" variant="success">
         Done
       </UiBadge>
+      <UiBadge
+        v-if="isCaseStudy && node.outcome"
+        :variant="outcomeVariant[node.outcome] ?? 'default'"
+      >
+        {{ outcomeLabel[node.outcome] ?? node.outcome }}
+      </UiBadge>
 
-      <div class="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-mono text-gray-600">
+      <div
+        v-if="!isCaseStudy"
+        class="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-mono text-gray-600"
+      >
         <span
           class="px-1.5 py-0.5 bg-gray-100 rounded"
           :title="`${node.voteScore} votes`"

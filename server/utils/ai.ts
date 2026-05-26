@@ -26,6 +26,30 @@ function getAnthropicClient(): Anthropic {
   return anthropicClient
 }
 
+// Anthropic's `json_schema` output format rejects a handful of standard
+// JSON Schema keywords (e.g. `minimum`/`maximum` on numbers). Strip them
+// so callers can author specs in plain JSON Schema without tripping the
+// API's stricter subset.
+const UNSUPPORTED_SCHEMA_KEYS = new Set([
+  'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+  'minLength', 'maxLength', 'pattern', 'format',
+  'minItems', 'maxItems', 'uniqueItems',
+  'minProperties', 'maxProperties',
+])
+
+function sanitizeSchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(sanitizeSchema)
+  if (node && typeof node === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(node)) {
+      if (UNSUPPORTED_SCHEMA_KEYS.has(k)) continue
+      out[k] = sanitizeSchema(v)
+    }
+    return out
+  }
+  return node
+}
+
 export async function chatJson<T>(opts: {
   system: string
   user: string
@@ -40,7 +64,7 @@ export async function chatJson<T>(opts: {
     output_config: {
       format: {
         type: 'json_schema',
-        schema: opts.schema,
+        schema: sanitizeSchema(opts.schema) as Record<string, unknown>,
       },
     },
   })
