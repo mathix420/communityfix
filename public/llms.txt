@@ -10,6 +10,7 @@ CommunityFix exposes an MCP (Model Context Protocol) server so AI assistants can
 
 - [Whitepaper](https://communityfix.org/whitepaper): Vision, problem statement, incubation model, governance, and sustainability metrics
 - [Writing Guide](https://communityfix.org/guide/writing): How to write high-quality issues, solutions, and case studies
+- [MCP Server](https://communityfix.org/mcp): How to connect Claude Desktop, Claude Code, and other AI clients via the Model Context Protocol
 - [Privacy Policy](https://communityfix.org/privacy): Data handling and privacy practices
 - [Terms of Service](https://communityfix.org/terms): Platform terms and conditions
 
