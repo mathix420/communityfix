@@ -1,7 +1,4 @@
-// SEP-1649 — MCP Server Card. Lets agents discover the transport,
-// capabilities, and authentication scheme of this MCP server before
-// initiating a JSON-RPC handshake.
-// Schema in flux at: https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127
+// SEP-1649 — https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127
 import { getOrigin } from '../../../utils/oauth'
 
 export default defineEventHandler((event) => {

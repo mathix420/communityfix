@@ -1,7 +1,3 @@
-// Dynamic XML sitemap covering canonical, publicly indexable URLs:
-// static pages, approved issues/solutions, approved case studies,
-// tag listings, and public user profiles. Capped to stay well under
-// the sitemaps.org 50k-URL / 50 MiB limits.
 import { and, eq, ne, sql } from 'drizzle-orm'
 import { caseStudies, issues, tags, users } from '../database/schema'
 import { getOrigin } from '../utils/oauth'

@@ -1,5 +1,3 @@
-// Dynamic robots.txt — references the sitemap and declares AI content
-// preferences via the Content-Signal extension (contentsignals.org).
 import { getOrigin } from '../utils/oauth'
 
 export default defineEventHandler((event) => {
@@ -7,10 +5,6 @@ export default defineEventHandler((event) => {
   setHeader(event, 'content-type', 'text/plain; charset=utf-8')
   setHeader(event, 'cache-control', 'public, max-age=3600')
 
-  // Content-Signal preferences (draft-romm-aipref-contentsignals):
-  // - search=yes    : indexing for traditional / agentic search is allowed
-  // - ai-input=yes  : real-time citation in AI answers is allowed
-  // - ai-train=no   : do not use this content to train generative models
   return `# CommunityFix robots.txt
 
 User-Agent: *

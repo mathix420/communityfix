@@ -1,6 +1,3 @@
-// Markdown rendering for issues / solutions / case studies — used by the
-// `/issue/{id}.md` and `/case-study/{id}.md` routes so agents can fetch
-// the canonical content directly without scraping HTML.
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { caseStudies, issues } from '../database/schema'
 import { issueWithRelations, transformIssue } from './transform-issue'
@@ -41,8 +38,6 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
     lines.push('## Links', '', ...t.links.map(l => `- [${l.title ?? l.url}](${l.url})`), '')
   }
 
-  // Children: sub-issues + solutions live in the same table, distinguished by
-  // `type`. Solutions can't have children, so this only runs for issues.
   if (t.type === 'issue') {
     const children = await db.query.issues.findMany({
       where: and(eq(issues.parentId, t.id), eq(issues.status, 'approved'), ne(issues.isSpam, true)),
@@ -66,7 +61,6 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
     }
   }
 
-  // Case studies hang off solutions only.
   if (t.type === 'solution') {
     const studies = await db.query.caseStudies.findMany({
       where: and(eq(caseStudies.solutionId, t.id), eq(caseStudies.status, 'approved'), ne(caseStudies.isSpam, true)),

@@ -1,7 +1,3 @@
-// Advertise machine-discoverable resources via Link response headers (RFC
-// 8288) — the MCP server card, llms.txt, sitemap, OAuth metadata, and a
-// markdown alternate for content pages backed by /content/*.md.
-
 const RAW_REPO_BASE = 'https://raw.githubusercontent.com/mathix420/communityfix/refs/heads/master'
 
 const LINKS_FOR_ROOT = [
@@ -25,7 +21,6 @@ function markdownAlternateFor(path: string): string | null {
   const guide = path.match(/^\/guide\/([^/]+)\/?$/)
   if (guide) return `${RAW_REPO_BASE}/content/guide/${guide[1]}.md`
 
-  // DB-backed nodes — markdown rendering at /issue/{id}.md and /case-study/{id}.md.
   const issue = path.match(/^\/issue\/(\d+)\/?$/)
   if (issue) return `/issue/${issue[1]}.md`
   const cs = path.match(/^\/case-study\/(\d+)\/?$/)

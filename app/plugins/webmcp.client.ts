@@ -1,10 +1,4 @@
-// WebMCP — expose CommunityFix actions to AI agents running in the browser.
-// Spec: https://webmachinelearning.github.io/webmcp/
-//
-// Tools are scoped to the document, so registration runs once per page load.
-// Feature-detect first: unsupported browsers (currently most of them) just
-// skip silently.
-
+// WebMCP — https://webmachinelearning.github.io/webmcp/
 interface ModelContextTool {
   name: string
   description: string
