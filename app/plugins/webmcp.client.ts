@@ -116,13 +116,11 @@ export default defineNuxtPlugin(() => {
     },
     {
       name: 'cf_discovery',
-      description: 'List CommunityFix discovery endpoints (MCP server card, agent skills, API catalog, llms.txt, sitemap, OAuth metadata) so the agent can switch to the structured API.',
+      description: 'List CommunityFix discovery endpoints (MCP server card, llms.txt, sitemap, OAuth metadata) so the agent can switch to the structured API.',
       inputSchema: { type: 'object', properties: {} },
       execute: () => ({
         mcpEndpoint: 'https://communityfix.org/api/mcp',
         mcpServerCard: 'https://communityfix.org/.well-known/mcp/server-card.json',
-        apiCatalog: 'https://communityfix.org/.well-known/api-catalog',
-        agentSkillsIndex: 'https://communityfix.org/.well-known/agent-skills/index.json',
         llmsTxt: 'https://communityfix.org/llms.txt',
         sitemap: 'https://communityfix.org/sitemap.xml',
         oauthProtectedResource: 'https://communityfix.org/.well-known/oauth-protected-resource',
