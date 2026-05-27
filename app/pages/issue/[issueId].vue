@@ -10,7 +10,6 @@ const tabs = computed(() => {
   const isSolution = issue.value?.type === 'solution'
   const base = [
     { name: 'Overview', path: `/issue/${issueId.value}` },
-    { name: 'Issues', path: `/issue/${issueId.value}/issues` },
   ]
   if (isSolution) {
     base.push({ name: 'Case Studies', path: `/issue/${issueId.value}/studies` })
@@ -19,6 +18,7 @@ const tabs = computed(() => {
     base.push({ name: 'Solutions', path: `/issue/${issueId.value}/solutions` })
   }
   base.push(
+    { name: 'Issues', path: `/issue/${issueId.value}/issues` },
     { name: 'Funding', path: `/issue/${issueId.value}/funding` },
     { name: 'Tree View', path: `/issue/${issueId.value}/tree` },
   )

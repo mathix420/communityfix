@@ -5,6 +5,7 @@ const links = [
   { name: 'Whitepaper', to: '/whitepaper' },
   { name: 'Privacy', to: '/privacy' },
   { name: 'Terms', to: '/terms' },
+  { name: 'LLMs', to: '/llms.txt', external: true },
 ]
 
 const socials = [
@@ -46,11 +47,13 @@ function scrollToTop() {
       Published under <span class="font-bold">MIT License</span>
     </UButton>
 
-    <nav class="flex gap-3 justify-center">
+    <nav class="flex flex-wrap gap-x-3 gap-y-1 justify-center">
       <UButton
         v-for="link in links"
         :key="link.name"
         :to="link.to"
+        :external="link.external"
+        :target="link.external ? '_blank' : undefined"
         variant="link"
         color="neutral"
         @click="track('Footer nav', { page: link.name })"
