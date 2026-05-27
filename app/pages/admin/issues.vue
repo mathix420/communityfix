@@ -119,12 +119,14 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
           <template v-if="issue.infoRequest && issue.infoResponse && issue.status === 'pending'">
             <UButton
               size="xs"
-              color="warning"
+              color="primary"
+              variant="soft"
+              icon="lucide:sparkles"
               :loading="isPending(`remod-${issue.id}`)"
               :disabled="isPending(`remod-${issue.id}`)"
               @click="triggerRemod(issue.id)"
             >
-              Re-moderate
+              Re-run auto-mod
             </UButton>
             <UButton
               size="xs"
@@ -217,15 +219,15 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
           <div v-if="issue.rejectionReason" class="text-xs text-red-600">
             Rejected: {{ issue.rejectionReason }}
           </div>
-          <div v-if="issue.appealReason" class="text-xs text-yellow-700 bg-yellow-50 rounded px-2 py-1">
+          <div v-if="issue.appealReason" class="text-xs text-gray-700 bg-gray-50 rounded px-2 py-1">
             Appeal: {{ issue.appealReason }}
           </div>
-          <div v-if="issue.infoRequest && !issue.infoResponse" class="text-xs text-blue-700 bg-blue-50 rounded px-2 py-1">
+          <div v-if="issue.infoRequest && !issue.infoResponse" class="text-xs text-gray-700 bg-gray-50 rounded px-2 py-1">
             Awaiting response: {{ issue.infoRequest }}
           </div>
           <template v-else-if="issue.infoRequest && issue.infoResponse">
             <div class="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">Asked: {{ issue.infoRequest }}</div>
-            <div class="text-xs text-green-700 bg-green-50 rounded px-2 py-1">Response: {{ issue.infoResponse }}</div>
+            <div class="text-xs text-primary-700 bg-primary-50 rounded px-2 py-1">Response: {{ issue.infoResponse }}</div>
           </template>
         </template>
       </AdminQueueCard>

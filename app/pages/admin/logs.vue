@@ -323,7 +323,7 @@ const logs = computed<LogRow[]>(() => (data.value?.logs as LogRow[] | undefined)
             class="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors"
             :class="[
               expandedLogId === log.id ? 'bg-gray-50' : 'hover:bg-gray-50/60',
-              log.status === 'needs_review' ? 'border-l-2 border-l-yellow-400' : 'border-l-2 border-l-transparent',
+              log.status === 'needs_review' ? 'border-l-2 border-l-primary-500' : 'border-l-2 border-l-transparent',
             ]"
             @click="expandedLogId = expandedLogId === log.id ? null : log.id"
           >
@@ -351,7 +351,7 @@ const logs = computed<LogRow[]>(() => (data.value?.logs as LogRow[] | undefined)
             <p v-if="log.reason" class="text-gray-600 leading-relaxed">{{ log.reason }}</p>
 
             <div v-if="(log.details?.confidence as number | undefined) != null" class="flex items-center gap-2 text-xs">
-              <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium" :class="(log.details!.confidence as number) >= 0.7 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'">
+              <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium" :class="(log.details!.confidence as number) >= 0.7 ? 'bg-primary-50 text-primary-700' : 'bg-gray-100 text-gray-700'">
                 <UIcon name="lucide:gauge" class="size-3" /> {{ Math.round((log.details!.confidence as number) * 100) }}% confidence
               </span>
               <span v-if="log.details!.aiDecision" class="text-toned">
@@ -359,9 +359,9 @@ const logs = computed<LogRow[]>(() => (data.value?.logs as LogRow[] | undefined)
               </span>
             </div>
 
-            <div v-if="(log.details?.questions as string[] | undefined)?.length" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs">
-              <p class="font-medium text-yellow-800 mb-1">AI questions for the author:</p>
-              <ul class="list-disc list-inside text-yellow-700 space-y-0.5">
+            <div v-if="(log.details?.questions as string[] | undefined)?.length" class="bg-gray-50 rounded-lg px-3 py-2 text-xs">
+              <p class="font-medium text-gray-800 mb-1">AI questions for the author:</p>
+              <ul class="list-disc list-inside text-gray-700 space-y-0.5">
                 <li v-for="(q, i) in (log.details!.questions as string[])" :key="i">{{ q }}</li>
               </ul>
             </div>
@@ -373,14 +373,14 @@ const logs = computed<LogRow[]>(() => (data.value?.logs as LogRow[] | undefined)
               <NuxtLink
                 v-if="log.details.duplicateOfId"
                 :to="`/issue/${log.details.duplicateOfId}`"
-                class="inline-flex items-center gap-1 bg-yellow-50 text-yellow-700 rounded-full px-2.5 py-0.5 text-xs font-medium hover:bg-yellow-100"
+                class="inline-flex items-center gap-1 bg-gray-100 text-gray-700 rounded-full px-2.5 py-0.5 text-xs font-medium hover:bg-gray-200"
               >
                 <UIcon name="lucide:copy" class="size-3" /> Duplicate of #{{ log.details.duplicateOfId }}
               </NuxtLink>
               <NuxtLink
                 v-if="log.details.targetId"
                 :to="`/issue/${log.details.targetId}`"
-                class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 rounded-full px-2.5 py-0.5 text-xs font-medium hover:bg-blue-100"
+                class="inline-flex items-center gap-1 bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-xs font-medium hover:bg-primary-100"
               >
                 <UIcon name="lucide:arrow-right" class="size-3" /> Target #{{ log.details.targetId }}
               </NuxtLink>
@@ -407,7 +407,7 @@ const logs = computed<LogRow[]>(() => (data.value?.logs as LogRow[] | undefined)
               </span>
             </div>
 
-            <div v-if="log.reviewer || log.reviewNote" class="text-xs text-toned border-l-2 border-l-green-300 pl-2">
+            <div v-if="log.reviewer || log.reviewNote" class="text-xs text-toned border-l-2 border-l-gray-300 pl-2">
               <span v-if="log.reviewer">{{ log.reviewer.name }}</span>
               <span v-if="log.reviewNote"> — {{ log.reviewNote }}</span>
             </div>

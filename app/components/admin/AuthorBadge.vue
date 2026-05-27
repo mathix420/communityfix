@@ -44,7 +44,7 @@ function isNewAccount(createdAt?: string) {
     <span
       v-if="author.trustScore != null"
       class="inline-flex items-center gap-0.5 font-mono"
-      :class="author.trustScore < 0 ? 'text-red-600' : author.trustScore > 5 ? 'text-green-700' : 'text-gray-600'"
+      :class="author.trustScore < 0 ? 'text-red-600' : 'text-gray-500'"
       :title="`Trust score: ${author.trustScore}`"
     >
       <UIcon name="lucide:shield" class="size-3" />
@@ -69,7 +69,7 @@ function isNewAccount(createdAt?: string) {
       {{ author.approved }}
     </span>
 
-    <span v-if="isNewAccount(author.createdAt)" class="text-amber-700 font-medium" title="Account less than 7 days old">
+    <span v-if="isNewAccount(author.createdAt)" class="text-gray-500 font-medium" title="Account less than 7 days old">
       new
     </span>
 

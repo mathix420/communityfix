@@ -14,18 +14,17 @@ export function slaTier(date: string | Date | null | undefined): SlaTier {
   return 'fresh'
 }
 
-export function slaBorderClass(tier: SlaTier): string {
-  switch (tier) {
-    case 'overdue': return 'border-l-4 border-l-red-500'
-    case 'aging':   return 'border-l-4 border-l-yellow-400'
-    case 'fresh':   return 'border-l-4 border-l-transparent'
-  }
+export function slaBorderClass(_tier: SlaTier): string {
+  // Card accent intentionally dropped — the SlaBadge already signals urgency,
+  // and the colored left border made the moderation queue visually noisier
+  // than the rest of the site (which sticks to primary + gray + semantic red).
+  return ''
 }
 
 export function slaBadgeClass(tier: SlaTier): string {
   switch (tier) {
     case 'overdue': return 'bg-red-50 text-red-700'
-    case 'aging':   return 'bg-yellow-50 text-yellow-700'
+    case 'aging':   return 'bg-gray-100 text-gray-700'
     case 'fresh':   return 'bg-gray-50 text-gray-600'
   }
 }

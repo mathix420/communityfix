@@ -96,7 +96,7 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
             <div>
               <p class="font-mono text-[11px] uppercase tracking-widest text-gray-500">Trust score</p>
-              <p class="text-lg font-mono font-medium mt-0.5" :class="data.user.trustScore < 0 ? 'text-red-600' : data.user.trustScore > 5 ? 'text-green-700' : ''">
+              <p class="text-lg font-mono font-medium mt-0.5" :class="data.user.trustScore < 0 ? 'text-red-600' : ''">
                 {{ data.user.trustScore }}
               </p>
             </div>
@@ -163,7 +163,7 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
       <div v-if="isBanned" class="mt-4 bg-red-50 rounded-lg p-3 text-xs">
         <p class="font-medium text-red-800">Banned until {{ formatDate(data.user.bannedUntil) }}</p>
         <p v-if="data.user.banReason" class="text-red-700 mt-1">Reason: {{ data.user.banReason }}</p>
-        <p v-if="data.user.banAppealReason" class="mt-2 text-yellow-800">
+        <p v-if="data.user.banAppealReason" class="mt-2 text-gray-700">
           Appeal: {{ data.user.banAppealReason }}
         </p>
       </div>

@@ -66,7 +66,7 @@ function openEditCaseStudy(c: { id: number, description?: string | null, impleme
   editOpen.value = true
 }
 
-// --- Request-info modal wiring (kept from previous version) ---
+// --- Request-info modal wiring ---
 const requestInfoModalOpen = ref(false)
 const requestInfoIssueId = ref(0)
 const requestInfoText = ref('')
@@ -159,6 +159,16 @@ const totalActionable = computed(() => {
 
 const oldestTier = computed(() => slaTier(stats.value?.oldestUnresolvedAt ?? null))
 const oldestHours = computed(() => ageHours(stats.value?.oldestUnresolvedAt ?? null))
+const oldestLabel = computed(() => {
+  if (oldestHours.value == null) return null
+  return oldestHours.value < 24
+    ? `${oldestHours.value}h`
+    : `${Math.floor(oldestHours.value / 24)}d`
+})
+
+const oldestTone = computed(() =>
+  oldestTier.value === 'overdue' ? 'text-red-600' : 'text-toned',
+)
 
 // Pull confidence from the audit-log details payload — it's typed as
 // unknown in the schema, so we narrow here once instead of casting at
@@ -189,15 +199,13 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
 
 <template>
   <div class="space-y-8">
-    <!-- Stats -->
+    <!-- Stats grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       <UiCard padding="sm">
         <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Action needed</p>
-        <p class="text-2xl font-mono font-medium mt-1" :class="totalActionable > 0 ? 'text-yellow-600' : ''">
-          {{ totalActionable }}
-        </p>
-        <p v-if="oldestHours != null" class="text-[10px] mt-0.5" :class="oldestTier === 'overdue' ? 'text-red-600' : oldestTier === 'aging' ? 'text-yellow-700' : 'text-toned'">
-          oldest {{ oldestHours < 24 ? `${oldestHours}h` : `${Math.floor(oldestHours / 24)}d` }}
+        <p class="text-2xl font-mono font-medium mt-1">{{ totalActionable }}</p>
+        <p v-if="oldestLabel" class="text-[10px] mt-0.5" :class="oldestTone">
+          oldest {{ oldestLabel }}
         </p>
       </UiCard>
       <UiCard padding="sm">
@@ -222,10 +230,9 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
       </UiCard>
     </div>
 
-    <!-- AI Health (30d) -->
+    <!-- AI moderation health -->
     <section v-if="health">
-      <div class="mb-3 flex items-baseline gap-3">
-        <UIcon name="lucide:brain" class="size-4 text-primary-600 self-center" />
+      <div class="mb-3 flex items-baseline gap-2">
         <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">AI moderation health</h2>
         <span class="font-mono text-[10px] text-gray-400 uppercase tracking-widest">last {{ health.windowDays }}d</span>
       </div>
@@ -234,7 +241,9 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
           <div>
             <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Decisions</p>
             <p class="text-lg font-mono font-medium mt-0.5">{{ health.overall.total }}</p>
-            <p class="text-[11px] text-toned mt-0.5">{{ health.overall.autoResolved }} auto · {{ health.overall.needsReview }} flagged</p>
+            <p class="text-[11px] text-toned mt-0.5">
+              {{ health.overall.autoResolved }} auto · {{ health.overall.needsReview }} flagged
+            </p>
           </div>
           <div>
             <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Override rate</p>
@@ -254,7 +263,9 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
             >
               {{ formatPercent(health.appeals.grantRate) }}
             </p>
-            <p class="text-[11px] text-toned mt-0.5">{{ health.appeals.granted }} of {{ health.appeals.granted + health.appeals.denied }} resolved</p>
+            <p class="text-[11px] text-toned mt-0.5">
+              {{ health.appeals.granted }} / {{ health.appeals.granted + health.appeals.denied }} resolved
+            </p>
           </div>
           <div>
             <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Avg confidence</p>
@@ -267,8 +278,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
 
     <!-- AI Uncertain — needs human decision -->
     <section v-if="queue?.uncertain?.length">
-      <div class="mb-3 flex items-center gap-2">
-        <UIcon name="lucide:brain" class="size-4 text-yellow-500" />
+      <div class="mb-3 flex items-baseline gap-2">
         <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">AI uncertain — needs decision</h2>
         <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.uncertain.length }}</span>
       </div>
@@ -336,29 +346,30 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
           </template>
 
           <template #meta>
-            <div v-if="detailQuestions(log.details).length" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs">
-              <p class="font-medium text-yellow-800 mb-1">AI wants to know:</p>
-              <ul class="list-disc list-inside text-yellow-700 space-y-0.5">
+            <div v-if="detailQuestions(log.details).length" class="bg-gray-50 rounded-lg px-3 py-2 text-xs">
+              <p class="font-medium text-gray-800 mb-1">AI wants to know:</p>
+              <ul class="list-disc list-inside text-gray-700 space-y-0.5">
                 <li v-for="(q, i) in detailQuestions(log.details)" :key="i">{{ q }}</li>
               </ul>
             </div>
 
-            <div v-if="log.issue?.infoRequest && !log.issue?.infoResponse" class="bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-700">
+            <div v-if="log.issue?.infoRequest && !log.issue?.infoResponse" class="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700">
               Waiting for author response to: "{{ log.issue.infoRequest }}"
             </div>
-            <div v-else-if="log.issue?.infoRequest && log.issue?.infoResponse" class="bg-green-50 rounded-lg px-3 py-2 text-xs space-y-1">
-              <p class="text-green-800 font-medium">Author responded:</p>
-              <p class="text-green-700">{{ log.issue.infoResponse }}</p>
+            <div v-else-if="log.issue?.infoRequest && log.issue?.infoResponse" class="bg-primary-50 rounded-lg px-3 py-2 text-xs space-y-1">
+              <p class="text-primary-800 font-medium">Author responded:</p>
+              <p class="text-primary-700">{{ log.issue.infoResponse }}</p>
               <UButton
                 size="xs"
                 color="primary"
                 variant="soft"
+                icon="lucide:sparkles"
                 class="mt-1"
                 :loading="isPending(`remod-${log.issue.id}`)"
                 :disabled="isPending(`remod-${log.issue.id}`)"
                 @click="triggerRemod(log.issue.id)"
               >
-                Re-run Moderation
+                Re-run auto-mod
               </UButton>
             </div>
           </template>
@@ -386,8 +397,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
 
     <!-- Info Received — ready for re-moderation -->
     <section v-if="queue?.infoReceived?.length">
-      <div class="mb-3 flex items-center gap-2">
-        <UIcon name="lucide:message-circle" class="size-4 text-green-500" />
+      <div class="mb-3 flex items-baseline gap-2">
         <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Author responded — ready for re-moderation</h2>
         <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.infoReceived.length }}</span>
       </div>
@@ -413,16 +423,17 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
             <UButton
               size="xs"
               color="primary"
+              variant="soft"
+              icon="lucide:sparkles"
               :loading="isPending(`remod-${issue.id}`)"
               :disabled="isPending(`remod-${issue.id}`)"
               @click="triggerRemod(issue.id)"
             >
-              Re-moderate
+              Re-run auto-mod
             </UButton>
             <UButton
               size="xs"
               color="primary"
-              variant="soft"
               :loading="isPending(`approve-issue-${issue.id}`)"
               :disabled="isPending(`approve-issue-${issue.id}`)"
               @click="forceApprove(issue.id)"
@@ -442,7 +453,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
           <template #meta>
             <div class="text-xs space-y-1">
               <p class="text-gray-500">Asked: {{ issue.infoRequest }}</p>
-              <p class="text-green-700 font-medium">Response: {{ issue.infoResponse }}</p>
+              <p class="text-gray-900 font-medium">Response: {{ issue.infoResponse }}</p>
             </div>
           </template>
 
@@ -458,8 +469,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
 
     <!-- Issue Appeals -->
     <section v-if="queue?.pendingAppeals?.length">
-      <div class="mb-3 flex items-center gap-2">
-        <UIcon name="lucide:scale" class="size-4 text-orange-500" />
+      <div class="mb-3 flex items-baseline gap-2">
         <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Issue appeals</h2>
         <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.pendingAppeals.length }}</span>
       </div>
@@ -507,7 +517,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
           </template>
 
           <template #meta>
-            <div v-if="issue.appealReason" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs text-yellow-700">
+            <div v-if="issue.appealReason" class="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700">
               Appeal: {{ issue.appealReason }}
             </div>
           </template>
@@ -528,8 +538,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
 
     <!-- Pending Case Studies -->
     <section v-if="queue?.pendingCaseStudies?.length">
-      <div class="mb-3 flex items-center gap-2">
-        <UIcon name="lucide:flask-conical" class="size-4 text-purple-500" />
+      <div class="mb-3 flex items-baseline gap-2">
         <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Pending case studies</h2>
         <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.pendingCaseStudies.length }}</span>
       </div>
@@ -584,13 +593,14 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
             </UButton>
             <UButton
               size="xs"
-              color="neutral"
-              variant="ghost"
+              color="primary"
+              variant="soft"
+              icon="lucide:sparkles"
               :loading="isPending(`remod-cs-${cs.id}`)"
               :disabled="isPending(`remod-cs-${cs.id}`)"
               @click="triggerCaseStudyRemod(cs.id)"
             >
-              Re-mod
+              Re-run auto-mod
             </UButton>
           </template>
 
@@ -606,8 +616,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
 
     <!-- Ban Appeals -->
     <section v-if="queue?.banAppeals?.length">
-      <div class="mb-3 flex items-center gap-2">
-        <UIcon name="lucide:user-x" class="size-4 text-red-500" />
+      <div class="mb-3 flex items-baseline gap-2">
         <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Ban appeals</h2>
         <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.banAppeals.length }}</span>
       </div>
@@ -651,7 +660,7 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
           </template>
 
           <template #meta>
-            <div v-if="user.banAppealReason" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs text-yellow-700">
+            <div v-if="user.banAppealReason" class="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700">
               Appeal: {{ user.banAppealReason }}
             </div>
           </template>
@@ -689,7 +698,9 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
       <template #content>
         <div class="p-4 space-y-3">
           <h3 class="font-medium">Ask author for more information</h3>
-          <p class="text-sm text-toned">Issue #{{ requestInfoIssueId }} — The author will see this question and can respond. A new moderation pass will run automatically after they respond.</p>
+          <p class="text-sm text-toned">
+            Issue #{{ requestInfoIssueId }} — the author will see this question and can respond. A new moderation pass runs automatically once they reply.
+          </p>
           <UTextarea
             v-model="requestInfoText"
             placeholder="What do you need to know? e.g. 'Could you clarify what specific community this affects?'"

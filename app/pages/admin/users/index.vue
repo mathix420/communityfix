@@ -80,7 +80,7 @@ watch(filter, () => { page.value = 1 })
             <div class="text-right text-xs space-y-0.5 shrink-0">
               <p>
                 <span class="text-toned">trust</span>
-                <span class="ml-1 font-mono" :class="u.trustScore < 0 ? 'text-red-600' : u.trustScore > 5 ? 'text-green-700' : ''">
+                <span class="ml-1 font-mono" :class="u.trustScore < 0 ? 'text-red-600' : ''">
                   {{ u.trustScore }}
                 </span>
               </p>
