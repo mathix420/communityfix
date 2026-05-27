@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const rows = await db.query.issues.findMany({
     where,
     with: {
-      author: { columns: { id: true, name: true, email: true } },
+      author: { columns: { id: true, name: true, email: true, trustScore: true, createdAt: true } },
     },
     orderBy: desc(issues.createdAt),
     limit: 100,

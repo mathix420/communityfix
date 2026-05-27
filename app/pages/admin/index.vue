@@ -1,122 +1,151 @@
 <script setup lang="ts">
-const { data: stats } = await useFetch('/api/admin/stats')
-const { data: queue, refresh } = await useFetch('/api/admin/queue') as any
+import { slaTier, ageHours } from '~/utils/admin-sla'
 
-const actionLoading = ref<string | null>(null)
+const { data: stats, refresh: refreshStats } = await useFetch('/api/admin/stats')
+const { data: queue, refresh: refreshQueue } = await useFetch('/api/admin/queue')
+const { data: health } = await useFetch('/api/admin/ai-health', { query: { days: 30 } })
+
+const { run, isPending } = useAdminAction()
+async function refreshAll() {
+  await Promise.all([refreshQueue(), refreshStats()])
+}
+
+// --- Reject modal wiring ---
+const rejectOpen = ref(false)
+const rejectTarget = ref<{ kind: 'issue' | 'case-study', id: number, label: string } | null>(null)
+
+function askReject(kind: 'issue' | 'case-study', id: number, label: string) {
+  rejectTarget.value = { kind, id, label }
+  rejectOpen.value = true
+}
+
+async function onReject(reason: string) {
+  if (!rejectTarget.value) return
+  const t = rejectTarget.value
+  const path = t.kind === 'case-study'
+    ? `/api/admin/case-study/${t.id}/reject`
+    : `/api/admin/issues/${t.id}/reject`
+  const result = await run(`reject-${t.kind}-${t.id}`, () =>
+    $fetch(path, { method: 'POST' as const, body: { reason } }),
+  )
+  if (result) {
+    rejectOpen.value = false
+    rejectTarget.value = null
+    await refreshAll()
+  }
+}
+
+// --- Edit-approve modal wiring ---
+const editOpen = ref(false)
+const editIssue = ref<{ id: number, title: string, summary: string, description: string | null, type: 'issue' | 'solution' } | null>(null)
+const editCaseStudy = ref<{ id: number, description: string | null, implementer: string | null, locationName: string, outcome: 'success' | 'partial' | 'failed' | 'inconclusive' | 'ongoing' } | null>(null)
+const editKind = ref<'issue' | 'case-study'>('issue')
+
+function openEditIssue(i: { id: number, title: string, summary: string, description?: string | null, type?: 'issue' | 'solution' }) {
+  editKind.value = 'issue'
+  editIssue.value = {
+    id: i.id,
+    title: i.title,
+    summary: i.summary,
+    description: i.description ?? null,
+    type: i.type ?? 'issue',
+  }
+  editCaseStudy.value = null
+  editOpen.value = true
+}
+function openEditCaseStudy(c: { id: number, description?: string | null, implementer?: string | null, locationName: string, outcome: 'success' | 'partial' | 'failed' | 'inconclusive' | 'ongoing' }) {
+  editKind.value = 'case-study'
+  editCaseStudy.value = {
+    id: c.id,
+    description: c.description ?? null,
+    implementer: c.implementer ?? null,
+    locationName: c.locationName,
+    outcome: c.outcome,
+  }
+  editIssue.value = null
+  editOpen.value = true
+}
+
+// --- Request-info modal wiring ---
 const requestInfoModalOpen = ref(false)
 const requestInfoIssueId = ref(0)
 const requestInfoText = ref('')
-
-async function forceApprove(id: number) {
-  actionLoading.value = `approve-${id}`
-  try {
-    await $fetch(`/api/admin/issues/${id}/approve`, { method: 'POST' as const, body: {} })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
-}
-
-async function forceReject(id: number) {
-  const reason = prompt('Rejection reason:')
-  if (!reason) return
-  actionLoading.value = `reject-${id}`
-  try {
-    await $fetch(`/api/admin/issues/${id}/reject`, { method: 'POST' as const, body: { reason } })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
-}
-
-async function triggerRemod(id: number) {
-  actionLoading.value = `remod-${id}`
-  try {
-    await $fetch(`/api/admin/issues/${id}/remod`, { method: 'POST' as const })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
-}
 
 function openRequestInfo(issueId: number, existingQuestion = '') {
   requestInfoIssueId.value = issueId
   requestInfoText.value = existingQuestion
   requestInfoModalOpen.value = true
 }
-
 function closeRequestInfo() {
   requestInfoModalOpen.value = false
   requestInfoText.value = ''
 }
-
 async function sendInfoRequest() {
   if (!requestInfoIssueId.value || !requestInfoText.value.trim()) return
-  actionLoading.value = `info-${requestInfoIssueId.value}`
-  try {
-    await $fetch(`/api/admin/issues/${requestInfoIssueId.value}/request-info`, {
+  const result = await run(`info-${requestInfoIssueId.value}`, () =>
+    $fetch(`/api/admin/issues/${requestInfoIssueId.value}/request-info`, {
       method: 'POST' as const,
       body: { question: requestInfoText.value.trim() },
-    })
+    }),
+  )
+  if (result) {
     closeRequestInfo()
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
+    await refreshAll()
   }
 }
 
+// --- Direct actions ---
+async function forceApprove(id: number) {
+  const result = await run(`approve-issue-${id}`, () =>
+    $fetch(`/api/admin/issues/${id}/approve`, { method: 'POST' as const, body: {} }),
+  )
+  if (result) await refreshAll()
+}
+async function approveCaseStudy(id: number) {
+  const result = await run(`approve-cs-${id}`, () =>
+    $fetch(`/api/admin/case-study/${id}/approve`, { method: 'POST' as const, body: {} }),
+  )
+  if (result) await refreshAll()
+}
+async function triggerRemod(id: number) {
+  const result = await run(`remod-${id}`, () =>
+    $fetch(`/api/admin/issues/${id}/remod`, { method: 'POST' as const }),
+  )
+  if (result) await refreshAll()
+}
+async function triggerCaseStudyRemod(id: number) {
+  const result = await run(`remod-cs-${id}`, () =>
+    $fetch(`/api/admin/case-study/${id}/remod`, { method: 'POST' as const }),
+  )
+  if (result) await refreshAll()
+}
 async function resolveAppeal(id: number, status: 'approved' | 'denied') {
-  actionLoading.value = `appeal-${id}-${status}`
-  try {
-    await $fetch(`/api/admin/issues/${id}/appeal`, { method: 'PATCH' as const, body: { status } })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
+  const result = await run(`appeal-${id}-${status}`, () =>
+    $fetch(`/api/admin/issues/${id}/appeal`, { method: 'PATCH' as const, body: { status } }),
+  )
+  if (result) await refreshAll()
 }
-
 async function unbanUser(userId: string) {
-  actionLoading.value = `unban-${userId}`
-  try {
-    await $fetch(`/api/admin/users/${userId}/unban`, { method: 'POST' as const, body: {} })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
+  const result = await run(`unban-${userId}`, () =>
+    $fetch(`/api/admin/users/${userId}/unban`, { method: 'POST' as const, body: {} }),
+  )
+  if (result) await refreshAll()
 }
-
 async function denyBanAppeal(userId: string) {
-  actionLoading.value = `ban-deny-${userId}`
-  try {
-    await $fetch(`/api/admin/users/${userId}/ban-appeal`, { method: 'PATCH' as const, body: { status: 'denied' } })
-    await refresh()
-  }
-  finally {
-    actionLoading.value = null
-  }
+  const result = await run(`ban-deny-${userId}`, () =>
+    $fetch(`/api/admin/users/${userId}/ban-appeal`, { method: 'PATCH' as const, body: { status: 'denied' } }),
+  )
+  if (result) await refreshAll()
 }
 
-function formatConfidence(c: number | undefined) {
+function formatConfidence(c: number | undefined | null) {
   if (c == null) return ''
   return `${Math.round(c * 100)}%`
 }
 
-function formatTime(date: string | null | undefined) {
-  if (!date) return ''
-  const d = new Date(date)
-  const now = new Date()
-  const diffMin = Math.floor((now.getTime() - d.getTime()) / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `${diffH}h ago`
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function formatPercent(value: number | null) {
+  if (value == null) return '—'
+  return `${Math.round(value * 100)}%`
 }
 
 const totalActionable = computed(() => {
@@ -124,296 +153,554 @@ const totalActionable = computed(() => {
   return (queue.value.uncertain?.length ?? 0)
     + (queue.value.pendingAppeals?.length ?? 0)
     + (queue.value.infoReceived?.length ?? 0)
+    + (queue.value.pendingCaseStudies?.length ?? 0)
     + (queue.value.banAppeals?.length ?? 0)
 })
+
+const oldestTier = computed(() => slaTier(stats.value?.oldestUnresolvedAt ?? null))
+const oldestHours = computed(() => ageHours(stats.value?.oldestUnresolvedAt ?? null))
+const oldestLabel = computed(() => {
+  if (oldestHours.value == null) return null
+  return oldestHours.value < 24
+    ? `${oldestHours.value}h`
+    : `${Math.floor(oldestHours.value / 24)}d`
+})
+
+const oldestTone = computed(() =>
+  oldestTier.value === 'overdue' ? 'text-red-600' : 'text-toned',
+)
+
+// Pull confidence from the audit-log details payload — it's typed as
+// unknown in the schema, so we narrow here once instead of casting at
+// every reference.
+function detailConfidence(details: unknown): number | null {
+  if (!details || typeof details !== 'object') return null
+  const c = (details as Record<string, unknown>).confidence
+  return typeof c === 'number' ? c : null
+}
+function detailAiDecision(details: unknown): string | null {
+  if (!details || typeof details !== 'object') return null
+  const d = (details as Record<string, unknown>).aiDecision
+  return typeof d === 'string' ? d : null
+}
+function detailQuestions(details: unknown): string[] {
+  if (!details || typeof details !== 'object') return []
+  const q = (details as Record<string, unknown>).questions
+  return Array.isArray(q) ? q.filter((s): s is string => typeof s === 'string') : []
+}
+function detailSimilar(details: unknown): Array<{ id: number, similarity: number }> {
+  if (!details || typeof details !== 'object') return []
+  const s = (details as Record<string, unknown>).similarIssues
+  if (!Array.isArray(s)) return []
+  return s
+    .filter((row): row is { id: number, similarity: number } => !!row && typeof row === 'object' && typeof (row as { id?: unknown }).id === 'number')
+}
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Stats -->
+  <div class="space-y-8">
+    <!-- Stats grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       <UiCard padding="sm">
-        <p class="text-xs text-toned uppercase tracking-wide">Action Needed</p>
-        <p class="text-2xl font-semibold mt-1" :class="totalActionable > 0 ? 'text-yellow-600' : ''">
-          {{ totalActionable }}
+        <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Action needed</p>
+        <p class="text-2xl font-mono font-medium mt-1">{{ totalActionable }}</p>
+        <p v-if="oldestLabel" class="text-[10px] mt-0.5" :class="oldestTone">
+          oldest {{ oldestLabel }}
         </p>
       </UiCard>
       <UiCard padding="sm">
-        <p class="text-xs text-toned uppercase tracking-wide">Pending Issues</p>
-        <p class="text-2xl font-semibold mt-1">{{ stats?.pendingIssues ?? 0 }}</p>
+        <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Pending issues</p>
+        <p class="text-2xl font-mono font-medium mt-1">{{ stats?.pendingIssues ?? 0 }}</p>
       </UiCard>
       <UiCard padding="sm">
-        <p class="text-xs text-toned uppercase tracking-wide">Needs Review</p>
-        <p class="text-2xl font-semibold mt-1">{{ stats?.pendingReviews ?? 0 }}</p>
+        <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Pending case studies</p>
+        <p class="text-2xl font-mono font-medium mt-1">{{ stats?.pendingCaseStudies ?? 0 }}</p>
       </UiCard>
       <UiCard padding="sm">
-        <p class="text-xs text-toned uppercase tracking-wide">Awaiting Info</p>
-        <p class="text-2xl font-semibold mt-1">{{ stats?.awaitingInfo ?? 0 }}</p>
+        <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Needs review</p>
+        <p class="text-2xl font-mono font-medium mt-1">{{ stats?.pendingReviews ?? 0 }}</p>
       </UiCard>
       <UiCard padding="sm">
-        <p class="text-xs text-toned uppercase tracking-wide">Issue Appeals</p>
-        <p class="text-2xl font-semibold mt-1">{{ stats?.issueAppeals ?? 0 }}</p>
+        <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Issue appeals</p>
+        <p class="text-2xl font-mono font-medium mt-1">{{ stats?.issueAppeals ?? 0 }}</p>
       </UiCard>
       <UiCard padding="sm">
-        <p class="text-xs text-toned uppercase tracking-wide">Ban Appeals</p>
-        <p class="text-2xl font-semibold mt-1">{{ stats?.banAppeals ?? 0 }}</p>
+        <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Ban appeals</p>
+        <p class="text-2xl font-mono font-medium mt-1">{{ stats?.banAppeals ?? 0 }}</p>
       </UiCard>
     </div>
 
-    <!-- AI Uncertain — needs human decision -->
-    <section v-if="queue?.uncertain?.length">
-      <h3 class="text-sm font-medium text-toned mb-3 flex items-center gap-2">
-        <UIcon name="i-lucide-brain" class="size-4 text-yellow-500" />
-        AI Uncertain — Needs Decision
-      </h3>
-      <div class="space-y-2">
-        <UiCard v-for="log in queue.uncertain" :key="log.id" padding="sm">
-          <div class="space-y-2">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                  <NuxtLink v-if="log.issue" :to="`/issue/${log.issue.id}`" class="font-medium hover:underline truncate">
-                    #{{ log.issue.id }} {{ log.issue.title }}
-                  </NuxtLink>
-                  <UiBadge v-if="log.issue">{{ log.issue.type }}</UiBadge>
-                  <UiBadge v-if="log.details?.confidence != null" variant="warning">
-                    {{ formatConfidence(log.details.confidence) }} confidence
-                  </UiBadge>
-                  <UiBadge v-if="log.details?.aiDecision" :variant="log.details.aiDecision === 'approve' ? 'success' : 'error'">
-                    AI: {{ log.details.aiDecision }}
-                  </UiBadge>
-                </div>
-                <p v-if="log.issue?.summary" class="text-sm text-toned line-clamp-2">{{ log.issue.summary }}</p>
-                <p class="text-xs text-toned mt-1">{{ log.reason }}</p>
-                <p v-if="log.user" class="text-xs text-toned mt-0.5">
-                  By {{ log.user.name || log.user.email }} · {{ formatTime(log.createdAt) }}
-                </p>
-              </div>
-              <div v-if="log.issue" class="flex flex-col gap-1.5 shrink-0">
-                <UButton
-                  size="xs"
-                  color="primary"
-                  :loading="actionLoading === `approve-${log.issue.id}`"
-                  @click="forceApprove(log.issue.id)"
-                >
-                  Approve
-                </UButton>
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="outline"
-                  :loading="actionLoading === `reject-${log.issue.id}`"
-                  @click="forceReject(log.issue.id)"
-                >
-                  Reject
-                </UButton>
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  :loading="actionLoading === `info-${log.issue.id}`"
-                  @click="openRequestInfo(log.issue.id, log.details?.questions?.join('\n') || '')"
-                >
-                  Ask Author
-                </UButton>
-              </div>
-            </div>
-
-            <!-- AI questions -->
-            <div v-if="log.details?.questions?.length" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs">
-              <p class="font-medium text-yellow-800 mb-1">AI wants to know:</p>
-              <ul class="list-disc list-inside text-yellow-700 space-y-0.5">
-                <li v-for="(q, i) in log.details.questions" :key="i">{{ q }}</li>
-              </ul>
-            </div>
-
-            <!-- Info request/response status -->
-            <div v-if="log.issue?.infoRequest && !log.issue?.infoResponse" class="bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-700">
-              Waiting for author response to: "{{ log.issue.infoRequest }}"
-            </div>
-            <div v-else-if="log.issue?.infoRequest && log.issue?.infoResponse" class="bg-green-50 rounded-lg px-3 py-2 text-xs space-y-1">
-              <p class="text-green-800 font-medium">Author responded:</p>
-              <p class="text-green-700">{{ log.issue.infoResponse }}</p>
-              <UButton
-                size="xs"
-                color="primary"
-                variant="soft"
-                class="mt-1"
-                :loading="actionLoading === `remod-${log.issue.id}`"
-                @click="triggerRemod(log.issue.id)"
-              >
-                Re-run Moderation
-              </UButton>
-            </div>
-          </div>
-        </UiCard>
+    <!-- AI moderation health -->
+    <section v-if="health">
+      <div class="mb-3 flex items-baseline gap-2">
+        <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">AI moderation health</h2>
+        <span class="font-mono text-[10px] text-gray-400 uppercase tracking-widest">last {{ health.windowDays }}d</span>
       </div>
+      <UiCard padding="md">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          <div>
+            <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Decisions</p>
+            <p class="text-lg font-mono font-medium mt-0.5">{{ health.overall.total }}</p>
+            <p class="text-[11px] text-toned mt-0.5">
+              {{ health.overall.autoResolved }} auto · {{ health.overall.needsReview }} flagged
+            </p>
+          </div>
+          <div>
+            <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Override rate</p>
+            <p
+              class="text-lg font-mono font-medium mt-0.5"
+              :class="health.disagreementRate != null && health.disagreementRate > 0.25 ? 'text-red-600' : ''"
+            >
+              {{ formatPercent(health.disagreementRate) }}
+            </p>
+            <p class="text-[11px] text-toned mt-0.5">when admins reviewed</p>
+          </div>
+          <div>
+            <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Appeal grant rate</p>
+            <p
+              class="text-lg font-mono font-medium mt-0.5"
+              :class="health.appeals.grantRate != null && health.appeals.grantRate > 0.3 ? 'text-red-600' : ''"
+            >
+              {{ formatPercent(health.appeals.grantRate) }}
+            </p>
+            <p class="text-[11px] text-toned mt-0.5">
+              {{ health.appeals.granted }} / {{ health.appeals.granted + health.appeals.denied }} resolved
+            </p>
+          </div>
+          <div>
+            <p class="font-mono text-[11px] text-gray-500 uppercase tracking-widest">Avg confidence</p>
+            <p class="text-lg font-mono font-medium mt-0.5">{{ formatPercent(health.overall.avgConfidence) }}</p>
+            <p class="text-[11px] text-toned mt-0.5">across all calls</p>
+          </div>
+        </div>
+      </UiCard>
     </section>
 
-    <!-- Info Received — ready for re-moderation -->
-    <section v-if="queue?.infoReceived?.length">
-      <h3 class="text-sm font-medium text-toned mb-3 flex items-center gap-2">
-        <UIcon name="i-lucide-message-circle" class="size-4 text-green-500" />
-        Author Responded — Ready for Re-moderation
-      </h3>
+    <!-- AI Uncertain — needs human decision -->
+    <section v-if="queue?.uncertain?.length">
+      <div class="mb-3 flex items-baseline gap-2">
+        <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">AI uncertain — needs decision</h2>
+        <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.uncertain.length }}</span>
+      </div>
       <div class="space-y-2">
-        <UiCard v-for="issue in queue.infoReceived" :key="issue.id" padding="sm">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 mb-1">
-                <NuxtLink :to="`/issue/${issue.id}`" class="font-medium hover:underline truncate">
-                  #{{ issue.id }} {{ issue.title }}
-                </NuxtLink>
-                <UiBadge>{{ issue.type }}</UiBadge>
-              </div>
-              <p class="text-sm text-toned line-clamp-1">{{ issue.summary }}</p>
-              <div class="mt-2 space-y-1 text-xs">
-                <p class="text-gray-500">Asked: {{ issue.infoRequest }}</p>
-                <p class="text-green-700 font-medium">Response: {{ issue.infoResponse }}</p>
-              </div>
-              <p v-if="issue.author" class="text-xs text-toned mt-1">
-                {{ issue.author.name || issue.author.email }} · responded {{ formatTime(issue.infoRespondedAt) }}
-              </p>
+        <AdminQueueCard
+          v-for="log in queue.uncertain"
+          :key="log.id"
+          :since="log.createdAt"
+        >
+          <template #header>
+            <div class="flex items-center gap-2 flex-wrap">
+              <NuxtLink v-if="log.issue" :to="`/issue/${log.issue.id}`" class="font-medium hover:underline truncate">
+                #{{ log.issue.id }} {{ log.issue.title }}
+              </NuxtLink>
+              <UiBadge v-if="log.issue">{{ log.issue.type }}</UiBadge>
+              <UiBadge v-if="detailConfidence(log.details) != null" variant="warning">
+                {{ formatConfidence(detailConfidence(log.details)) }} confidence
+              </UiBadge>
+              <UiBadge v-if="detailAiDecision(log.details)" :variant="detailAiDecision(log.details) === 'approve' ? 'success' : 'error'">
+                AI: {{ detailAiDecision(log.details) }}
+              </UiBadge>
+              <AdminSlaBadge :since="log.createdAt" hide-when-fresh />
             </div>
-            <div class="flex flex-col gap-1.5 shrink-0">
+            <p v-if="log.issue?.summary" class="text-sm text-toned line-clamp-2">{{ log.issue.summary }}</p>
+            <p class="text-xs text-toned">{{ log.reason }}</p>
+            <AdminAuthorBadge :author="log.user" :timestamp="log.createdAt" />
+          </template>
+
+          <template #actions>
+            <template v-if="log.issue">
               <UButton
                 size="xs"
                 color="primary"
-                :loading="actionLoading === `remod-${issue.id}`"
-                @click="triggerRemod(issue.id)"
-              >
-                Re-moderate
-              </UButton>
-              <UButton
-                size="xs"
-                color="primary"
-                variant="soft"
-                :loading="actionLoading === `approve-${issue.id}`"
-                @click="forceApprove(issue.id)"
+                :loading="isPending(`approve-issue-${log.issue.id}`)"
+                :disabled="isPending(`approve-issue-${log.issue.id}`)"
+                @click="forceApprove(log.issue.id)"
               >
                 Approve
               </UButton>
               <UButton
                 size="xs"
+                color="primary"
+                variant="soft"
+                @click="openEditIssue({ id: log.issue.id, title: log.issue.title, summary: log.issue.summary ?? '', description: null, type: log.issue.type as 'issue' | 'solution' })"
+              >
+                Edit & approve
+              </UButton>
+              <UButton
+                size="xs"
                 color="neutral"
-                variant="ghost"
-                :loading="actionLoading === `reject-${issue.id}`"
-                @click="forceReject(issue.id)"
+                variant="outline"
+                @click="askReject('issue', log.issue.id, `#${log.issue.id} ${log.issue.title}`)"
               >
                 Reject
               </UButton>
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click="openRequestInfo(log.issue.id, detailQuestions(log.details).join('\n'))"
+              >
+                Ask Author
+              </UButton>
+            </template>
+          </template>
+
+          <template #meta>
+            <div v-if="detailQuestions(log.details).length" class="bg-gray-50 rounded-lg px-3 py-2 text-xs">
+              <p class="font-medium text-gray-800 mb-1">AI wants to know:</p>
+              <ul class="list-disc list-inside text-gray-700 space-y-0.5">
+                <li v-for="(q, i) in detailQuestions(log.details)" :key="i">{{ q }}</li>
+              </ul>
             </div>
-          </div>
-        </UiCard>
+
+            <div v-if="log.issue?.infoRequest && !log.issue?.infoResponse" class="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700">
+              Waiting for author response to: "{{ log.issue.infoRequest }}"
+            </div>
+            <div v-else-if="log.issue?.infoRequest && log.issue?.infoResponse" class="bg-primary-50 rounded-lg px-3 py-2 text-xs space-y-1">
+              <p class="text-primary-800 font-medium">Author responded:</p>
+              <p class="text-primary-700">{{ log.issue.infoResponse }}</p>
+              <UButton
+                size="xs"
+                color="primary"
+                variant="soft"
+                icon="lucide:sparkles"
+                class="mt-1"
+                :loading="isPending(`remod-${log.issue.id}`)"
+                :disabled="isPending(`remod-${log.issue.id}`)"
+                @click="triggerRemod(log.issue.id)"
+              >
+                Re-run auto-mod
+              </UButton>
+            </div>
+          </template>
+
+          <template #preview>
+            <div v-if="log.issue?.description">
+              <p class="text-[11px] uppercase tracking-wide text-toned mb-1">Description</p>
+              <p class="text-gray-700 whitespace-pre-wrap line-clamp-6">{{ log.issue.description }}</p>
+            </div>
+            <div v-if="detailSimilar(log.details).length">
+              <p class="text-[11px] uppercase tracking-wide text-toned mb-1">Similar approved</p>
+              <ul class="space-y-0.5">
+                <li v-for="s in detailSimilar(log.details)" :key="s.id">
+                  <NuxtLink :to="`/issue/${s.id}`" class="text-primary-600 hover:underline">
+                    #{{ s.id }}
+                  </NuxtLink>
+                  <span class="text-toned"> ({{ Math.round(s.similarity * 100) }}% match)</span>
+                </li>
+              </ul>
+            </div>
+          </template>
+        </AdminQueueCard>
+      </div>
+    </section>
+
+    <!-- Info Received — ready for re-moderation -->
+    <section v-if="queue?.infoReceived?.length">
+      <div class="mb-3 flex items-baseline gap-2">
+        <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Author responded — ready for re-moderation</h2>
+        <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.infoReceived.length }}</span>
+      </div>
+      <div class="space-y-2">
+        <AdminQueueCard
+          v-for="issue in queue.infoReceived"
+          :key="issue.id"
+          :since="issue.infoRespondedAt"
+        >
+          <template #header>
+            <div class="flex items-center gap-2">
+              <NuxtLink :to="`/issue/${issue.id}`" class="font-medium hover:underline truncate">
+                #{{ issue.id }} {{ issue.title }}
+              </NuxtLink>
+              <UiBadge>{{ issue.type }}</UiBadge>
+              <AdminSlaBadge :since="issue.infoRespondedAt" hide-when-fresh />
+            </div>
+            <p class="text-sm text-toned line-clamp-1">{{ issue.summary }}</p>
+            <AdminAuthorBadge :author="issue.author" :timestamp="issue.infoRespondedAt" timestamp-label="responded" />
+          </template>
+
+          <template #actions>
+            <UButton
+              size="xs"
+              color="primary"
+              variant="soft"
+              icon="lucide:sparkles"
+              :loading="isPending(`remod-${issue.id}`)"
+              :disabled="isPending(`remod-${issue.id}`)"
+              @click="triggerRemod(issue.id)"
+            >
+              Re-run auto-mod
+            </UButton>
+            <UButton
+              size="xs"
+              color="primary"
+              :loading="isPending(`approve-issue-${issue.id}`)"
+              :disabled="isPending(`approve-issue-${issue.id}`)"
+              @click="forceApprove(issue.id)"
+            >
+              Approve
+            </UButton>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              @click="askReject('issue', issue.id, `#${issue.id} ${issue.title}`)"
+            >
+              Reject
+            </UButton>
+          </template>
+
+          <template #meta>
+            <div class="text-xs space-y-1">
+              <p class="text-gray-500">Asked: {{ issue.infoRequest }}</p>
+              <p class="text-gray-900 font-medium">Response: {{ issue.infoResponse }}</p>
+            </div>
+          </template>
+
+          <template #preview>
+            <div v-if="issue.description">
+              <p class="text-[11px] uppercase tracking-wide text-toned mb-1">Description</p>
+              <p class="text-gray-700 whitespace-pre-wrap line-clamp-6">{{ issue.description }}</p>
+            </div>
+          </template>
+        </AdminQueueCard>
       </div>
     </section>
 
     <!-- Issue Appeals -->
     <section v-if="queue?.pendingAppeals?.length">
-      <h3 class="text-sm font-medium text-toned mb-3 flex items-center gap-2">
-        <UIcon name="i-lucide-scale" class="size-4 text-orange-500" />
-        Issue Appeals
-      </h3>
+      <div class="mb-3 flex items-baseline gap-2">
+        <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Issue appeals</h2>
+        <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.pendingAppeals.length }}</span>
+      </div>
       <div class="space-y-2">
-        <UiCard v-for="issue in queue.pendingAppeals" :key="issue.id" padding="sm">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 mb-1">
-                <NuxtLink :to="`/issue/${issue.id}`" class="font-medium hover:underline truncate">
-                  #{{ issue.id }} {{ issue.title }}
+        <AdminQueueCard
+          v-for="issue in queue.pendingAppeals"
+          :key="issue.id"
+          :since="issue.appealedAt"
+        >
+          <template #header>
+            <div class="flex items-center gap-2">
+              <NuxtLink :to="`/issue/${issue.id}`" class="font-medium hover:underline truncate">
+                #{{ issue.id }} {{ issue.title }}
+              </NuxtLink>
+              <UiBadge>{{ issue.type }}</UiBadge>
+              <UiBadge variant="error">{{ issue.status }}</UiBadge>
+              <AdminSlaBadge :since="issue.appealedAt" hide-when-fresh />
+            </div>
+            <p v-if="issue.rejectionReason" class="text-xs text-red-600">
+              Rejected: {{ issue.rejectionReason }}
+            </p>
+            <AdminAuthorBadge :author="issue.author" :timestamp="issue.appealedAt" timestamp-label="appealed" />
+          </template>
+
+          <template #actions>
+            <UButton
+              size="xs"
+              color="primary"
+              :loading="isPending(`appeal-${issue.id}-approved`)"
+              :disabled="isPending(`appeal-${issue.id}-approved`)"
+              @click="resolveAppeal(issue.id, 'approved')"
+            >
+              Grant
+            </UButton>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              :loading="isPending(`appeal-${issue.id}-denied`)"
+              :disabled="isPending(`appeal-${issue.id}-denied`)"
+              @click="resolveAppeal(issue.id, 'denied')"
+            >
+              Deny
+            </UButton>
+          </template>
+
+          <template #meta>
+            <div v-if="issue.appealReason" class="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700">
+              Appeal: {{ issue.appealReason }}
+            </div>
+          </template>
+
+          <template #preview>
+            <div v-if="issue.summary">
+              <p class="text-[11px] uppercase tracking-wide text-toned mb-1">Summary</p>
+              <p class="text-gray-700">{{ issue.summary }}</p>
+            </div>
+            <div v-if="issue.description">
+              <p class="text-[11px] uppercase tracking-wide text-toned mb-1">Description</p>
+              <p class="text-gray-700 whitespace-pre-wrap line-clamp-6">{{ issue.description }}</p>
+            </div>
+          </template>
+        </AdminQueueCard>
+      </div>
+    </section>
+
+    <!-- Pending Case Studies -->
+    <section v-if="queue?.pendingCaseStudies?.length">
+      <div class="mb-3 flex items-baseline gap-2">
+        <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Pending case studies</h2>
+        <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.pendingCaseStudies.length }}</span>
+      </div>
+      <div class="space-y-2">
+        <AdminQueueCard
+          v-for="cs in queue.pendingCaseStudies"
+          :key="cs.id"
+          :since="cs.createdAt"
+        >
+          <template #header>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium truncate">Case study on
+                <NuxtLink v-if="cs.solution" :to="`/issue/${cs.solution.id}`" class="hover:underline">
+                  #{{ cs.solution.id }} {{ cs.solution.title }}
                 </NuxtLink>
-                <UiBadge>{{ issue.type }}</UiBadge>
-                <UiBadge variant="error">{{ issue.status }}</UiBadge>
-              </div>
-              <p v-if="issue.rejectionReason" class="text-xs text-red-600 mt-1">
-                Rejected: {{ issue.rejectionReason }}
-              </p>
-              <div v-if="issue.appealReason" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs text-yellow-700 mt-2">
-                Appeal: {{ issue.appealReason }}
-              </div>
-              <p v-if="issue.author" class="text-xs text-toned mt-1">
-                {{ issue.author.name || issue.author.email }} · appealed {{ formatTime(issue.appealedAt) }}
-              </p>
+              </span>
+              <UiBadge>{{ cs.outcome }}</UiBadge>
+              <AdminSlaBadge :since="cs.createdAt" hide-when-fresh />
             </div>
-            <div class="flex flex-col gap-1.5 shrink-0">
-              <UButton
-                size="xs"
-                color="primary"
-                :loading="actionLoading === `appeal-${issue.id}-approved`"
-                @click="resolveAppeal(issue.id, 'approved')"
-              >
-                Grant
-              </UButton>
-              <UButton
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                :loading="actionLoading === `appeal-${issue.id}-denied`"
-                @click="resolveAppeal(issue.id, 'denied')"
-              >
-                Deny
-              </UButton>
+            <p class="text-xs text-toned">
+              <UIcon name="lucide:map-pin" class="inline size-3" /> {{ cs.locationName }}
+              <span v-if="cs.implementer"> · {{ cs.implementer }}</span>
+            </p>
+            <AdminAuthorBadge :author="cs.author" :timestamp="cs.createdAt" />
+          </template>
+
+          <template #actions>
+            <UButton
+              size="xs"
+              color="primary"
+              :loading="isPending(`approve-cs-${cs.id}`)"
+              :disabled="isPending(`approve-cs-${cs.id}`)"
+              @click="approveCaseStudy(cs.id)"
+            >
+              Approve
+            </UButton>
+            <UButton
+              size="xs"
+              color="primary"
+              variant="soft"
+              @click="openEditCaseStudy({ id: cs.id, description: cs.description, implementer: cs.implementer, locationName: cs.locationName, outcome: cs.outcome })"
+            >
+              Edit & approve
+            </UButton>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="outline"
+              @click="askReject('case-study', cs.id, `Case study #${cs.id} — ${cs.locationName}`)"
+            >
+              Reject
+            </UButton>
+            <UButton
+              size="xs"
+              color="primary"
+              variant="soft"
+              icon="lucide:sparkles"
+              :loading="isPending(`remod-cs-${cs.id}`)"
+              :disabled="isPending(`remod-cs-${cs.id}`)"
+              @click="triggerCaseStudyRemod(cs.id)"
+            >
+              Re-run auto-mod
+            </UButton>
+          </template>
+
+          <template #preview>
+            <div v-if="cs.description">
+              <p class="text-[11px] uppercase tracking-wide text-toned mb-1">Description</p>
+              <p class="text-gray-700 whitespace-pre-wrap line-clamp-8">{{ cs.description }}</p>
             </div>
-          </div>
-        </UiCard>
+          </template>
+        </AdminQueueCard>
       </div>
     </section>
 
     <!-- Ban Appeals -->
     <section v-if="queue?.banAppeals?.length">
-      <h3 class="text-sm font-medium text-toned mb-3 flex items-center gap-2">
-        <UIcon name="i-lucide-user-x" class="size-4 text-red-500" />
-        Ban Appeals
-      </h3>
+      <div class="mb-3 flex items-baseline gap-2">
+        <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Ban appeals</h2>
+        <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.banAppeals.length }}</span>
+      </div>
       <div class="space-y-2">
-        <UiCard v-for="user in queue.banAppeals" :key="user.id" padding="sm">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <p class="font-medium">{{ user.name || user.email }}</p>
-              <p v-if="user.banReason" class="text-xs text-red-600 mt-1">Ban reason: {{ user.banReason }}</p>
-              <div v-if="user.banAppealReason" class="bg-yellow-50 rounded-lg px-3 py-2 text-xs text-yellow-700 mt-2">
-                Appeal: {{ user.banAppealReason }}
-              </div>
-              <p class="text-xs text-toned mt-1">Appealed {{ formatTime(user.banAppealedAt) }}</p>
+        <AdminQueueCard
+          v-for="user in queue.banAppeals"
+          :key="user.id"
+          :since="user.banAppealedAt"
+        >
+          <template #header>
+            <div class="flex items-center gap-2">
+              <NuxtLink :to="`/admin/users/${user.id}`" class="font-medium hover:underline">
+                {{ user.name || user.email }}
+              </NuxtLink>
+              <AdminSlaBadge :since="user.banAppealedAt" hide-when-fresh />
             </div>
-            <div class="flex flex-col gap-1.5 shrink-0">
-              <UButton
-                size="xs"
-                color="primary"
-                :loading="actionLoading === `unban-${user.id}`"
-                @click="unbanUser(user.id)"
-              >
-                Unban
-              </UButton>
-              <UButton
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                :loading="actionLoading === `ban-deny-${user.id}`"
-                @click="denyBanAppeal(user.id)"
-              >
-                Deny
-              </UButton>
+            <p v-if="user.banReason" class="text-xs text-red-600">Ban reason: {{ user.banReason }}</p>
+            <p class="text-[11px] text-toned">Trust score: {{ user.trustScore }}</p>
+          </template>
+
+          <template #actions>
+            <UButton
+              size="xs"
+              color="primary"
+              :loading="isPending(`unban-${user.id}`)"
+              :disabled="isPending(`unban-${user.id}`)"
+              @click="unbanUser(user.id)"
+            >
+              Unban
+            </UButton>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              :loading="isPending(`ban-deny-${user.id}`)"
+              :disabled="isPending(`ban-deny-${user.id}`)"
+              @click="denyBanAppeal(user.id)"
+            >
+              Deny
+            </UButton>
+          </template>
+
+          <template #meta>
+            <div v-if="user.banAppealReason" class="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-700">
+              Appeal: {{ user.banAppealReason }}
             </div>
-          </div>
-        </UiCard>
+          </template>
+        </AdminQueueCard>
       </div>
     </section>
 
     <!-- Empty state -->
-    <UiCard v-if="totalActionable === 0" padding="md">
-      <div class="text-center py-4">
-        <UIcon name="i-lucide-check-circle" class="size-8 text-green-400 mx-auto mb-2" />
-        <p class="text-sm text-toned">All clear — nothing needs attention.</p>
-      </div>
-    </UiCard>
+    <UiEmptyState
+      v-if="totalActionable === 0"
+      icon="lucide:check-circle"
+      title="All clear"
+      description="Nothing needs attention right now."
+      compact
+    />
+
+    <!-- Reject modal -->
+    <AdminRejectModal
+      v-model:open="rejectOpen"
+      :target="rejectTarget?.label"
+      @submit="onReject"
+    />
+
+    <!-- Edit & approve modal -->
+    <AdminEditApproveModal
+      v-model:open="editOpen"
+      :kind="editKind"
+      :issue="editIssue"
+      :case-study="editCaseStudy"
+      @submitted="refreshAll"
+    />
 
     <!-- Request Info Modal -->
     <UModal v-model:open="requestInfoModalOpen">
       <template #content>
         <div class="p-4 space-y-3">
           <h3 class="font-medium">Ask author for more information</h3>
-          <p class="text-sm text-toned">Issue #{{ requestInfoIssueId }} — The author will see this question and can respond. A new moderation pass will run automatically after they respond.</p>
+          <p class="text-sm text-toned">
+            Issue #{{ requestInfoIssueId }} — the author will see this question and can respond. A new moderation pass runs automatically once they reply.
+          </p>
           <UTextarea
             v-model="requestInfoText"
             placeholder="What do you need to know? e.g. 'Could you clarify what specific community this affects?'"
@@ -424,8 +711,8 @@ const totalActionable = computed(() => {
             <UButton variant="ghost" color="neutral" @click="closeRequestInfo">Cancel</UButton>
             <UButton
               color="primary"
-              :loading="actionLoading === `info-${requestInfoIssueId}`"
-              :disabled="!requestInfoText.trim()"
+              :loading="isPending(`info-${requestInfoIssueId}`)"
+              :disabled="!requestInfoText.trim() || isPending(`info-${requestInfoIssueId}`)"
               @click="sendInfoRequest"
             >
               Send to Author
