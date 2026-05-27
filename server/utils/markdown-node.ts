@@ -1,11 +1,17 @@
 // Markdown rendering for issues / solutions / case studies — used by the
 // `/issue/{id}.md` and `/case-study/{id}.md` routes so agents can fetch
 // the canonical content directly without scraping HTML.
-import { eq } from 'drizzle-orm'
+import { and, desc, eq, ne } from 'drizzle-orm'
 import { caseStudies, issues } from '../database/schema'
 import { issueWithRelations, transformIssue } from './transform-issue'
 
 const CANONICAL_BASE = 'https://communityfix.org'
+
+function trim(s: string | null | undefined, n: number): string {
+  if (!s) return ''
+  const clean = s.replace(/\s+/g, ' ').trim()
+  return clean.length <= n ? clean : `${clean.slice(0, n - 1)}…`
+}
 
 export async function renderIssueMarkdown(id: number): Promise<string | null> {
   const db = useDB()
@@ -34,7 +40,49 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
   if (t.links?.length) {
     lines.push('## Links', '', ...t.links.map(l => `- [${l.title ?? l.url}](${l.url})`), '')
   }
-  lines.push('---', '', `Canonical: ${CANONICAL_BASE}/issue/${t.id}`)
+
+  // Children: sub-issues + solutions live in the same table, distinguished by
+  // `type`. Solutions can't have children, so this only runs for issues.
+  if (t.type === 'issue') {
+    const children = await db.query.issues.findMany({
+      where: and(eq(issues.parentId, t.id), eq(issues.status, 'approved'), ne(issues.isSpam, true)),
+      columns: { id: true, title: true, summary: true, type: true },
+      orderBy: desc(issues.createdAt),
+    })
+    const subIssues = children.filter(c => c.type === 'issue')
+    const solutions = children.filter(c => c.type === 'solution')
+
+    if (solutions.length) {
+      lines.push('', '## Solutions', '')
+      for (const s of solutions) {
+        lines.push(`- [${s.title}](${CANONICAL_BASE}/issue/${s.id}.md) — ${trim(s.summary, 200)}`)
+      }
+    }
+    if (subIssues.length) {
+      lines.push('', '## Sub-issues', '')
+      for (const c of subIssues) {
+        lines.push(`- [${c.title}](${CANONICAL_BASE}/issue/${c.id}.md) — ${trim(c.summary, 200)}`)
+      }
+    }
+  }
+
+  // Case studies hang off solutions only.
+  if (t.type === 'solution') {
+    const studies = await db.query.caseStudies.findMany({
+      where: and(eq(caseStudies.solutionId, t.id), eq(caseStudies.status, 'approved'), ne(caseStudies.isSpam, true)),
+      columns: { id: true, outcome: true, locationName: true, description: true },
+      orderBy: desc(caseStudies.createdAt),
+    })
+    if (studies.length) {
+      lines.push('', '## Case studies', '')
+      for (const cs of studies) {
+        const headline = `${cs.outcome} · ${cs.locationName}`
+        lines.push(`- [#${cs.id} — ${headline}](${CANONICAL_BASE}/case-study/${cs.id}.md)${cs.description ? ` — ${trim(cs.description, 200)}` : ''}`)
+      }
+    }
+  }
+
+  lines.push('', '---', '', `Canonical: ${CANONICAL_BASE}/issue/${t.id}`)
   return lines.join('\n')
 }
 
