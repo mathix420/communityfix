@@ -1,6 +1,9 @@
 // Advertise machine-discoverable resources via Link response headers (RFC
 // 8288) — the MCP server card, llms.txt, sitemap, OAuth metadata, and a
 // markdown alternate for content pages backed by /content/*.md.
+
+const RAW_REPO_BASE = 'https://raw.githubusercontent.com/mathix420/communityfix/refs/heads/master'
+
 const LINKS_FOR_ROOT = [
   '</.well-known/mcp/server-card.json>; rel="mcp-server-card"; type="application/json"',
   '</.well-known/oauth-protected-resource>; rel="oauth-protected-resource"; type="application/json"',
@@ -15,15 +18,19 @@ const LINKS_FOR_API_MCP = [
   '</.well-known/oauth-authorization-server>; rel="oauth-authorization-server"; type="application/json"',
 ].join(', ')
 
-// /content/* markdown source on the master branch. Page path → file path.
-const RAW_CONTENT_BASE = 'https://raw.githubusercontent.com/mathix420/communityfix/refs/heads/master/content'
-
 function markdownAlternateFor(path: string): string | null {
   if (path === '/whitepaper' || path === '/privacy' || path === '/terms') {
-    return `${RAW_CONTENT_BASE}${path}.md`
+    return `${RAW_REPO_BASE}/content${path}.md`
   }
   const guide = path.match(/^\/guide\/([^/]+)\/?$/)
-  if (guide) return `${RAW_CONTENT_BASE}/guide/${guide[1]}.md`
+  if (guide) return `${RAW_REPO_BASE}/content/guide/${guide[1]}.md`
+
+  // DB-backed nodes — markdown rendering at /issue/{id}.md and /case-study/{id}.md.
+  const issue = path.match(/^\/issue\/(\d+)\/?$/)
+  if (issue) return `/issue/${issue[1]}.md`
+  const cs = path.match(/^\/case-study\/(\d+)\/?$/)
+  if (cs) return `/case-study/${cs[1]}.md`
+
   return null
 }
 
