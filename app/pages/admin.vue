@@ -3,8 +3,9 @@ definePageMeta({ middleware: ['admin'] })
 
 const tabs = [
   { name: 'Overview', path: '/admin' },
-  { name: 'Audit Logs', path: '/admin/logs' },
   { name: 'Issues', path: '/admin/issues' },
+  { name: 'Users', path: '/admin/users' },
+  { name: 'Audit Logs', path: '/admin/logs' },
 ]
 
 const autoModOpen = ref(false)
@@ -46,27 +47,34 @@ async function runAutoMod() {
 </script>
 
 <template>
-  <AppContainer>
-    <UiPageHeader title="Admin" description="Automated decisions, appeals, and moderation." />
-    <div class="flex items-center justify-between gap-3 mb-6">
+  <div class="max-w-5xl mx-auto overflow-x-clip h-fit w-full mb-auto pt-20 px-4 pb-4">
+    <UiPageHeader
+      title="Admin"
+      description="Automated decisions, appeals, and moderation."
+    />
+
+    <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
       <UiNavTabs :tabs="tabs" class="!mb-0" />
       <UButton
         size="sm"
         color="primary"
         variant="soft"
-        icon="i-lucide-sparkles"
+        icon="lucide:sparkles"
         @click="autoModOpen = true"
       >
         Run auto-mod
       </UButton>
     </div>
+
     <NuxtPage />
 
     <UModal v-model:open="autoModOpen">
       <template #content>
         <div class="p-4 space-y-3">
           <h3 class="font-medium">Run auto-mod</h3>
-          <p class="text-sm text-toned">Resets the target to pending and re-runs the AI moderation pipeline.</p>
+          <p class="text-sm text-toned">
+            Resets the target to <span class="font-mono">pending</span> and re-runs the AI moderation pipeline.
+          </p>
           <div class="flex gap-2">
             <USelectMenu
               v-model="autoModKind"
@@ -77,7 +85,7 @@ async function runAutoMod() {
             <UInput
               v-model.number="autoModId"
               type="number"
-              placeholder="ID"
+              placeholder="Target ID"
               class="flex-1"
               autofocus
               @keyup.enter="runAutoMod"
@@ -92,11 +100,11 @@ async function runAutoMod() {
               :disabled="!autoModId"
               @click="runAutoMod"
             >
-              Run
+              Run pipeline
             </UButton>
           </div>
         </div>
       </template>
     </UModal>
-  </AppContainer>
+  </div>
 </template>

@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, desc, sql, type SQL } from 'drizzle-orm'
+import { eq, and, gte, lte, desc, sql, ilike, type SQL } from 'drizzle-orm'
 import { auditLogs, type AuditLogType, type AuditLogStatus } from '../../database/schema'
 
 export default defineEventHandler(async (event) => {
@@ -15,6 +15,9 @@ export default defineEventHandler(async (event) => {
   if (query.userId) conditions.push(eq(auditLogs.userId, query.userId as string))
   if (query.from) conditions.push(gte(auditLogs.createdAt, new Date(query.from as string)))
   if (query.to) conditions.push(lte(auditLogs.createdAt, new Date(query.to as string)))
+  if (typeof query.q === 'string' && query.q.trim()) {
+    conditions.push(ilike(auditLogs.reason, `%${query.q.trim()}%`))
+  }
 
   const where = conditions.length ? and(...conditions) : undefined
 
