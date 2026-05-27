@@ -204,14 +204,19 @@ Canonical: https://communityfix.org/user/${user.id}
 `
 }
 
-function renderStaticStub(title: string, canonical: string, description: string): string {
+// Raw markdown source for content pages is mirrored on the master branch
+// of this repo on GitHub. Point agents there so they get the actual
+// document body without us bundling the .md files into the Worker.
+const RAW_CONTENT_BASE = 'https://raw.githubusercontent.com/mathix420/communityfix/refs/heads/master/content'
+
+function renderContentPointer(title: string, contentPath: string, canonical: string, description: string): string {
+  const rawUrl = `${RAW_CONTENT_BASE}${contentPath}.md`
   return `# ${title}
 
 ${description}
 
-The full content lives at the canonical URL — fetch it with the default \`Accept: text/html\`:
-
-${canonical}
+- Markdown source: ${rawUrl}
+- Canonical HTML: ${canonical}
 `
 }
 
@@ -230,24 +235,53 @@ export async function renderPathAsMarkdown(path: string, _event: H3Event): Promi
   const userMatch = path.match(/^\/user\/([^/]+)\/?$/)
   if (userMatch) return renderUser(decodeURIComponent(userMatch[1]!))
 
-  // Static content pages — point at canonical HTML; @nuxt/content's parsed
-  // AST is not the raw source we'd want to stream here.
+  // Static content pages — the markdown body is checked into this repo at
+  // /content/<path>.md, so we point agents at the GitHub raw URL rather
+  // than re-serializing @nuxt/content's parsed AST or bundling the .md
+  // files into the Worker.
   if (path === '/whitepaper') {
-    return renderStaticStub('CommunityFix whitepaper', 'https://communityfix.org/whitepaper', 'Vision, problem statement, incubation model, governance, and sustainability metrics.')
+    return renderContentPointer(
+      'CommunityFix whitepaper',
+      '/whitepaper',
+      'https://communityfix.org/whitepaper',
+      'Vision, problem statement, incubation model, governance, and sustainability metrics.',
+    )
   }
   if (path === '/privacy') {
-    return renderStaticStub('Privacy policy', 'https://communityfix.org/privacy', 'How CommunityFix handles personal data and tracking.')
+    return renderContentPointer(
+      'Privacy policy',
+      '/privacy',
+      'https://communityfix.org/privacy',
+      'How CommunityFix handles personal data and tracking.',
+    )
   }
   if (path === '/terms') {
-    return renderStaticStub('Terms of service', 'https://communityfix.org/terms', 'Platform terms and conditions.')
+    return renderContentPointer(
+      'Terms of service',
+      '/terms',
+      'https://communityfix.org/terms',
+      'Platform terms and conditions.',
+    )
   }
   if (path === '/guides') {
-    return renderStaticStub('Guides', 'https://communityfix.org/guides', 'Index of how-to guides for writing issues, solutions, and case studies.')
+    return `# Guides
+
+Index of how-to guides for writing issues, solutions, and case studies.
+
+- [Writing guide](https://communityfix.org/guide/writing) — markdown source: ${RAW_CONTENT_BASE}/guide/writing.md
+
+Canonical: https://communityfix.org/guides
+`
   }
   const guideMatch = path.match(/^\/guide\/([^/]+)\/?$/)
   if (guideMatch) {
     const slug = decodeURIComponent(guideMatch[1]!)
-    return renderStaticStub(`Guide: ${slug}`, `https://communityfix.org/guide/${slug}`, 'How-to guide.')
+    return renderContentPointer(
+      `Guide: ${slug}`,
+      `/guide/${slug}`,
+      `https://communityfix.org/guide/${slug}`,
+      'How-to guide.',
+    )
   }
 
   return null
