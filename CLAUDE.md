@@ -52,6 +52,19 @@ CommunityFix exposes an MCP (Model Context Protocol) server at `POST /api/mcp` s
 - Tool business logic lives in `server/utils/mcp-tools.ts`; the JSON-RPC plumbing in `server/api/mcp/index.post.ts`
 - New tables: `oauth_clients`, `oauth_codes`, `oauth_tokens` (see migration `0007_cool_peter_quill.sql`)
 
+## standard.site (AT Protocol publishing)
+
+CommunityFix implements [standard.site](https://standard.site) — shared AT Protocol lexicons for long-form publishing — so its content is discoverable and portable across the ATmosphere (Bluesky et al.).
+
+- **Mapping**: the whole site → one `site.standard.publication` record; each approved, non-spam **issue**, **solution**, and **case study** → a `site.standard.document` record (`site` field points back at the publication's AT-URI; `path` is `/issue/:id` or `/case-study/:id`).
+- **AT Protocol client**: `server/utils/atproto.ts` — a tiny `fetch`-based XRPC wrapper (`createSession`, `uploadBlob`, `putRecord`, `getRecord`, `deleteRecord`) plus a `tid` rkey generator. No `@atproto/api` dependency — it runs unchanged on Workers.
+- **Domain logic**: `server/utils/standard-site.ts` builds the record bodies, publishes them idempotently (reuses each record's rkey across updates, skips unchanged content via a sha256 content hash, guards updates with `swapRecord`), and mirrors AT-URIs into the `standard_site_records` table (migration `0015_cynical_captain_marvel.sql`).
+- **Publishing**: scheduled Nitro task `sync:standard-site` (daily 4am UTC), or on demand via admin-only `POST /api/admin/standard-site/sync`. Both no-op cleanly when credentials are unset.
+- **Web verification** (bidirectional domain↔record proof):
+  - `GET /.well-known/site.standard.publication` returns the publication's AT-URI as `text/plain` (404 until published). Advertised in the root `Link` header.
+  - Issue/solution and case-study pages emit `<link rel="site.standard.document" href="at://…">` in `<head>` (AT-URI surfaced as `standardSiteUri` from `/api/issue/:id` and `/api/case-study/:id`).
+- **Config** (Doppler, all optional — feature stays dormant until set): `NUXT_ATPROTO_SERVICE` (PDS base URL, default `https://bsky.social`), `NUXT_ATPROTO_IDENTIFIER` (handle/DID), `NUXT_ATPROTO_PASSWORD` (**app password**, not the account password). Surfaced via `runtimeConfig.atproto*` in `nuxt.config.ts`.
+
 ## Auth
 
 - Passwordless auth via `nuxt-auth-utils`: passkeys (WebAuthn) + OAuth (Google, Apple)

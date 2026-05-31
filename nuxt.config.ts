@@ -55,6 +55,15 @@ export default defineNuxtConfig({
     // <noreply@communityfix.org>"). The domain must be onboarded to
     // Cloudflare Email Sending — see `wrangler email sending enable`.
     emailFrom: '',
+    // standard.site (https://standard.site) AT Protocol publishing identity.
+    // When identifier + password are set, the sync:standard-site task publishes
+    // the publication and per-document lexicon records to this PDS. Leave unset
+    // to keep the feature dormant (the sync no-ops). Use an *app password*, not
+    // the account password. Set via Doppler:
+    //   NUXT_ATPROTO_SERVICE, NUXT_ATPROTO_IDENTIFIER, NUXT_ATPROTO_PASSWORD
+    atprotoService: '',
+    atprotoIdentifier: '',
+    atprotoPassword: '',
   },
 
   routeRules: {
@@ -79,6 +88,9 @@ export default defineNuxtConfig({
     scheduledTasks: {
       // Recompute all trust scores daily at 3am UTC
       '0 3 * * *': ['compute:trust-scores'],
+      // Publish standard.site (AT Protocol) records daily at 4am UTC. No-ops
+      // when atproto credentials are not configured.
+      '0 4 * * *': ['sync:standard-site'],
     },
     // Mount the `auth` namespace on the Cloudflare KV binding so the WebAuthn
     // challenge round-trip survives across requests / isolates. The default

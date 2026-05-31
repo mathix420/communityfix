@@ -83,6 +83,14 @@ if (study.value) {
     ogDescription: description,
   })
 }
+
+// standard.site (https://standard.site) document verification link tag,
+// pointing this page at its AT Protocol record when one has been published.
+useHead({
+  link: computed(() => study.value?.standardSiteUri
+    ? [{ rel: 'site.standard.document', href: study.value.standardSiteUri }]
+    : []),
+})
 </script>
 
 <template>

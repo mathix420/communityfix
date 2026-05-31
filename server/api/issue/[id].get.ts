@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { issues } from '../../database/schema'
+import { getDocumentUri } from '../../utils/standard-site'
 
 export default defineEventHandler(async (event) => {
   const db = useDB()
@@ -24,5 +25,12 @@ export default defineEventHandler(async (event) => {
   // Only expose moderation fields to the author. Anonymous viewers never
   // see appealStatus, isSpam, rejectionReason, etc., even on pending issues.
   const isAuthor = session.user?.id === result.authorId
-  return transformIssue(result, { includeModeration: isAuthor })
+  const transformed = transformIssue(result, { includeModeration: isAuthor })
+
+  // standard.site document AT-URI, when this issue/solution has been published
+  // to the PDS — lets the page emit a <link rel="site.standard.document"> tag.
+  const refKind = result.type === 'solution' ? 'solution' : 'issue'
+  const standardSiteUri = await getDocumentUri(refKind, result.id)
+
+  return { ...transformed, standardSiteUri }
 })

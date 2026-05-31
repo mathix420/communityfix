@@ -44,6 +44,15 @@ if (issue.value) {
     number: issue.value.id,
   })
 }
+
+// standard.site (https://standard.site) document verification: link this page
+// back to its AT Protocol record so ATmosphere indexers can confirm the pairing.
+// Reactive so the tag appears once the record exists / the fetch resolves.
+useHead({
+  link: computed(() => issue.value?.standardSiteUri
+    ? [{ rel: 'site.standard.document', href: issue.value.standardSiteUri }]
+    : []),
+})
 </script>
 
 <template>

@@ -339,6 +339,39 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   reviewer: one(users, { fields: [auditLogs.reviewedBy], references: [users.id], relationName: 'auditReviewer' }),
 }))
 
+// standard.site (AT Protocol) record mirror. Each row maps one piece of
+// CommunityFix content to the AT-URI of the lexicon record published for it on
+// a PDS, so the web-verification layer (.well-known route + <link> tags) can
+// resolve URIs straight from Postgres without calling the PDS on every request.
+// See CLAUDE.md › standard.site for the full design.
+export const STANDARD_SITE_REF_KINDS = ['publication', 'issue', 'solution', 'case_study'] as const
+export type StandardSiteRefKind = typeof STANDARD_SITE_REF_KINDS[number]
+
+export const standardSiteRecords = pgTable('standard_site_records', {
+  id: serial('id').primaryKey(),
+  // Lexicon collection NSID, e.g. 'site.standard.publication' / 'site.standard.document'.
+  collection: text('collection').notNull(),
+  // What the record mirrors. 'publication' is a singleton with a null refId.
+  refKind: text('ref_kind').$type<StandardSiteRefKind>().notNull(),
+  // issues.id for issue/solution, case_studies.id for case_study, null for publication.
+  refId: integer('ref_id'),
+  // Full AT-URI: at://did/collection/rkey.
+  uri: text('uri').notNull(),
+  // Record key (a TID) — reused across updates so the record stays stable.
+  rkey: text('rkey').notNull(),
+  // Latest known CID; passed as the swapRecord guard on the next update.
+  cid: text('cid'),
+  // sha256 of the last published record, so unchanged content skips re-publishing.
+  contentHash: text('content_hash'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  // Documents are unique per (kind, refId). The publication singleton (refId
+  // NULL) is kept unique in code — Postgres treats NULLs as distinct here.
+  unique('standard_site_records_ref_unique').on(t.refKind, t.refId),
+  index('standard_site_records_collection_idx').on(t.collection),
+])
+
 export const oauthTokens = pgTable('oauth_tokens', {
   // sha256 of the raw token — raw value never persisted.
   tokenHash: text('token_hash').primaryKey(),
