@@ -12,6 +12,11 @@ useSeoMeta({
   twitterTitle: whitepaper.value?.title || 'CommunityFix Whitepaper',
   twitterDescription: whitepaper.value?.description || 'Discover how CommunityFix turns community ideas into sustainable solutions.',
 })
+
+defineOgImage('Editorial', {
+  title: whitepaper.value?.title || 'Whitepaper',
+  category: 'Whitepaper',
+})
 </script>
 
 <template>

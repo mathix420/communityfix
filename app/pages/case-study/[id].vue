@@ -23,6 +23,14 @@ const outcomeLabel: Record<string, string> = {
   inconclusive: 'Inconclusive',
   ongoing: 'Ongoing',
 }
+// OG image eyebrow: outcome phrased as a "fix" verb.
+const ogOutcomeLabel: Record<string, string> = {
+  success: 'Fixed',
+  partial: 'Partially fixed',
+  failed: 'Failed to fix',
+  inconclusive: 'Inconclusive',
+  ongoing: 'Fixing',
+}
 const scaleLabel: Record<string, string> = {
   neighborhood: 'Neighborhood',
   city: 'City',
@@ -73,7 +81,7 @@ onMounted(() => {
 })
 
 if (study.value) {
-  const title = `Case study: ${study.value.locationName}`
+  const title = study.value.locationName
   const description = study.value.description?.slice(0, 200)
     || `Real-world implementation in ${study.value.locationName}.`
   useSeoMeta({
@@ -81,6 +89,17 @@ if (study.value) {
     description,
     ogTitle: title,
     ogDescription: description,
+  })
+
+  defineOgImage('Community', {
+    title,
+    kind: 'Case Study',
+    id: study.value.id,
+    // Eyebrow hinting at the parent solution + its outcome. Read off the
+    // awaited study payload so it's present when the OG image is captured.
+    subtitle: study.value.solutionTitle ?? undefined,
+    subtitleLabel: ogOutcomeLabel[study.value.outcome] ?? undefined,
+    subtitleColor: '3b82f6', // blue for now (6-digit hex, no leading `#`)
   })
 }
 </script>

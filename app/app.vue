@@ -23,7 +23,8 @@ useSeoMeta({
   twitterDescription: 'Collaborate on community issues, share solutions, and support impact projects on CommunityFix.',
 })
 
-defineOgImage('CommunityFix')
+// Site-wide fallback OG image; pages override with Community/Editorial.
+defineOgImage('Home')
 </script>
 
 <template>

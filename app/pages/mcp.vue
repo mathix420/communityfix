@@ -12,6 +12,11 @@ useSeoMeta({
   twitterTitle: mcp.value?.title || 'MCP Server - CommunityFix',
   twitterDescription: mcp.value?.description || 'Plug CommunityFix into your AI client via the Model Context Protocol.',
 })
+
+defineOgImage('Editorial', {
+  title: mcp.value?.title || 'MCP Server',
+  category: 'Docs',
+})
 </script>
 
 <template>

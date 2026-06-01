@@ -8,7 +8,10 @@ export default defineEventHandler(async (event) => {
 
   const row = await useDB().query.caseStudies.findFirst({
     where: eq(caseStudies.id, parseInt(id, 10)),
-    with: { author: { columns: { name: true } } },
+    with: {
+      author: { columns: { name: true } },
+      solution: { columns: { title: true, summary: true } },
+    },
   })
   return row ? transformCaseStudy(row) : null
 })

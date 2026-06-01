@@ -14,6 +14,11 @@ useSeoMeta({
   twitterTitle: page.value?.title || 'Guides - CommunityFix',
   twitterDescription: page.value?.description || 'Guides and best practices for using CommunityFix.',
 })
+
+defineOgImage('Editorial', {
+  title: page.value?.title || 'Guides',
+  category: 'Guide',
+})
 </script>
 
 <template>
