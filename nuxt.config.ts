@@ -128,6 +128,22 @@ export default defineNuxtConfig({
         send_email: [
           { name: 'EMAIL' },
         ],
+        // Cross-script binding to the moderation Workflow, which lives in the
+        // standalone `communityfix-moderation` Worker (see workers/moderation/).
+        // The Nitro Worker only *creates* instances; the class is defined there.
+        // Branch-aware like the Hyperdrive/KV bindings above.
+        workflows: [
+          {
+            binding: 'MODERATION_WORKFLOW',
+            class_name: 'ModerationWorkflow',
+            name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+              ? 'moderation-staging'
+              : 'moderation',
+            script_name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+              ? 'communityfix-moderation-staging'
+              : 'communityfix-moderation',
+          },
+        ],
       },
     },
   },

@@ -102,6 +102,19 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
+      - name: Deploy moderation Workflow worker (production)
+        # Deploy the standalone Workflow worker FIRST: the main Worker's
+        # MODERATION_WORKFLOW binding references it by `script_name`, so it must
+        # already exist. Running before `bun run build` also means the root
+        # `.wrangler/deploy/config.json` redirect (emitted by the build) doesn't
+        # yet exist to hijack this subdirectory config. Deploy before setting
+        # secrets — `secret bulk` requires the Worker to exist. The worker runs the
+        # moderation logic itself, so it needs the AI keys + admin allowlist.
+        run: |
+          bunx wrangler deploy --config workers/moderation/wrangler.jsonc
+          doppler secrets download -c prd --no-file --format json \
+            | jq '{ NUXT_OPENAI_API_KEY, NUXT_ANTHROPIC_API_KEY, NUXT_ADMIN_EMAILS }' \
+            | bunx wrangler secret bulk --config workers/moderation/wrangler.jsonc
       - name: Build Worker bundle (production bindings)
         env:
           WORKERS_CI_BRANCH: master
@@ -144,6 +157,15 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
+      - name: Deploy moderation Workflow worker (staging)
+        # See the production job for ordering rationale. `--env staging` targets
+        # the `communityfix-moderation-staging` Worker + `moderation-staging`
+        # workflow, with Hyperdrive pointed at the Neon staging branch.
+        run: |
+          bunx wrangler deploy --config workers/moderation/wrangler.jsonc --env staging
+          doppler secrets download -c stg --no-file --format json \
+            | jq '{ NUXT_OPENAI_API_KEY, NUXT_ANTHROPIC_API_KEY, NUXT_ADMIN_EMAILS }' \
+            | bunx wrangler secret bulk --config workers/moderation/wrangler.jsonc --env staging
       - name: Build Worker bundle (staging bindings)
         env:
           WORKERS_CI_BRANCH: staging

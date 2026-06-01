@@ -1,0 +1,58 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Standalone Worker that hosts AND runs the moderation Workflow. It owns the
+  // full moderation logic (see src/) and talks to Neon directly via Hyperdrive —
+  // the main Nitro Worker only creates instances via its cross-script
+  // `[[workflows]]` binding (see `nitro.cloudflare.wrangler.workflows` in
+  // ../../nuxt.config.ts).
+  //
+  // Deploy:  cd workers/moderation && wrangler deploy            (production)
+  //          cd workers/moderation && wrangler deploy --env staging
+  //
+  // First-time ordering: deploy THIS worker before the main Worker, because the
+  // main Worker's workflow binding references `script_name: communityfix-moderation`.
+  //
+  // Secrets (set via `wrangler secret bulk`, synced from Doppler in CI):
+  //   NUXT_OPENAI_API_KEY, NUXT_ANTHROPIC_API_KEY, NUXT_ADMIN_EMAILS
+  "name": "communityfix-moderation",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-12-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "invocation_logs": true }
+  },
+  // Production (default environment).
+  "workflows": [
+    {
+      "name": "moderation",
+      "binding": "MODERATION_WORKFLOW",
+      "class_name": "ModerationWorkflow"
+    }
+  ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "9cfe49d0e805462086e8365bd604a062" // communityfix-prod → Neon production branch
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "communityfix-moderation-staging",
+      // Non-inheritable bindings must be repeated in every named environment.
+      "workflows": [
+        {
+          "name": "moderation-staging",
+          "binding": "MODERATION_WORKFLOW",
+          "class_name": "ModerationWorkflow"
+        }
+      ],
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "d9a5e6878b9342b4ac96844524a59d05" // communityfix-staging → Neon staging branch
+        }
+      ]
+    }
+  }
+}

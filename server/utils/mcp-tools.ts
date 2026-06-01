@@ -9,6 +9,7 @@ import type { CreateIssueInput, UpdateIssueInput } from './issue-write'
 import { createCaseStudy, transformCaseStudy, updateCaseStudy } from './case-study-write'
 import type { CreateCaseStudyInput, UpdateCaseStudyInput } from './case-study-write'
 import { getIssueTree } from './issue-tree'
+import { triggerModeration } from './moderation-trigger'
 
 const SEARCH_SIMILARITY_THRESHOLD = 0.25
 const SUGGEST_LIMIT = 8
@@ -73,10 +74,9 @@ export async function getTree(rootId: number) {
   }
 }
 
-async function createNode(userId: string, input: CreateIssueInput, label: 'create_issue' | 'create_solution') {
+async function createNode(userId: string, input: CreateIssueInput) {
   const created = await createIssue(userId, input)
-  runTask('review:issue', { payload: { issueId: created.id } })
-    .catch(err => console.error(`[mcp.${label}] review failed for ${created.id}:`, err))
+  await triggerModeration('issue', created.id)
   const hydrated = await useDB().query.issues.findFirst({
     where: eq(issues.id, created.id),
     with: issueWithRelations,
@@ -85,21 +85,20 @@ async function createNode(userId: string, input: CreateIssueInput, label: 'creat
 }
 
 export async function createIssueAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
-  return createNode(userId, { ...input, type: 'issue' }, 'create_issue')
+  return createNode(userId, { ...input, type: 'issue' })
 }
 
 export async function createSolutionAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
   if (!input.parentId) {
     throw createError({ statusCode: 400, statusMessage: 'parentId is required for a solution' })
   }
-  return createNode(userId, { ...input, type: 'solution' }, 'create_solution')
+  return createNode(userId, { ...input, type: 'solution' })
 }
 
-async function updateNode(userId: string, input: UpdateIssueInput, expectedType: IssueType, label: 'update_issue' | 'update_solution') {
+async function updateNode(userId: string, input: UpdateIssueInput, expectedType: IssueType) {
   const { issue: updated, contentChanged } = await updateIssue(userId, input, expectedType)
   if (contentChanged) {
-    runTask('review:issue', { payload: { issueId: updated.id } })
-      .catch(err => console.error(`[mcp.${label}] review failed for ${updated.id}:`, err))
+    await triggerModeration('issue', updated.id)
   }
   const hydrated = await useDB().query.issues.findFirst({
     where: eq(issues.id, updated.id),
@@ -109,11 +108,11 @@ async function updateNode(userId: string, input: UpdateIssueInput, expectedType:
 }
 
 export async function updateIssueAs(userId: string, input: Omit<UpdateIssueInput, 'solutionStatus'>) {
-  return updateNode(userId, input, 'issue', 'update_issue')
+  return updateNode(userId, input, 'issue')
 }
 
 export async function updateSolutionAs(userId: string, input: UpdateIssueInput) {
-  return updateNode(userId, input, 'solution', 'update_solution')
+  return updateNode(userId, input, 'solution')
 }
 
 async function hydrateCaseStudy(id: number) {

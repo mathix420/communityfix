@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { caseStudies } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { triggerModeration } from '../../../../utils/moderation-trigger'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -33,11 +34,8 @@ export default defineEventHandler(async (event) => {
     details: { adminId: session.user.id, caseStudyId: id, solutionId: cs.solutionId, previousStatus },
   })
 
-  const reviewPromise = runTask('review:case-study', { payload: { caseStudyId: id } })
-    .catch(err => console.error(`[admin:remod-case-study] Background review failed for case study ${id}:`, err))
-
-  ;(event.context as { cloudflare?: { context?: { waitUntil?: (p: Promise<unknown>) => void } } })
-    .cloudflare?.context?.waitUntil?.(reviewPromise)
+  // Durable re-moderation via the moderation Workflow (see moderation-trigger.ts).
+  await triggerModeration('case-study', id)
 
   return { success: true }
 })

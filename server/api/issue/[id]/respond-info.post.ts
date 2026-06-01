@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { issues } from '../../../database/schema'
+import { triggerModeration } from '../../../utils/moderation-trigger'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -32,11 +33,8 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(issues.id, id))
 
-  const reviewPromise = runTask('review:issue', { payload: { issueId: id } })
-    .catch(err => console.error(`[respond-info] Background re-review failed for issue ${id}:`, err))
-
-  ;(event.context as { cloudflare?: { context?: { waitUntil?: (p: Promise<unknown>) => void } } })
-    .cloudflare?.context?.waitUntil?.(reviewPromise)
+  // Durable re-review via the moderation Workflow (see moderation-trigger.ts).
+  await triggerModeration('issue', id)
 
   return { success: true }
 })

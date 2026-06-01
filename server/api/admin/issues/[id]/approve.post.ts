@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { issues, auditLogs, type IssueType, ISSUE_TYPES } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { triggerModeration } from '../../../../utils/moderation-trigger'
 
 interface IssueEdits {
   title?: string
@@ -112,7 +113,7 @@ export default defineEventHandler(async (event) => {
     await updateUserTrustScore(issue.authorId)
   }
 
-  runTask('review:structure', { payload: { issueId: id } }).catch(() => {})
+  await triggerModeration('structure', id)
 
   return { success: true }
 })
