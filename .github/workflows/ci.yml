@@ -102,6 +102,12 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
+      - name: Deploy moderation Workflow worker (production)
+        run: |
+          bunx wrangler deploy --config workers/moderation/wrangler.jsonc
+          doppler secrets download -c prd --no-file --format json \
+            | jq '{ NUXT_OPENAI_API_KEY, NUXT_ANTHROPIC_API_KEY, NUXT_ADMIN_EMAILS }' \
+            | bunx wrangler secret bulk --config workers/moderation/wrangler.jsonc
       - name: Build Worker bundle (production bindings)
         env:
           WORKERS_CI_BRANCH: master
@@ -144,6 +150,12 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: dopplerhq/cli-action@v4
       - run: bun install --frozen-lockfile
+      - name: Deploy moderation Workflow worker (staging)
+        run: |
+          bunx wrangler deploy --config workers/moderation/wrangler.jsonc --env staging
+          doppler secrets download -c stg --no-file --format json \
+            | jq '{ NUXT_OPENAI_API_KEY, NUXT_ANTHROPIC_API_KEY, NUXT_ADMIN_EMAILS }' \
+            | bunx wrangler secret bulk --config workers/moderation/wrangler.jsonc --env staging
       - name: Build Worker bundle (staging bindings)
         env:
           WORKERS_CI_BRANCH: staging

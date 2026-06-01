@@ -1,5 +1,6 @@
 import type { LocationScale } from '../../database/schema'
 import { createIssue } from '../../utils/issue-write'
+import { triggerModeration } from '../../utils/moderation-trigger'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -29,12 +30,7 @@ export default defineEventHandler(async (event) => {
     links: body.links,
   })
 
-  // Cloudflare Workers requires waitUntil so the AI review survives past the
-  // response — otherwise the isolate terminates and the issue stays `pending`.
-  const reviewPromise = runTask('review:issue', { payload: { issueId: created.id } })
-    .catch(err => console.error(`[review:issue] Background review failed for issue ${created.id}:`, err))
-  ;(event.context as { cloudflare?: { context?: { waitUntil?: (p: Promise<unknown>) => void } } })
-    .cloudflare?.context?.waitUntil?.(reviewPromise)
+  await triggerModeration('issue', created.id)
 
   return created
 })

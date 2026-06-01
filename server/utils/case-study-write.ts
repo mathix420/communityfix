@@ -6,6 +6,7 @@ import { caseStudies, issues, users } from '../database/schema'
 import type { CaseStudyOutcome, LocationScale } from '../database/schema'
 import { assertNotBanned } from './check-ban'
 import { isAdminEmail } from './admin'
+import { triggerModeration } from './moderation-trigger'
 import { generateEmbedding } from './embeddings'
 import { sanitizeLinks, type Link } from './issue-write'
 
@@ -111,9 +112,7 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
   }).returning()
 
   const created = rows[0]!
-  runTask('review:case-study', { payload: { caseStudyId: created.id } }).catch((err) => {
-    console.error(`[case-study:create] Failed to queue moderation for case study ${created.id}:`, err)
-  })
+  await triggerModeration('case-study', created.id)
 
   return created
 }
@@ -182,9 +181,7 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
 
   const rows = await db.update(caseStudies).set(patch).where(eq(caseStudies.id, input.id)).returning()
   if (textChanged) {
-    runTask('review:case-study', { payload: { caseStudyId: input.id } }).catch((err) => {
-      console.error(`[case-study:update] Failed to queue moderation for case study ${input.id}:`, err)
-    })
+    await triggerModeration('case-study', input.id)
   }
   return rows[0]!
 }

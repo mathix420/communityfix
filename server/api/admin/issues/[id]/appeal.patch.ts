@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { issues } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { triggerModeration } from '../../../../utils/moderation-trigger'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
         .where(eq(issues.id, issue.parentId))
     }
 
-    runTask('review:structure', { payload: { issueId: id } }).catch(() => {})
+    await triggerModeration('structure', id)
   }
   else {
     await db.update(issues)
