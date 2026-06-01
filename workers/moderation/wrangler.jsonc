@@ -1,6 +1,5 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Standalone Worker that hosts and runs the moderation Workflow. See README.md.
   "name": "communityfix-moderation",
   "main": "src/index.ts",
   "compatibility_date": "2025-12-22",
@@ -9,7 +8,6 @@
     "enabled": true,
     "logs": { "enabled": true, "invocation_logs": true }
   },
-  // Production (default environment).
   "workflows": [
     {
       "name": "moderation",
@@ -20,13 +18,12 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "9cfe49d0e805462086e8365bd604a062" // communityfix-prod → Neon production branch
+      "id": "9cfe49d0e805462086e8365bd604a062"
     }
   ],
   "env": {
     "staging": {
       "name": "communityfix-moderation-staging",
-      // Non-inheritable bindings must be repeated in every named environment.
       "workflows": [
         {
           "name": "moderation-staging",
@@ -37,7 +34,7 @@
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          "id": "d9a5e6878b9342b4ac96844524a59d05" // communityfix-staging → Neon staging branch
+          "id": "d9a5e6878b9342b4ac96844524a59d05"
         }
       ]
     }

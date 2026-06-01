@@ -8,9 +8,6 @@ import {
   moderateCaseStudy, curateCaseStudy, finalizeCaseStudy,
 } from './pipelines'
 
-// This Worker runs the moderation pipeline as durable, independently-retried steps.
-// The main app only triggers instances (env.MODERATION_WORKFLOW.create).
-
 interface Env {
   HYPERDRIVE: { connectionString: string }
   NUXT_OPENAI_API_KEY: string
@@ -24,9 +21,6 @@ export interface ModerationParams {
   id: number
 }
 
-// One attempt can legitimately take tens of seconds (LLM + DB); retry transient
-// failures with backoff. Every step is idempotent (the review functions no-op
-// when the row is no longer in the expected state), so retries are safe.
 const STEP: WorkflowStepConfig = {
   retries: { limit: 5, delay: '5 seconds', backoff: 'exponential' },
   timeout: '2 minutes',
@@ -53,10 +47,9 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     }
   }
 
-  /** prepare → (moderate ∥ tags ∥ sdgs) → finalize → structure (if approved). */
   private async reviewIssue(ctx: Ctx, step: WorkflowStep, id: number) {
     const prep = await step.do('prepare', STEP, () => prepareIssue(ctx, id))
-    if (!prep) return // not found, or no longer pending
+    if (!prep) return
 
     const [moderation, tagResult, sdgResult] = await Promise.all([
       step.do('moderate', STEP, () => moderateIssue(ctx, prep)),
@@ -65,12 +58,9 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     ])
 
     const { approved } = await step.do('finalize', STEP, () => finalizeIssue(ctx, prep, moderation, tagResult, sdgResult))
-
-    // Approved items get a structural pass (dedup / reparent / convert).
     if (approved) await this.reviewStructure(ctx, step, id)
   }
 
-  /** prepare → verdict → apply. */
   private async reviewStructure(ctx: Ctx, step: WorkflowStep, id: number) {
     const prep = await step.do('structure-prepare', STEP, () => prepareStructure(ctx, id))
     if (!prep) return
@@ -78,7 +68,6 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     await step.do('structure-apply', STEP, () => applyStructure(ctx, prep, verdict))
   }
 
-  /** moderate → (curate → finalize) when approved. */
   private async reviewCaseStudy(ctx: Ctx, step: WorkflowStep, id: number) {
     const outcome = await step.do('moderate', STEP, () => moderateCaseStudy(ctx, id))
     if (outcome.decision !== 'approved' || !outcome.cs || !outcome.moderation) return
@@ -91,7 +80,6 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
   }
 }
 
-// Workflows are triggered via the binding; this Worker never serves real traffic.
 export default {
   async fetch(): Promise<Response> {
     return new Response('communityfix moderation workflow', { status: 200 })

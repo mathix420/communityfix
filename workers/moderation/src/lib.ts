@@ -1,5 +1,3 @@
-// Moderation primitives for the Workflow worker: framework-agnostic ports of the
-// server/utils helpers, taking explicit `db`/clients instead of Nitro auto-imports.
 import { and, desc, eq, ne, sql, type SQL } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
@@ -27,15 +25,11 @@ export interface Ctx {
   adminEmails: string
 }
 
-// Fresh client per step invocation — Hyperdrive pools upstream, so it stays cheap.
 export function createDb(connectionString: string): DB {
   const client = postgres(connectionString, { max: 5, fetch_types: false })
   return drizzle(client, { schema })
 }
 
-// ── AI ───────────────────────────────────────────────────────────────────────
-// Anthropic's `json_schema` output rejects a handful of standard JSON Schema
-// keywords; strip them so callers can author plain JSON Schema.
 const UNSUPPORTED_SCHEMA_KEYS = new Set([
   'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
   'minLength', 'maxLength', 'pattern', 'format',
@@ -116,7 +110,6 @@ export async function findSimilar<T extends { similarity: number }>(db: DB, opts
   return opts.threshold != null ? rows.filter(r => r.similarity > opts.threshold!) : rows
 }
 
-// ── Audit log ─────────────────────────────────────────────────────────────────
 export async function createAuditLog(db: DB, entry: {
   type: AuditLogType
   action: AuditLogAction
@@ -142,14 +135,12 @@ export async function createAuditLog(db: DB, entry: {
   }
 }
 
-// ── Admin allowlist ───────────────────────────────────────────────────────────
 export function isAdminEmail(email: string | null | undefined, adminEmails: string): boolean {
   if (!email) return false
   const allowed = (adminEmails || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
   return allowed.includes(email.toLowerCase())
 }
 
-// ── Trust score ───────────────────────────────────────────────────────────────
 interface TrustScoreFactors {
   isAdmin: boolean
   accountAgeDays: number
@@ -236,7 +227,6 @@ export async function updateUserTrustScore(ctx: Ctx, userId: string): Promise<nu
   return score
 }
 
-// ── Auto-ban ──────────────────────────────────────────────────────────────────
 const BAN_REJECTION_THRESHOLD = 4
 const BAN_LOOKBACK_WINDOW = 10
 

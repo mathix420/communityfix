@@ -1,6 +1,3 @@
-// The moderation logic itself, ported from server/utils/review-*.ts and split
-// into discrete, JSON-serializable units so the Workflow can run them as durable
-// steps (and, for the issue review, fan three AI calls out in parallel).
 import { eq, sql } from 'drizzle-orm'
 import {
   caseStudies, issues, sdgs, tags, issueTags, issueSdgs,
@@ -14,7 +11,6 @@ import {
 const DUPLICATE_THRESHOLD = 0.92
 const CONFIDENCE_THRESHOLD = 0.7
 
-// ── Issue / solution review ───────────────────────────────────────────────────
 interface IssueRef { id: number, type: 'issue' | 'solution', parentId: number | null, authorId: string | null }
 interface SimilarIssue { id: number, title: string, summary: string, similarity: number }
 interface RefItem { id: number, name: string }
@@ -40,7 +36,6 @@ export interface ModerationResult {
 export interface TagResult { existingTagIds: number[], newTagNames: string[] }
 export interface SdgResult { sdgIds: number[] }
 
-/** Step 1: load the issue, embed it, and gather similar issues + reference data. */
 export async function prepareIssue(ctx: Ctx, issueId: number): Promise<IssuePrep | null> {
   const { db } = ctx
   const issue = await db.query.issues.findFirst({ where: eq(issues.id, issueId) })
@@ -99,7 +94,6 @@ export async function prepareIssue(ctx: Ctx, issueId: number): Promise<IssuePrep
   }
 }
 
-/** Parallel step A: the moderation decision. */
 export function moderateIssue(ctx: Ctx, prep: IssuePrep): Promise<ModerationResult> {
   return chatJson<ModerationResult>(ctx.anthropic, {
     system: `You are a content moderator for a community problem-solving platform. Evaluate if this submission is a legitimate community issue. Reject spam, gibberish, hate speech, or off-topic content. Set isSpam to true for spam, gibberish, or bot content; false for off-topic or low-quality content that was submitted in good faith.
@@ -130,7 +124,6 @@ When your confidence is below 0.7, populate "questions" with 1-3 specific questi
   })
 }
 
-/** Parallel step B: tag classification. */
 export function classifyTags(ctx: Ctx, prep: IssuePrep): Promise<TagResult> {
   return chatJson<TagResult>(ctx.anthropic, {
     system: `You classify community issues into relevant tags. Pick 1-3 tags from the provided list that best describe this issue. If no existing tag fits, suggest one new tag name.\n\nAvailable tags:\n${prep.allTags.map(t => `- id:${t.id} "${t.name}"`).join('\n')}`,
@@ -148,7 +141,6 @@ export function classifyTags(ctx: Ctx, prep: IssuePrep): Promise<TagResult> {
   })
 }
 
-/** Parallel step C: SDG mapping. */
 export function mapSdgs(ctx: Ctx, prep: IssuePrep): Promise<SdgResult> {
   return chatJson<SdgResult>(ctx.anthropic, {
     system: `You map community issues to relevant UN Sustainable Development Goals. Pick 1-3 SDGs that this issue relates to.\n\nAvailable SDGs:\n${prep.allSdgs.map(s => `- id:${s.id} "${s.name}"`).join('\n')}`,
@@ -163,8 +155,6 @@ export function mapSdgs(ctx: Ctx, prep: IssuePrep): Promise<SdgResult> {
   })
 }
 
-/** Final step: combine the AI results and persist the decision. Returns whether
- *  the issue was approved (so the workflow knows to run a structural review). */
 export async function finalizeIssue(
   ctx: Ctx,
   prep: IssuePrep,
@@ -176,8 +166,6 @@ export async function finalizeIssue(
   const { issue, similar, embedding } = prep
   const issueId = issue.id
 
-  // Hard duplicate override — vector similarity is a signal that doesn't need
-  // LLM judgement.
   const nearDuplicate = similar.find(s => s.similarity >= DUPLICATE_THRESHOLD)
   if (nearDuplicate && moderation.approved) {
     moderation.approved = false
@@ -242,7 +230,6 @@ export async function finalizeIssue(
     return { approved: false }
   }
 
-  // Approved — create any new tags, validate, then persist tags + SDGs + status.
   const newTagIds: number[] = []
   for (const name of tagResult.newTagNames ?? []) {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -283,7 +270,6 @@ export async function finalizeIssue(
   return { approved: true }
 }
 
-// ── Structural review ─────────────────────────────────────────────────────────
 interface StructurePrep {
   issue: IssueRef
   issueText: string
@@ -419,7 +405,6 @@ export async function applyStructure(ctx: Ctx, prep: StructurePrep, verdict: Str
   }
 }
 
-// ── Case study review ─────────────────────────────────────────────────────────
 type Metric = { label: string, baseline?: string | null, result?: string | null, unit?: string | null }
 type Source = { url: string, title?: string | null }
 type LinkRow = { url: string, title?: string | null }
@@ -448,7 +433,6 @@ export interface CaseStudyModerateOutcome {
   moderation?: CaseStudyModeration
 }
 
-/** Step 1: load + moderate; on rejection, apply it here (terminal). */
 export async function moderateCaseStudy(ctx: Ctx, caseStudyId: number): Promise<CaseStudyModerateOutcome> {
   const { db } = ctx
   const cs = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, caseStudyId) })
@@ -514,7 +498,6 @@ Be permissive for good-faith submissions — even incomplete or brief case studi
   return { decision: 'approved', cs, solution, moderation }
 }
 
-/** Step 2 (approved only): the replication-focused curation pass. */
 export function curateCaseStudy(ctx: Ctx, cs: CaseStudyRow, solution: { title: string, summary: string } | null | undefined): Promise<CurationResult> {
   const original = {
     outcome: cs.outcome, locationName: cs.locationName, scale: cs.scale, description: cs.description,
@@ -615,7 +598,6 @@ function diffStripped(before: CaseStudyRow, after: CurationResult): string[] {
   return stripped
 }
 
-/** Step 3 (approved only): re-embed the curated text and persist. */
 export async function finalizeCaseStudy(ctx: Ctx, cs: CaseStudyRow, solution: { title: string, summary: string } | null | undefined, moderation: CaseStudyModeration, curated: CurationResult): Promise<void> {
   const { db } = ctx
   const caseStudyId = cs.id
