@@ -1,8 +1,5 @@
-// Self-contained moderation primitives for the Workflow worker. These are
-// framework-agnostic ports of the corresponding server/utils helpers, with the
-// Nitro auto-imports (`useDB`, `useRuntimeConfig`) replaced by explicit `db` and
-// config arguments. The Drizzle schema itself is reused from the app (single
-// source of truth for the table shapes).
+// Moderation primitives for the Workflow worker: framework-agnostic ports of the
+// server/utils helpers, taking explicit `db`/clients instead of Nitro auto-imports.
 import { and, desc, eq, ne, sql, type SQL } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
@@ -30,9 +27,7 @@ export interface Ctx {
   adminEmails: string
 }
 
-// ── DB ───────────────────────────────────────────────────────────────────────
-// One client per Workflow step invocation. Hyperdrive pools upstream, so a fresh
-// postgres-js client per step is fine and keeps each durable step self-contained.
+// Fresh client per step invocation — Hyperdrive pools upstream, so it stays cheap.
 export function createDb(connectionString: string): DB {
   const client = postgres(connectionString, { max: 5, fetch_types: false })
   return drizzle(client, { schema })

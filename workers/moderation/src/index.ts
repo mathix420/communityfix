@@ -8,10 +8,8 @@ import {
   moderateCaseStudy, curateCaseStudy, finalizeCaseStudy,
 } from './pipelines'
 
-// This Worker IS the moderation logic. The main app only triggers a new instance
-// (env.MODERATION_WORKFLOW.create) whenever a node needs reviewing; every unit of
-// work below is a durable, independently-retried step. The issue review fans its
-// three AI calls out in parallel and converges on a single finalize step.
+// This Worker runs the moderation pipeline as durable, independently-retried steps.
+// The main app only triggers instances (env.MODERATION_WORKFLOW.create).
 
 interface Env {
   HYPERDRIVE: { connectionString: string }
@@ -68,8 +66,7 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
 
     const { approved } = await step.do('finalize', STEP, () => finalizeIssue(ctx, prep, moderation, tagResult, sdgResult))
 
-    // Approved items get a structural pass (dedup / reparent / convert) as part of
-    // the same durable instance.
+    // Approved items get a structural pass (dedup / reparent / convert).
     if (approved) await this.reviewStructure(ctx, step, id)
   }
 

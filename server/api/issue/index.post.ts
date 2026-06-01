@@ -30,9 +30,6 @@ export default defineEventHandler(async (event) => {
     links: body.links,
   })
 
-  // Durable moderation via a Cloudflare Workflow — survives past the response and
-  // retries on failure, with no 30s `waitUntil` cap. Falls back to an inline task
-  // in dev. See server/utils/moderation-trigger.ts.
   await triggerModeration('issue', created.id)
 
   return created

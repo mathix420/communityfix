@@ -33,7 +33,6 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(issues.id, id))
 
-  // Durable re-review via the moderation Workflow (see moderation-trigger.ts).
   await triggerModeration('issue', id)
 
   return { success: true }

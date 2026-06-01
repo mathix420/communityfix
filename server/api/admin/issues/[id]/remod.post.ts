@@ -51,7 +51,6 @@ export default defineEventHandler(async (event) => {
     details: { adminId: session.user.id, previousStatus },
   })
 
-  // Durable re-moderation via the moderation Workflow (see moderation-trigger.ts).
   await triggerModeration('issue', id)
 
   return { success: true }
