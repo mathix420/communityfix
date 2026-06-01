@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import type { GeoJsonGeometry } from '../../server/database/schema'
+
 const props = defineProps<{
   latitude: number
   longitude: number
   scale?: string | null
+  area?: GeoJsonGeometry | null
 }>()
 
 const mapEl = ref<HTMLElement>()
@@ -51,6 +54,14 @@ async function initMap() {
     subdomains: 'abcd',
   }).addTo(map)
 
+  renderArea()
+}
+
+function renderArea() {
+  if (props.area) {
+    showArea({ geojson: props.area as unknown as GeoJSON.Geometry })
+    return
+  }
   fetchArea()
 }
 

@@ -327,6 +327,7 @@ async function submitAppeal() {
             :latitude="issue.location.latitude"
             :longitude="issue.location.longitude"
             :scale="issue.scale"
+            :area="issue.location.area"
           />
         </div>
       </div>

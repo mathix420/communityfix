@@ -186,6 +186,7 @@ if (study.value) {
               :latitude="study.location.latitude"
               :longitude="study.location.longitude"
               :scale="study.scale"
+              :area="study.location.area"
             />
           </div>
         </div>

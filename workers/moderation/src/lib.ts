@@ -50,15 +50,33 @@ function sanitizeSchema(node: unknown): unknown {
   return node
 }
 
+function validateRequired(value: unknown, schema: Record<string, unknown>, context?: string): void {
+  const required = Array.isArray(schema.required) ? schema.required as string[] : []
+  if (required.length === 0) return
+  const suffix = context ? ` (${context})` : ''
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`[chatJson] Expected a JSON object${suffix}`)
+  }
+  for (const key of required) {
+    if (!(key in (value as Record<string, unknown>))) {
+      throw new Error(`[chatJson] Missing required key "${key}" in model output${suffix}`)
+    }
+  }
+}
+
 export async function chatJson<T>(anthropic: Anthropic, opts: {
   system: string
   user: string
   schema: Record<string, unknown>
+  model?: string
+  maxTokens?: number
+  temperature?: number
   context?: string
 }): Promise<T> {
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    model: opts.model ?? 'claude-sonnet-4-6',
+    max_tokens: opts.maxTokens ?? 1024,
+    ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
     system: opts.system,
     messages: [{ role: 'user', content: opts.user }],
     output_config: {
@@ -74,7 +92,9 @@ export async function chatJson<T>(anthropic: Anthropic, opts: {
   if (!text) {
     throw new Error(`[chatJson] Empty response from Anthropic${opts.context ? ` (${opts.context})` : ''}`)
   }
-  return JSON.parse(text) as T
+  const parsed = JSON.parse(text) as T
+  validateRequired(parsed, opts.schema, opts.context)
+  return parsed
 }
 
 export async function embed(openai: OpenAI, text: string): Promise<number[]> {
