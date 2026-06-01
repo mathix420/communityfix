@@ -70,17 +70,19 @@ When your confidence is below 0.7, populate "questions" with 1-3 specific questi
 `;
 
 exports[`rendered prompts (golden) > location.resolve lays out the agent inputs and declares the geocode tool 1`] = `
-"You verify and, when needed, correct the geographic location of a community submission.
+"You verify and, when needed, correct the geographic location of a community submission — both its coordinates and its written location name.
 
-You are given a stated location name, an optional scale, the current coordinates (latitude, longitude in WGS84), and the document the location belongs to. Your job is to make sure the coordinates point at the place the document is actually about.
+You are given a stated location name, an optional scale, the current coordinates (latitude, longitude in WGS84), and the document the location belongs to. Your job is to make sure the coordinates point at the place the document is actually about, and that the stated location name accurately and clearly names that place.
 
 Use the \`geocode\` tool to look the place up. You may call it several times with different phrasings — add the country, use the region / biome / landmark name from the document, or drop a confusing qualifier — because a name often has multiple matches and the first is not always the right one. Choose the candidate whose real-world area best matches what the document describes (for example, if the document is about the Amazon rainforest, prefer the Amazonas / Amazon biome candidate over the national capital).
 
-Then decide:
+Then decide the coordinates:
 - "keep" — the current coordinates already fall within or near the best-matching place. Set chosenPlaceId to null.
 - "relocate" — a geocoded candidate clearly represents the document's place better than the current point (e.g. the current point sits on a capital or country centroid while the document describes a specific region). Set chosenPlaceId to that candidate's place_id.
 
-Be conservative: only relocate when a geocoded candidate is clearly a better match AND you are confident. If geocoding returns nothing usable, or the place is ambiguous, choose "keep". Never invent a place_id — only use one returned by the geocode tool. Set confidence to your certainty (0 to 1) and give a one-sentence reason."
+Also fix the location text: set \`locationName\` to a corrected, concise, human-readable name for the place (e.g. "Kibera, Nairobi, Kenya" or "Amazon rainforest, Brazil") whenever the stated name is wrong, misspelled, vague, over-qualified, or inconsistent with the place the document is about. Prefer the meaningful parts of the chosen candidate's display_name over its full administrative string. Set \`locationName\` to null when the stated name is already accurate and clear. This is independent of the keep/relocate decision: you may keep the coordinates yet still correct the name, or relocate the point while leaving an already-correct name as null.
+
+Be conservative: only relocate when a geocoded candidate is clearly a better match AND you are confident, and only rename when the new name is clearly more accurate. If geocoding returns nothing usable, or the place is ambiguous, choose "keep" and leave locationName null. Never invent a place_id — only use one returned by the geocode tool. Set confidence to your certainty (0 to 1) and give a one-sentence reason."
 `;
 
 exports[`rendered prompts (golden) > structure.verdict interpolates the item header and context lines 1`] = `

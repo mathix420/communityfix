@@ -420,6 +420,8 @@ export interface LocationVerdict {
   latitude: number | null
   longitude: number | null
   area: GeoJsonGeometry | null
+  // Corrected location-name text, or null when the stated name is already accurate.
+  locationName: string | null
 }
 
 interface LocationAgentResult {
@@ -427,6 +429,7 @@ interface LocationAgentResult {
   confidence: number
   reason: string
   chosenPlaceId: number | null
+  locationName: string | null
 }
 
 const LOCATION_FIX_CONFIDENCE = 0.7
@@ -443,34 +446,50 @@ export async function resolveLocation(ctx: Ctx, target: LocationTarget, document
     document,
   }, [geocode], `${target.kind} ${target.id}`)
 
-  const keep: LocationVerdict = { action: 'keep', confidence: out.confidence, reason: out.reason, latitude: null, longitude: null, area: null }
+  // The name correction is independent of the point decision: a "keep" verdict
+  // still carries it through so the text can be fixed without moving the point.
+  const locationName = out.locationName?.trim() || null
+  const keep: LocationVerdict = { action: 'keep', confidence: out.confidence, reason: out.reason, latitude: null, longitude: null, area: null, locationName }
   if (out.action !== 'relocate' || out.chosenPlaceId == null) return keep
 
   const candidate = geocode.byPlaceId.get(out.chosenPlaceId)
   if (!candidate) return keep
 
   const area = candidate.geojson ?? (candidate.boundingbox ? bboxToPolygon(candidate.boundingbox) : null)
-  return { action: 'relocate', confidence: out.confidence, reason: out.reason, latitude: candidate.lat, longitude: candidate.lon, area }
+  return { action: 'relocate', confidence: out.confidence, reason: out.reason, latitude: candidate.lat, longitude: candidate.lon, area, locationName }
 }
 
 export async function applyLocationFix(ctx: Ctx, target: LocationTarget, verdict: LocationVerdict): Promise<void> {
   const { db } = ctx
+  if (verdict.confidence < LOCATION_FIX_CONFIDENCE) return
+
+  // Coordinate / area change — only on a validated relocate that actually moves the point.
   const { latitude, longitude } = verdict
-  if (verdict.action !== 'relocate' || verdict.confidence < LOCATION_FIX_CONFIDENCE) return
-  if (latitude == null || longitude == null) return
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
-  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return
-
   const current = target.location
-  const samePoint = Math.abs(current.y - latitude) < LOCATION_MIN_SHIFT_DEG && Math.abs(current.x - longitude) < LOCATION_MIN_SHIFT_DEG
-  if (samePoint && verdict.area == null) return
+  let point: { x: number, y: number } | null = null
+  if (verdict.action === 'relocate' && latitude != null && longitude != null
+    && Number.isFinite(latitude) && Number.isFinite(longitude)
+    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+    const samePoint = Math.abs(current.y - latitude) < LOCATION_MIN_SHIFT_DEG && Math.abs(current.x - longitude) < LOCATION_MIN_SHIFT_DEG
+    if (!samePoint || verdict.area != null) point = { x: longitude, y: latitude }
+  }
+  const movedPoint = point != null
 
-  const point = { x: longitude, y: latitude }
+  // Location-name text change — independent of the point decision.
+  const newName = verdict.locationName?.trim() || null
+  const renamed = newName != null && newName !== target.locationName
+
+  if (!movedPoint && !renamed) return
+
+  const patch = {
+    ...(movedPoint ? { location: point!, area: verdict.area } : {}),
+    ...(renamed ? { locationName: newName! } : {}),
+  }
   if (target.kind === 'issue') {
-    await db.update(issues).set({ location: point, area: verdict.area }).where(eq(issues.id, target.id))
+    await db.update(issues).set(patch).where(eq(issues.id, target.id))
   }
   else {
-    await db.update(caseStudies).set({ location: point, area: verdict.area }).where(eq(caseStudies.id, target.id))
+    await db.update(caseStudies).set(patch).where(eq(caseStudies.id, target.id))
   }
 
   await createAuditLog(db, {
@@ -484,14 +503,18 @@ export async function applyLocationFix(ctx: Ctx, target: LocationTarget, verdict
       kind: target.kind,
       ...(target.kind === 'case-study' ? { caseStudyId: target.id } : {}),
       locationName: target.locationName,
-      from: { latitude: current.y, longitude: current.x },
-      to: { latitude, longitude },
+      ...(renamed ? { newLocationName: newName } : {}),
+      ...(movedPoint ? { from: { latitude: current.y, longitude: current.x }, to: { latitude, longitude } } : {}),
+      movedPoint,
+      renamed,
       hasArea: verdict.area != null,
       confidence: verdict.confidence,
       promptVersion: STEPS['location.resolve'].version,
     },
   })
-  console.log(`[review-${target.kind}] ${target.kind} ${target.id} relocated → ${latitude}, ${longitude} (${verdict.reason})`)
+  const moveMsg = movedPoint ? `→ ${latitude}, ${longitude}` : '(point kept)'
+  const nameMsg = renamed ? `, name → "${newName}"` : ''
+  console.log(`[review-${target.kind}] ${target.kind} ${target.id} relocated ${moveMsg}${nameMsg} (${verdict.reason})`)
 }
 
 export interface IssueCurationResult {
