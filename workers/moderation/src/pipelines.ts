@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   caseStudies, issues, sdgs, tags, issueTags, issueSdgs,
   type LocationScale, type GeoJsonGeometry,
@@ -265,9 +265,9 @@ export async function prepareStructure(ctx: Ctx, issueId: number): Promise<Struc
   const parentIds = [...new Set(similar.map(s => s.parentId).filter(Boolean))] as number[]
   let parents: Array<{ id: number, title: string, type: string }> = []
   if (parentIds.length > 0) {
-    parents = await db.execute<{ id: number, title: string, type: string }>(
-      sql`SELECT id, title, type FROM issues WHERE id = ANY(${parentIds}) AND status = 'approved'`,
-    ) as unknown as Array<{ id: number, title: string, type: string }>
+    parents = await db.select({ id: issues.id, title: issues.title, type: issues.type })
+      .from(issues)
+      .where(and(inArray(issues.id, parentIds), eq(issues.status, 'approved')))
   }
 
   const contextLines = similar.map((s) => {
