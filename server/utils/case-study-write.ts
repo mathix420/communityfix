@@ -186,13 +186,18 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
   return rows[0]!
 }
 
-export function transformCaseStudy(row: typeof caseStudies.$inferSelect & { author?: { name: string | null } | null }) {
+export function transformCaseStudy(row: typeof caseStudies.$inferSelect & {
+  author?: { name: string | null } | null
+  solution?: { title: string | null, summary: string | null } | null
+}) {
   if (!row.createdAt) {
     throw new Error(`[transformCaseStudy] Case study ${row.id} has no createdAt`)
   }
   return {
     id: row.id,
     solutionId: row.solutionId,
+    // Parent solution title; only set when the caller loads the `solution` relation.
+    solutionTitle: row.solution?.title || row.solution?.summary || null,
     authorId: row.authorId,
     author: row.author?.name ?? 'Anonymous',
     status: row.status,

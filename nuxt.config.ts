@@ -16,6 +16,14 @@ export default defineNuxtConfig({
   ],
   devtools: { enabled: true },
 
+  // Bind the dev server to IPv4. Without this it listens on `[::1]`, and
+  // nuxt-og-image skips its real HTTP font fetch whenever the origin contains
+  // `::1` — falling back to an internal route that can't serve @nuxt/fonts'
+  // Vite-served `/_fonts/*.woff2`, so every OG image renders with a fallback
+  // font. An IPv4 origin lets the renderer fetch fonts over HTTP, matching how
+  // production resolves them from the Cloudflare ASSETS binding. Dev-only.
+  devServer: { host: '127.0.0.1' },
+
   app: {
     head: {
       htmlAttrs: {
