@@ -98,6 +98,8 @@ const actionLabel: Record<string, string> = {
   override_approve: 'Force approved',
   override_reject: 'Force rejected',
   remod: 'Re-mod',
+  relocate: 'Location corrected',
+  curate: 'Curated',
 }
 
 const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'primary'> = {

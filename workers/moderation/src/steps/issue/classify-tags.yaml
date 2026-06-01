@@ -1,0 +1,19 @@
+id: issue.classify-tags
+description: Pick 1-3 tags for an issue from the existing tag list, suggesting a new tag name only when nothing fits.
+version: 1
+model: claude-sonnet-4-6
+maxTokens: 1024
+system: |-
+  You classify community issues into relevant tags. Pick 1-3 tags from the provided list that best describe this issue. If no existing tag fits, suggest one new tag name.
+
+  Available tags:
+  {{tagList}}
+user: |-
+  {{issueText}}
+schema:
+  type: object
+  properties:
+    existingTagIds: { type: array, items: { type: integer } }
+    newTagNames: { type: array, items: { type: string } }
+  required: [existingTagIds, newTagNames]
+  additionalProperties: false
