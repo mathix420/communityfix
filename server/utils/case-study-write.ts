@@ -8,6 +8,7 @@ import { assertNotBanned } from './check-ban'
 import { isAdminEmail } from './admin'
 import { generateEmbedding } from './embeddings'
 import { sanitizeLinks, type Link } from './issue-write'
+import { reconcileNodeInBackground } from './standard-site'
 
 type Metric = { label: string, baseline?: string, result?: string, unit?: string }
 type Source = { url: string, title?: string }
@@ -186,6 +187,11 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
       console.error(`[case-study:update] Failed to queue moderation for case study ${input.id}:`, err)
     })
   }
+
+  // Mirror to standard.site: a text edit reset status to pending → reconcile
+  // unpublishes; a metadata-only edit on an approved study updates it in place.
+  reconcileNodeInBackground('case_study', input.id)
+
   return rows[0]!
 }
 

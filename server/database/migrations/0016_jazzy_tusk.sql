@@ -1,0 +1,2 @@
+ALTER TABLE "case_studies" ADD COLUMN "publish_to_standard_site" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "issues" ADD COLUMN "publish_to_standard_site" boolean DEFAULT true NOT NULL;

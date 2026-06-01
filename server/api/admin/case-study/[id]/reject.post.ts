@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { caseStudies } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { reconcileNodeInBackground } from '../../../../utils/standard-site'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -39,6 +40,9 @@ export default defineEventHandler(async (event) => {
   if (cs.authorId) {
     await updateUserTrustScore(cs.authorId)
   }
+
+  // Rejected → remove any standard.site document for this case study.
+  reconcileNodeInBackground('case_study', id)
 
   return { success: true }
 })

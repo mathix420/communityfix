@@ -3,6 +3,7 @@ import { issues, tags, sdgs, issueTags, issueSdgs } from '../database/schema'
 import { chatJson } from './ai'
 import { generateEmbedding, findSimilar } from './embeddings'
 import { createAuditLog } from './audit-log'
+import { reconcileNodeInBackground } from './standard-site'
 
 interface ModerationResult {
   approved: boolean
@@ -219,6 +220,8 @@ When your confidence is below 0.7, populate "questions" with 1-3 specific questi
       await checkAndApplyBan(issue.authorId)
       await updateUserTrustScore(issue.authorId)
     }
+    // Rejected/spammed → ensure no standard.site document lingers.
+    reconcileNodeInBackground(issue.type === 'solution' ? 'solution' : 'issue', issueId)
     return
   }
 
@@ -271,4 +274,7 @@ When your confidence is below 0.7, populate "questions" with 1-3 specific questi
   runTask('review:structure', { payload: { issueId } }).catch((err) => {
     console.error(`[review:issue] Failed to queue structural review for issue ${issueId}:`, err)
   })
+
+  // Approved → mirror to standard.site as a public document.
+  reconcileNodeInBackground(issue.type === 'solution' ? 'solution' : 'issue', issueId)
 }

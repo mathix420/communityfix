@@ -1,6 +1,7 @@
 import { eq, and, sql } from 'drizzle-orm'
 import { caseStudies, auditLogs, type CaseStudyOutcome, CASE_STUDY_OUTCOMES } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { reconcileNodeInBackground } from '../../../../utils/standard-site'
 
 interface CaseStudyEdits {
   description?: string | null
@@ -94,6 +95,9 @@ export default defineEventHandler(async (event) => {
   if (cs.authorId) {
     await updateUserTrustScore(cs.authorId)
   }
+
+  // Mirror the now-approved case study to standard.site (respects publish flag).
+  reconcileNodeInBackground('case_study', id)
 
   return { success: true }
 })

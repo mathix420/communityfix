@@ -6,14 +6,20 @@
 // need. This wrapper speaks the handful of XRPC methods we use directly over
 // `fetch`, which works unchanged on Cloudflare Workers.
 //
-// Credentials come from runtimeConfig (Doppler):
-//   atprotoService   – PDS base URL (default https://bsky.social)
-//   atprotoIdentifier – handle or DID of the publishing account
-//   atprotoPassword  – app password (NOT the account password)
+// Identity & secrets (point 1). CommunityFix uses a single DID for
+// communityfix.org, hosted on a PDS provider (e.g. bsky.social). Rather than
+// holding the repo signing keys ourselves, the PDS custodies them and we
+// authenticate with an **app password** — the credential we store server-side
+// as a Cloudflare Worker secret (via Doppler → `wrangler secret bulk`):
+//   atprotoService    – PDS base URL (default https://bsky.social)
+//   atprotoIdentifier – handle or DID of the communityfix.org account
+//   atprotoPassword   – app password (NOT the account password)
+// `createSession` exchanges these for short-lived JWTs; the resolved DID is
+// returned on the session and cached in `standard_site_records`. (If you run
+// your own PDS instead, the same env vars point at it — only the host changes.)
 //
-// When any of these are unset the client is considered unconfigured and the
-// standard.site sync no-ops, so the feature stays dormant until an operator
-// provisions an identity.
+// When any credential is unset the client is unconfigured and all publishing
+// no-ops, so the feature stays dormant until an operator provisions it.
 
 interface SessionConfig {
   service: string
@@ -149,6 +155,27 @@ export async function getAtpRecord(
     if (err instanceof Error && /RecordNotFound/i.test(err.message)) return null
     throw err
   }
+}
+
+/**
+ * Create a new record via com.atproto.repo.createRecord. When `rkey` is
+ * omitted the PDS assigns one (a TID). Use this for the first publish of a
+ * node; subsequent updates go through putAtpRecord at the known rkey.
+ */
+export async function createAtpRecord(
+  session: AtpSession,
+  collection: string,
+  record: Record<string, unknown>,
+  rkey?: string,
+): Promise<PutRecordResult> {
+  const body: Record<string, unknown> = { repo: session.did, collection, record }
+  if (rkey) body.rkey = rkey
+
+  return await xrpc<PutRecordResult>(
+    session.service,
+    'com.atproto.repo.createRecord',
+    { method: 'POST', body, accessJwt: session.accessJwt },
+  )
 }
 
 /**

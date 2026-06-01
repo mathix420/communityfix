@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { issues, auditLogs, type IssueType, ISSUE_TYPES } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { reconcileNodeInBackground } from '../../../../utils/standard-site'
 
 interface IssueEdits {
   title?: string
@@ -113,6 +114,10 @@ export default defineEventHandler(async (event) => {
   }
 
   runTask('review:structure', { payload: { issueId: id } }).catch(() => {})
+
+  // Mirror the now-approved node to standard.site (respects its publish flag).
+  const publishType = (updates.type as IssueType | undefined) ?? issue.type
+  reconcileNodeInBackground(publishType === 'solution' ? 'solution' : 'issue', id)
 
   return { success: true }
 })

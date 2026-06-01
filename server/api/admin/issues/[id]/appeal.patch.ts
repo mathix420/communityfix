@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { issues } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { reconcileNodeInBackground } from '../../../../utils/standard-site'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -58,6 +59,10 @@ export default defineEventHandler(async (event) => {
   if (issue.authorId) {
     await updateUserTrustScore(issue.authorId)
   }
+
+  // Appeal outcome may flip publishability (approved republishes; denied stays
+  // unpublished). Reconcile either way.
+  reconcileNodeInBackground(issue.type === 'solution' ? 'solution' : 'issue', id)
 
   return { success: true }
 })

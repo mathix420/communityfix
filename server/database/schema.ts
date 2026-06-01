@@ -53,6 +53,10 @@ export const users = pgTable('users', {
   // Free-text location ("Brussels, BE", "Remote"). Not geocoded.
   location: text('location'),
   provider: text('provider').$type<Provider>(),
+  // Optional AT Protocol DID a user has linked to their account. When present,
+  // the user can be listed in a standard.site document's `contributors` array;
+  // civic users without a DID are omitted from contributor attribution.
+  atprotoDid: text('atproto_did'),
   bannedUntil: timestamp('banned_until', { withTimezone: true }),
   banReason: text('ban_reason'),
   banAppealedAt: timestamp('ban_appealed_at', { withTimezone: true }),
@@ -134,6 +138,11 @@ export const issues = pgTable('issues', {
   infoRequestedAt: timestamp('info_requested_at', { withTimezone: true }),
   infoResponse: text('info_response'),
   infoRespondedAt: timestamp('info_responded_at', { withTimezone: true }),
+  // standard.site publish flag (point 5). Gates whether an approved node is
+  // mirrored to the PDS as a public site.standard.document. Defaults true;
+  // admins can opt a node out without rejecting it. Publishability is
+  // ultimately `approved && !isSpam && publishToStandardSite`.
+  publishToStandardSite: boolean('publish_to_standard_site').notNull().default(true),
   embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -286,6 +295,8 @@ export const caseStudies = pgTable('case_studies', {
   location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }).notNull(),
   // Admin-set: lets us mark a case study as independently verified.
   verified: boolean('verified').notNull().default(false),
+  // standard.site publish flag — see issues.publishToStandardSite.
+  publishToStandardSite: boolean('publish_to_standard_site').notNull().default(true),
   implementer: text('implementer'),
   startDate: date('start_date', { mode: 'string' }),
   endDate: date('end_date', { mode: 'string' }),

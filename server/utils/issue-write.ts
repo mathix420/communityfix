@@ -6,6 +6,7 @@ import { issues, users } from '../database/schema'
 import type { IssueType, LocationScale, SolutionStatus } from '../database/schema'
 import { assertNotBanned } from './check-ban'
 import { isAdminEmail } from './admin'
+import { reconcileNodeInBackground } from './standard-site'
 
 // Summary doubles as the card snippet — markdown there ships as literal
 // `**bold**` to the viewer. Strip the formatting (and clamp length) so the
@@ -138,6 +139,8 @@ export interface UpdateIssueInput {
   scale?: LocationScale | null
   // Honored only when the target row is a solution.
   links?: Link[] | null
+  // standard.site opt-out (admin-only). Clearing it unpublishes the document.
+  publishToStandardSite?: boolean
 }
 
 export async function updateIssue(userId: string, input: UpdateIssueInput, expectedType?: IssueType) {
@@ -176,6 +179,10 @@ export async function updateIssue(userId: string, input: UpdateIssueInput, expec
     const lng = input.longitude ?? (existing.location as { x: number } | null)?.x
     patch.location = (lat != null && lng != null) ? { x: lng, y: lat } : null
   }
+  // standard.site opt-out is admin-only.
+  if (input.publishToStandardSite !== undefined && isAdmin) {
+    patch.publishToStandardSite = input.publishToStandardSite
+  }
   if (input.links !== undefined && existing.type === 'solution') {
     patch.links = sanitizeLinks(input.links)
   }
@@ -199,5 +206,11 @@ export async function updateIssue(userId: string, input: UpdateIssueInput, expec
       : { subIssueCount: sql`${issues.subIssueCount} + 1` }
     await db.update(issues).set(counter).where(eq(issues.id, existing.parentId!))
   }
+
+  // Mirror to standard.site. A content edit reset status to pending → reconcile
+  // unpublishes the document; a metadata-only edit on an approved node updates
+  // it in place. reconcileNode re-reads the row, so either way is handled.
+  reconcileNodeInBackground(rows[0]!.type === 'solution' ? 'solution' : 'issue', input.id)
+
   return { issue: rows[0]!, contentChanged }
 }

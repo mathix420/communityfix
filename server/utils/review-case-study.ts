@@ -3,6 +3,7 @@ import { caseStudies, issues, LOCATION_SCALES, type LocationScale } from '../dat
 import { chatJson } from './ai'
 import { generateEmbedding } from './embeddings'
 import { createAuditLog } from './audit-log'
+import { reconcileNodeInBackground } from './standard-site'
 
 interface ModerationResult {
   approved: boolean
@@ -115,6 +116,8 @@ Be permissive for good-faith submissions — even incomplete or brief case studi
       await checkAndApplyBan(cs.authorId)
       await updateUserTrustScore(cs.authorId)
     }
+    // Rejected/spammed → ensure no standard.site document lingers.
+    reconcileNodeInBackground('case_study', caseStudyId)
     return
   }
 
@@ -195,6 +198,9 @@ Be permissive for good-faith submissions — even incomplete or brief case studi
   if (cs.authorId) {
     await updateUserTrustScore(cs.authorId)
   }
+
+  // Approved → mirror to standard.site as a public document.
+  reconcileNodeInBackground('case_study', caseStudyId)
 }
 
 async function curateForReplication(
