@@ -18,11 +18,8 @@ export type AppealStatus = typeof APPEAL_STATUSES[number]
 export const LOCATION_SCALES = ['neighborhood', 'city', 'region', 'national', 'global'] as const
 export type LocationScale = typeof LOCATION_SCALES[number]
 
-// A GeoJSON geometry (Polygon / MultiPolygon, or a bbox expressed as a Polygon)
-// describing the *area* of a location. Stored in the `area` jsonb column; the
-// `location` point column remains the representative centroid / map marker.
-// `coordinates` is the GeoJSON nesting union (Point → MultiPolygon); kept
-// concrete (not `unknown`) so it satisfies the Workers `Serializable` bound.
+// GeoJSON area geometry for a location's `area` column. coordinates is kept
+// concrete (not unknown) so it satisfies the Workers Serializable bound.
 export interface GeoJsonGeometry {
   type: string
   coordinates: number[] | number[][] | number[][][] | number[][][][]
@@ -137,8 +134,7 @@ export const issues = pgTable('issues', {
   locationName: text('location_name'),
   location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }),
   scale: text('scale').$type<LocationScale>(),
-  // GeoJSON area for the location, resolved during moderation. `location` above
-  // is the representative centroid; this is the full extent (region/biome/etc).
+  // GeoJSON area for the location; `location` above is the centroid.
   area: jsonb('area').$type<GeoJsonGeometry>(),
   // Only meaningful when type='solution'.
   solutionStatus: text('solution_status').$type<SolutionStatus>(),

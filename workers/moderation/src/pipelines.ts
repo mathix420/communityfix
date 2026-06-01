@@ -430,16 +430,9 @@ interface LocationAgentResult {
 }
 
 const LOCATION_FIX_CONFIDENCE = 0.7
-// Below this shift the corrected point is treated as the "same place", so a
-// centroid nudged by a few metres never triggers a write on its own.
 const LOCATION_MIN_SHIFT_DEG = 0.01
 const GEOCODE_USER_AGENT = 'CommunityFix-Moderation/1.0 (+https://communityfix.org)'
 
-// Agentic location resolution. The model drives the `geocode` tool (Nominatim),
-// possibly across several queries, then names the best-matching candidate by
-// place_id. We resolve that id to the candidate's real centroid + GeoJSON area
-// here — inside the same durable step — so nothing depends on the in-memory
-// candidate cache surviving a Workflow replay.
 export async function resolveLocation(ctx: Ctx, target: LocationTarget, document: string): Promise<LocationVerdict> {
   const geocode = createGeocodeTool(GEOCODE_USER_AGENT)
   const out = await runAgent<LocationAgentResult>(ctx.anthropic, 'location.resolve', {
@@ -470,7 +463,6 @@ export async function applyLocationFix(ctx: Ctx, target: LocationTarget, verdict
 
   const current = target.location
   const samePoint = Math.abs(current.y - latitude) < LOCATION_MIN_SHIFT_DEG && Math.abs(current.x - longitude) < LOCATION_MIN_SHIFT_DEG
-  // Nothing to do if the point is unchanged and there's no new area to attach.
   if (samePoint && verdict.area == null) return
 
   const point = { x: longitude, y: latitude }
@@ -526,8 +518,6 @@ export async function applyIssueCurate(ctx: Ctx, prep: IssuePrep, curate: IssueC
   }
   if (changed.length === 0) return
 
-  // Re-embed when the summary changed — the embedding is built from title+summary
-  // and feeds the structural pass that runs next.
   let embedding: number[] | null = null
   if (updates.summary != null) {
     try {

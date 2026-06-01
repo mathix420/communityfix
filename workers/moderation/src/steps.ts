@@ -22,8 +22,6 @@ const StepFileSchema = z.object({
   system: z.string(),
   user: z.string(),
   schema: z.record(z.string(), z.unknown()),
-  // Agentic steps declare the tools they may call; the implementations are
-  // provided by the caller of runAgent(). Single-shot steps omit this.
   tools: z.array(z.string()).optional(),
 })
 export type StepDef = z.infer<typeof StepFileSchema>
@@ -93,10 +91,6 @@ export interface AgentTool {
 
 const AGENT_MAX_TURNS = 6
 
-// Runs an agentic step: the model may call the provided tools across several
-// turns, then must call the synthesized `submit_result` tool whose schema is the
-// step's `schema`. Returns that tool call's input. Used for steps that need to
-// gather external data (e.g. geocoding) before producing a structured answer.
 export async function runAgent<T>(
   anthropic: Anthropic,
   id: StepId,

@@ -65,14 +65,10 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     const { approved } = await step.do('finalize', STEP, () => finalizeIssue(ctx, prep, moderation, tagResult, sdgResult))
     if (!approved) return
 
-    // Enrich (curate text + resolve location) before the structural pass, since
-    // curation re-embeds and the structure step relies on that embedding.
     await this.enrichIssue(ctx, step, prep)
     await this.reviewStructure(ctx, step, id)
   }
 
-  // Curate the text and resolve the location of an approved issue/solution.
-  // Both arms are best-effort — a failure here must never undo the approval.
   private async enrichIssue(ctx: Ctx, step: WorkflowStep, prep: IssuePrep) {
     const id = prep.issue.id
 
@@ -121,7 +117,6 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
       return
     }
 
-    // Resolve location best-effort, in parallel with curation. Never block approval.
     let locationArm: Promise<unknown> = Promise.resolve()
     const loc = prep.cs.location as { x: number, y: number } | null
     if (loc) {

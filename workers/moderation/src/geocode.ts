@@ -13,10 +13,6 @@ export interface GeoCandidate {
   geojson?: GeoJsonGeometry
 }
 
-// The geocode tool the location agent calls. It keeps the full candidates it
-// returned (incl. the heavy GeoJSON) in `byPlaceId` so the caller can resolve
-// the model's chosen place_id back to a real area without the model ever having
-// to echo coordinates. The model only sees a compact view.
 export interface GeocodeTool extends AgentTool {
   byPlaceId: Map<number, GeoCandidate>
 }

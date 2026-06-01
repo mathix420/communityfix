@@ -3,8 +3,6 @@ description: Rewrite an approved case study to keep only replication-relevant da
 version: 1
 model: claude-sonnet-4-6
 maxTokens: 1024
-# NOTE: the `scale` enum below must stay in sync with LOCATION_SCALES in
-# server/database/schema.ts — tests/unit/moderation-steps.test.ts guards this.
 system: |-
   You are editing a case study attached to a solution on a community problem-solving platform. The case study documents one real-world implementation. Your single goal is to keep only data that helps someone **replicate this solution in another location** and strip everything else.
 

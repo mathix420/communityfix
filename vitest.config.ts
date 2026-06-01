@@ -1,9 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vitest/config'
 
-// Load workers/moderation/src/steps/*.yaml as raw-string default exports so the
-// step registry imports resolve under vitest, matching the Wrangler `Text`
-// module rule used in the deployed Worker (see workers/moderation/wrangler.jsonc).
+// Load workers/moderation YAML as raw text under vitest, matching the Worker's Wrangler `Text` rule.
 const moderationYamlAsText = {
   name: 'moderation-yaml-as-text',
   enforce: 'pre' as const,

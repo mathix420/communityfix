@@ -5,8 +5,6 @@ const props = defineProps<{
   latitude: number
   longitude: number
   scale?: string | null
-  // Persisted GeoJSON area (resolved during moderation). When present it is
-  // drawn directly and we skip the Nominatim lookup.
   area?: GeoJsonGeometry | null
 }>()
 
@@ -60,8 +58,6 @@ async function initMap() {
 }
 
 function renderArea() {
-  // Prefer the persisted area — no network round-trip. Fall back to a Nominatim
-  // lookup only for legacy rows that have no stored area yet.
   if (props.area) {
     showArea({ geojson: props.area as unknown as GeoJSON.Geometry })
     return
