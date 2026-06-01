@@ -82,6 +82,12 @@ if (study.value) {
     ogTitle: title,
     ogDescription: description,
   })
+
+  defineOgImage('Community', {
+    title,
+    kind: 'Case Study',
+    id: study.value.id,
+  })
 }
 </script>
 

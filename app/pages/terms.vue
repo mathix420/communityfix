@@ -12,6 +12,11 @@ useSeoMeta({
   twitterTitle: terms.value?.title || 'Terms of Service - CommunityFix',
   twitterDescription: terms.value?.description || 'Review our terms for collaborating on CommunityFix.',
 })
+
+defineOgImage('Editorial', {
+  title: terms.value?.title || 'Terms of Service',
+  category: 'Legal',
+})
 </script>
 
 <template>

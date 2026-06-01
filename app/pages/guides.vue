@@ -11,6 +11,11 @@ useSeoMeta({
   twitterTitle: 'Guides - CommunityFix',
   twitterDescription: 'Guides and best practices for using CommunityFix effectively.',
 })
+
+defineOgImage('Editorial', {
+  title: 'Guides',
+  category: 'Guides',
+})
 </script>
 
 <template>

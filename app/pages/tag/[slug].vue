@@ -46,6 +46,11 @@ useSeoMeta({
   twitterDescription: () => `Discover community issues and solutions related to ${tagSlug.value}.`,
 })
 
+defineOgImage('Community', {
+  title: `#${tagSlug.value}`,
+  kind: 'Tag',
+})
+
 const allTags = computed(() => {
   if (!issues.value) return []
 

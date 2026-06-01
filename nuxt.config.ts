@@ -160,9 +160,11 @@ export default defineNuxtConfig({
   },
 
   fonts: {
+    // `global: true` is required for nuxt-og-image's Takumi renderer to embed
+    // these fonts; without it OG images fall back to a system font.
     families: [
-      { name: 'Inter', weights: [400] },
-      { name: 'Oswald', weights: [400, 500] },
+      { name: 'Inter', weights: [400], global: true },
+      { name: 'Oswald', weights: [400, 500], global: true },
     ],
   },
 })

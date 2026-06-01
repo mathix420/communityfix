@@ -109,6 +109,11 @@ useSeoMeta({
     || `View ${displayName.value}'s profile and contributions on CommunityFix.`,
   ogType: 'profile',
 })
+
+defineOgImage('Community', {
+  title: displayName.value,
+  kind: 'Member',
+})
 </script>
 
 <template>

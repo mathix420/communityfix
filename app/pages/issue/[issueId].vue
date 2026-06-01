@@ -38,10 +38,10 @@ if (issue.value) {
     keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
   })
 
-  defineOgImage('CommunityFix', {
+  defineOgImage('Community', {
     title: issue.value.title,
-    description: issue.value.summary,
-    number: issue.value.id,
+    kind: issue.value.type === 'solution' ? 'Solution' : 'Issue',
+    id: issue.value.id,
   })
 }
 </script>

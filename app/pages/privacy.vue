@@ -12,6 +12,11 @@ useSeoMeta({
   twitterTitle: privacy.value?.title || 'Privacy Policy - CommunityFix',
   twitterDescription: privacy.value?.description || 'Learn how we safeguard your data and privacy on CommunityFix.',
 })
+
+defineOgImage('Editorial', {
+  title: privacy.value?.title || 'Privacy Policy',
+  category: 'Legal',
+})
 </script>
 
 <template>
