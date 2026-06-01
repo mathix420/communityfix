@@ -38,6 +38,14 @@
 - Run programmatically with `runTask('task:name', { payload: { ... } })`
 - Dev endpoints: `/_nitro/tasks` (list) and `/_nitro/tasks/:name` (run)
 
+## AI moderation
+
+- AI moderation (OpenAI embeddings + Claude calls + DB writes, ~10–40s) runs as a **Cloudflare Workflow** for durability — Cloudflare cancels `waitUntil()` work 30s after the response, which used to leave issues/case-studies stuck `pending`.
+- **All moderation logic lives in a standalone Worker** (`workers/moderation/`), which hosts the `ModerationWorkflow` and talks to Neon directly via its own `HYPERDRIVE` binding (reusing `server/database/schema.ts`). The Nuxt app does **not** contain the review logic — it only triggers reviews. The main Worker binds to the workflow cross-script via `nitro.cloudflare.wrangler.workflows` (binding `MODERATION_WORKFLOW`, branch-aware name `moderation` / `moderation-staging`).
+- Flow: trigger sites call `triggerModeration(kind, id)` (`server/utils/moderation-trigger.ts`) → `env.MODERATION_WORKFLOW.create({ params: { kind, id } })`. The worker runs the pipeline as durable, independently-retried steps. Issue review = `prepare` → (`moderate` ∥ `classify-tags` ∥ `map-sdgs`) → `finalize` → structural pass when approved. `kind` is `'issue' | 'case-study' | 'structure'`.
+- In dev there is no binding, so `triggerModeration` logs and skips; run `wrangler dev` in `workers/moderation/` to exercise moderation locally.
+- The worker needs Doppler secrets `NUXT_OPENAI_API_KEY` / `NUXT_ANTHROPIC_API_KEY` / `NUXT_ADMIN_EMAILS` (synced by CI). CI deploys `workers/moderation/` **before** the main Worker on every `master`/`staging` push. Details: `workers/moderation/README.md`.
+
 ## MCP server
 
 CommunityFix exposes an MCP (Model Context Protocol) server at `POST /api/mcp` so AI clients (Claude Desktop, IDE plugins, etc.) can search, browse, and create issues on a user's behalf.

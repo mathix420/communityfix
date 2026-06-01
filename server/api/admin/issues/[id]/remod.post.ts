@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { issues, issueTags, issueSdgs } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
+import { triggerModeration } from '../../../../utils/moderation-trigger'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -50,11 +51,7 @@ export default defineEventHandler(async (event) => {
     details: { adminId: session.user.id, previousStatus },
   })
 
-  const reviewPromise = runTask('review:issue', { payload: { issueId: id } })
-    .catch(err => console.error(`[remod] Background review failed for issue ${id}:`, err))
-
-  ;(event.context as { cloudflare?: { context?: { waitUntil?: (p: Promise<unknown>) => void } } })
-    .cloudflare?.context?.waitUntil?.(reviewPromise)
+  await triggerModeration('issue', id)
 
   return { success: true }
 })

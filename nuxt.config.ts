@@ -128,6 +128,18 @@ export default defineNuxtConfig({
         send_email: [
           { name: 'EMAIL' },
         ],
+        workflows: [
+          {
+            binding: 'MODERATION_WORKFLOW',
+            class_name: 'ModerationWorkflow',
+            name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+              ? 'moderation-staging'
+              : 'moderation',
+            script_name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+              ? 'communityfix-moderation-staging'
+              : 'communityfix-moderation',
+          },
+        ],
       },
     },
   },
