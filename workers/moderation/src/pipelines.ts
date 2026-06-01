@@ -1,12 +1,14 @@
 import { eq, sql } from 'drizzle-orm'
 import {
   caseStudies, issues, sdgs, tags, issueTags, issueSdgs,
-  LOCATION_SCALES, type LocationScale,
+  type LocationScale, type GeoJsonGeometry,
 } from '../../../server/database/schema'
 import {
-  type Ctx, chatJson, embed, findSimilar, createAuditLog,
+  type Ctx, embed, findSimilar, createAuditLog,
   updateUserTrustScore, checkAndApplyBan,
 } from './lib'
+import { STEPS, runAgent } from './steps'
+import { createGeocodeTool, bboxToPolygon } from './geocode'
 
 const DUPLICATE_THRESHOLD = 0.92
 const CONFIDENCE_THRESHOLD = 0.7
@@ -17,8 +19,16 @@ interface RefItem { id: number, name: string }
 
 export interface IssuePrep {
   issue: IssueRef
+  title: string
+  summary: string
+  description: string | null
+  locationName: string | null
+  scale: LocationScale | null
+  location: { x: number, y: number } | null
   issueText: string
   duplicateContext: string
+  tagList: string
+  sdgList: string
   similar: SimilarIssue[]
   embedding: number[] | null
   allTags: RefItem[]
@@ -85,74 +95,21 @@ export async function prepareIssue(ctx: Ctx, issueId: number): Promise<IssuePrep
 
   return {
     issue: { id: issue.id, type: issue.type, parentId: issue.parentId, authorId: issue.authorId },
+    title: issue.title,
+    summary: issue.summary,
+    description: issue.description,
+    locationName: issue.locationName,
+    scale: issue.scale,
+    location: issue.location as { x: number, y: number } | null,
     issueText,
     duplicateContext,
+    tagList: allTags.map(t => `- id:${t.id} "${t.name}"`).join('\n'),
+    sdgList: allSdgs.map(s => `- id:${s.id} "${s.name}"`).join('\n'),
     similar,
     embedding,
     allTags,
     allSdgs,
   }
-}
-
-export function moderateIssue(ctx: Ctx, prep: IssuePrep): Promise<ModerationResult> {
-  return chatJson<ModerationResult>(ctx.anthropic, {
-    system: `You are a content moderator for a community problem-solving platform. Evaluate if this submission is a legitimate community issue. Reject spam, gibberish, hate speech, or off-topic content. Set isSpam to true for spam, gibberish, or bot content; false for off-topic or low-quality content that was submitted in good faith.
-
-If the submission is very similar to an existing issue (similarity above 90%), set duplicateOfId to that issue's id and reject it as a duplicate — unless it adds a meaningfully different angle or scope.
-
-Set "confidence" to a value between 0 and 1 reflecting how certain you are about your decision:
-- 0.9-1.0: Clear-cut (obvious spam, clearly legitimate, obvious duplicate)
-- 0.7-0.9: Fairly confident but some ambiguity
-- Below 0.7: Uncertain — the submission is borderline or you need more context to decide
-
-When your confidence is below 0.7, populate "questions" with 1-3 specific questions you would ask the author to help you decide. For example: "Could you clarify what specific community this affects?" or "How does this differ from existing issue #X?"`,
-    user: prep.issueText + prep.duplicateContext,
-    schema: {
-      type: 'object',
-      properties: {
-        approved: { type: 'boolean' },
-        reason: { type: 'string' },
-        isSpam: { type: 'boolean' },
-        duplicateOfId: { type: ['integer', 'null'] },
-        confidence: { type: 'number' },
-        questions: { type: ['array', 'null'], items: { type: 'string' } },
-      },
-      required: ['approved', 'reason', 'isSpam', 'duplicateOfId', 'confidence'],
-      additionalProperties: false,
-    },
-    context: `moderation for issue ${prep.issue.id}`,
-  })
-}
-
-export function classifyTags(ctx: Ctx, prep: IssuePrep): Promise<TagResult> {
-  return chatJson<TagResult>(ctx.anthropic, {
-    system: `You classify community issues into relevant tags. Pick 1-3 tags from the provided list that best describe this issue. If no existing tag fits, suggest one new tag name.\n\nAvailable tags:\n${prep.allTags.map(t => `- id:${t.id} "${t.name}"`).join('\n')}`,
-    user: prep.issueText,
-    schema: {
-      type: 'object',
-      properties: {
-        existingTagIds: { type: 'array', items: { type: 'integer' } },
-        newTagNames: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['existingTagIds', 'newTagNames'],
-      additionalProperties: false,
-    },
-    context: `tag classification for issue ${prep.issue.id}`,
-  })
-}
-
-export function mapSdgs(ctx: Ctx, prep: IssuePrep): Promise<SdgResult> {
-  return chatJson<SdgResult>(ctx.anthropic, {
-    system: `You map community issues to relevant UN Sustainable Development Goals. Pick 1-3 SDGs that this issue relates to.\n\nAvailable SDGs:\n${prep.allSdgs.map(s => `- id:${s.id} "${s.name}"`).join('\n')}`,
-    user: prep.issueText,
-    schema: {
-      type: 'object',
-      properties: { sdgIds: { type: 'array', items: { type: 'integer' } } },
-      required: ['sdgIds'],
-      additionalProperties: false,
-    },
-    context: `SDG mapping for issue ${prep.issue.id}`,
-  })
 }
 
 export async function finalizeIssue(
@@ -165,6 +122,7 @@ export async function finalizeIssue(
   const { db } = ctx
   const { issue, similar, embedding } = prep
   const issueId = issue.id
+  const promptVersion = STEPS['issue.moderate'].version
 
   const nearDuplicate = similar.find(s => s.similarity >= DUPLICATE_THRESHOLD)
   if (nearDuplicate && moderation.approved) {
@@ -194,6 +152,7 @@ export async function finalizeIssue(
         aiDecision: moderation.approved ? 'approve' : 'reject',
         questions,
         similarIssues: similar.slice(0, 3).map(s => ({ id: s.id, similarity: s.similarity })),
+        promptVersion,
       },
     })
     console.log(`[review-issue] Issue ${issueId} flagged as uncertain (confidence: ${confidence}). Awaiting review.`)
@@ -221,6 +180,7 @@ export async function finalizeIssue(
         duplicateOfId: moderation.duplicateOfId ?? null,
         isSpam: moderation.isSpam,
         similarIssues: similar.slice(0, 3).map(s => ({ id: s.id, similarity: s.similarity })),
+        promptVersion,
       },
     })
     if (issue.authorId) {
@@ -263,14 +223,14 @@ export async function finalizeIssue(
     issueId,
     userId: issue.authorId,
     reason: moderation.reason,
-    details: { confidence, tags: validTagIds, sdgs: validSdgIds, newTags: tagResult.newTagNames },
+    details: { confidence, tags: validTagIds, sdgs: validSdgIds, newTags: tagResult.newTagNames, promptVersion },
   })
   if (issue.authorId) await updateUserTrustScore(ctx, issue.authorId)
 
   return { approved: true }
 }
 
-interface StructurePrep {
+export interface StructurePrep {
   issue: IssueRef
   issueText: string
   contextLines: string
@@ -324,39 +284,6 @@ export async function prepareStructure(ctx: Ctx, issueId: number): Promise<Struc
   }
 }
 
-export function structureVerdict(ctx: Ctx, prep: StructurePrep): Promise<StructureVerdict> {
-  return chatJson<StructureVerdict>(ctx.anthropic, {
-    system: `You are a structural reviewer for a community problem-solving platform that organizes issues and solutions in a tree.
-
-The tree has two node types:
-- **issue**: a problem or sub-problem. Issues can nest (sub-issues under a parent issue).
-- **solution**: a proposed approach to solve a parent issue. Solutions are always leaves.
-
-A separate entity — **case study** — documents a real-world deployment of a solution (specific location, dates, outcomes, metrics). Case studies are NOT part of the issue/solution tree; they attach to a solution.
-
-You are given a newly approved item and a list of existing similar items. Decide the best structural action:
-
-1. **none** — the item is correctly placed, no changes needed.
-2. **duplicate** — the item is essentially the same as an existing item (same scope, same angle). Set targetId to the existing item's id.
-3. **reparent** — the item should be a child (sub-issue or solution) of an existing issue. Set targetId to that parent issue's id. Only suggest this for top-level items that clearly belong under an existing issue.
-4. **convert_to_case_study** — the item is typed as a solution but actually describes a specific real-world implementation (mentions a specific place, organization, dates, outcomes, or measured results). It should be a case study instead. Set targetId to the existing solution it documents, or to the parent issue if no matching solution exists.
-
-Be conservative: only suggest an action when the evidence is clear. When in doubt, choose "none".`,
-    user: `New item (id: ${prep.issue.id}, type: ${prep.issue.type}, parentId: ${prep.issue.parentId ?? 'none'}):\n${prep.issueText}\n\nExisting similar items:\n${prep.contextLines}`,
-    schema: {
-      type: 'object',
-      properties: {
-        action: { type: 'string', enum: ['none', 'duplicate', 'reparent', 'convert_to_case_study'] },
-        targetId: { type: ['integer', 'null'] },
-        reason: { type: 'string' },
-      },
-      required: ['action', 'targetId', 'reason'],
-      additionalProperties: false,
-    },
-    context: `structural review for ${prep.issue.type} ${prep.issue.id}`,
-  })
-}
-
 async function rejectForStructure(ctx: Ctx, issue: IssueRef, reason: string) {
   const { db } = ctx
   if (issue.parentId) {
@@ -376,11 +303,12 @@ export async function applyStructure(ctx: Ctx, prep: StructurePrep, verdict: Str
   const issueId = issue.id
   if (verdict.action === 'none') return
 
+  const promptVersion = STEPS['structure.verdict'].version
   console.log(`[review-structure] ${issue.type} #${issueId}: ${verdict.action} → #${verdict.targetId} — ${verdict.reason}`)
 
   if (verdict.action === 'duplicate') {
     await rejectForStructure(ctx, issue, `Duplicate of #${verdict.targetId}: ${verdict.reason}`)
-    await createAuditLog(db, { type: 'structure', action: 'flag_duplicate', issueId, userId: issue.authorId, reason: verdict.reason, details: { targetId: verdict.targetId } })
+    await createAuditLog(db, { type: 'structure', action: 'flag_duplicate', issueId, userId: issue.authorId, reason: verdict.reason, details: { targetId: verdict.targetId, promptVersion } })
     return
   }
 
@@ -394,22 +322,23 @@ export async function applyStructure(ctx: Ctx, prep: StructurePrep, verdict: Str
         await tx.update(issues).set({ parentId: verdict.targetId }).where(eq(issues.id, issueId))
         await tx.update(issues).set(counter).where(eq(issues.id, verdict.targetId!))
       })
-      await createAuditLog(db, { type: 'structure', action: 'reparent', status: 'needs_review', issueId, reason: verdict.reason, details: { targetId: verdict.targetId, previousParentId: null } })
+      await createAuditLog(db, { type: 'structure', action: 'reparent', status: 'needs_review', issueId, reason: verdict.reason, details: { targetId: verdict.targetId, previousParentId: null, promptVersion } })
     }
     return
   }
 
   if (verdict.action === 'convert_to_case_study' && verdict.targetId && issue.type === 'solution') {
     await rejectForStructure(ctx, issue, `This looks like a case study, not a solution. ${verdict.reason} Consider resubmitting as a case study on solution #${verdict.targetId}.`)
-    await createAuditLog(db, { type: 'structure', action: 'convert_to_case_study', status: 'needs_review', issueId, userId: issue.authorId, reason: verdict.reason, details: { targetId: verdict.targetId } })
+    await createAuditLog(db, { type: 'structure', action: 'convert_to_case_study', status: 'needs_review', issueId, userId: issue.authorId, reason: verdict.reason, details: { targetId: verdict.targetId, promptVersion } })
   }
 }
 
 type Metric = { label: string, baseline?: string | null, result?: string | null, unit?: string | null }
 type Source = { url: string, title?: string | null }
 type LinkRow = { url: string, title?: string | null }
-interface CaseStudyModeration { approved: boolean, reason: string, isSpam: boolean }
-interface CurationResult {
+type SolutionRef = { title: string, summary: string } | null
+export interface CaseStudyModeration { approved: boolean, reason: string, isSpam: boolean }
+export interface CurationResult {
   description: string | null
   lessonsLearned: string[] | null
   implementer: string | null
@@ -426,23 +355,25 @@ interface CurationResult {
 }
 
 type CaseStudyRow = typeof caseStudies.$inferSelect
-export interface CaseStudyModerateOutcome {
-  decision: 'skip' | 'rejected' | 'approved'
-  cs?: CaseStudyRow
-  solution?: { title: string, summary: string } | null
-  moderation?: CaseStudyModeration
+
+export interface CaseStudyPrep {
+  cs: CaseStudyRow
+  solution: SolutionRef
+  caseStudyText: string
+  parentContext: string
+  originalJson: string
 }
 
-export async function moderateCaseStudy(ctx: Ctx, caseStudyId: number): Promise<CaseStudyModerateOutcome> {
+export async function prepareCaseStudy(ctx: Ctx, caseStudyId: number): Promise<CaseStudyPrep | null> {
   const { db } = ctx
   const cs = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, caseStudyId) })
   if (!cs) {
     console.error(`[review-case-study] Case study ${caseStudyId} not found`)
-    return { decision: 'skip' }
+    return null
   }
-  if (cs.status !== 'pending') return { decision: 'skip' }
+  if (cs.status !== 'pending') return null
 
-  const solution = await db.query.issues.findFirst({ where: eq(issues.id, cs.solutionId), columns: { title: true, summary: true } })
+  const solution = (await db.query.issues.findFirst({ where: eq(issues.id, cs.solutionId), columns: { title: true, summary: true } })) ?? null
 
   const caseStudyText = [
     solution ? `Parent solution: ${solution.title}` : '',
@@ -457,48 +388,6 @@ export async function moderateCaseStudy(ctx: Ctx, caseStudyId: number): Promise<
       : '',
   ].filter(Boolean).join('\n')
 
-  const moderation = await chatJson<CaseStudyModeration>(ctx.anthropic, {
-    system: `You are a content moderator for a community problem-solving platform. You are reviewing a case study — a real-world implementation report attached to a solution.
-
-Approve legitimate case studies that document real or plausible implementations with coherent details. Reject:
-- Spam, gibberish, or bot-generated nonsense
-- Hate speech, harassment, or offensive content
-- Clearly fabricated or incoherent content that doesn't describe a real implementation
-- Promotional spam disguised as a case study
-
-Be permissive for good-faith submissions — even incomplete or brief case studies should be approved if they appear to describe a genuine effort.`,
-    user: caseStudyText,
-    schema: {
-      type: 'object',
-      properties: { approved: { type: 'boolean' }, reason: { type: 'string' }, isSpam: { type: 'boolean' } },
-      required: ['approved', 'reason', 'isSpam'],
-      additionalProperties: false,
-    },
-    context: `moderation for case study ${caseStudyId}`,
-  })
-
-  if (!moderation.approved) {
-    await db.update(caseStudies)
-      .set({ status: 'rejected', rejectionReason: moderation.reason, rejectedAt: new Date(), isSpam: moderation.isSpam ?? false })
-      .where(eq(caseStudies.id, caseStudyId))
-    await createAuditLog(db, {
-      type: 'moderation',
-      action: moderation.isSpam ? 'flag_spam' : 'reject',
-      userId: cs.authorId,
-      reason: moderation.reason,
-      details: { caseStudyId, solutionId: cs.solutionId, isSpam: moderation.isSpam },
-    })
-    if (cs.authorId) {
-      await checkAndApplyBan(db, cs.authorId)
-      await updateUserTrustScore(ctx, cs.authorId)
-    }
-    return { decision: 'rejected' }
-  }
-
-  return { decision: 'approved', cs, solution, moderation }
-}
-
-export function curateCaseStudy(ctx: Ctx, cs: CaseStudyRow, solution: { title: string, summary: string } | null | undefined): Promise<CurationResult> {
   const original = {
     outcome: cs.outcome, locationName: cs.locationName, scale: cs.scale, description: cs.description,
     implementer: cs.implementer, startDate: cs.startDate, endDate: cs.endDate, metrics: cs.metrics,
@@ -510,70 +399,175 @@ export function curateCaseStudy(ctx: Ctx, cs: CaseStudyRow, solution: { title: s
     solution?.summary ? `Parent summary: ${solution.summary}` : '',
   ].filter(Boolean).join('\n')
 
-  return chatJson<CurationResult>(ctx.anthropic, {
-    system: `You are editing a case study attached to a solution on a community problem-solving platform. The case study documents one real-world implementation. Your single goal is to keep only data that helps someone **replicate this solution in another location** and strip everything else.
+  return { cs, solution, caseStudyText, parentContext, originalJson: JSON.stringify(original, null, 2) }
+}
 
-What counts as replication-relevant:
-- Concrete implementation steps, prerequisites, dependencies, or the actor that did the work
-- Real numbers: budget, beneficiaries, timeline, measurable outcomes with baseline → result
-- Funding mechanics that another team could reuse (named programmes, grant types, financing models)
-- Lessons learned that name a specific pitfall, decision, or trade-off — not platitudes
-- Credible sources / external links that back the above
+export type LocatedKind = 'issue' | 'case-study'
 
-What is noise (strip it):
-- Generic praise, marketing language, restatements of the parent solution
-- Placeholders ("TBD", "varies", "lots", "n/a", "the community")
-- Lessons that are universal truths ("communication is important", "plan ahead")
-- Metrics with no baseline AND no result, or with non-numeric values that say nothing concrete
-- Sources / links that don't resolve to something useful (bare homepages, broken-looking URLs)
+export interface LocationTarget {
+  kind: LocatedKind
+  id: number
+  locationName: string
+  scale: LocationScale | null
+  location: { x: number, y: number }
+  authorId: string | null
+}
 
-Rules:
-- Preserve the input language. If the description was written in French, return French.
-- For \`description\` and \`lessonsLearned\`: rewrite to keep only sentences with replication value. Do NOT invent details. Return null if nothing useful remains. Do not just restate the parent solution.
-- For \`implementer\`, \`fundingSource\`, \`cost\`, \`currency\`, \`startDate\`, \`endDate\`: return the original value if it is concrete and informative; return null otherwise. Do not invent.
-- For \`scale\`: return one of ${LOCATION_SCALES.map(s => `"${s}"`).join(', ')} if clearly identifiable, else null.
-- For \`metrics\`: keep only rows where the label is specific AND at least one of baseline/result is a real value (not a placeholder). Return null if none qualify.
-- For \`sources\` and \`links\`: keep entries whose url looks like a real, specific resource. Return null if none qualify.
-- \`notes\`: one short sentence describing what you stripped and why, for the audit log.
+export interface LocationVerdict {
+  action: 'keep' | 'relocate'
+  confidence: number
+  reason: string
+  latitude: number | null
+  longitude: number | null
+  area: GeoJsonGeometry | null
+}
 
-Never modify \`outcome\` or \`locationName\` — they are owned by the moderator.`,
-    user: `${parentContext}\n\nCase study (original fields):\n${JSON.stringify(original, null, 2)}`,
-    schema: {
-      type: 'object',
-      properties: {
-        description: { type: ['string', 'null'] },
-        lessonsLearned: { type: ['array', 'null'], items: { type: 'string' } },
-        implementer: { type: ['string', 'null'] },
-        fundingSource: { type: ['string', 'null'] },
-        cost: { type: ['string', 'null'] },
-        currency: { type: ['string', 'null'] },
-        scale: { anyOf: [{ type: 'string', enum: [...LOCATION_SCALES] }, { type: 'null' }] },
-        startDate: { type: ['string', 'null'] },
-        endDate: { type: ['string', 'null'] },
-        metrics: {
-          type: ['array', 'null'],
-          items: {
-            type: 'object',
-            properties: { label: { type: 'string' }, baseline: { type: ['string', 'null'] }, result: { type: ['string', 'null'] }, unit: { type: ['string', 'null'] } },
-            required: ['label'],
-            additionalProperties: false,
-          },
-        },
-        sources: {
-          type: ['array', 'null'],
-          items: { type: 'object', properties: { url: { type: 'string' }, title: { type: ['string', 'null'] } }, required: ['url'], additionalProperties: false },
-        },
-        links: {
-          type: ['array', 'null'],
-          items: { type: 'object', properties: { url: { type: 'string' }, title: { type: ['string', 'null'] } }, required: ['url'], additionalProperties: false },
-        },
-        notes: { type: 'string' },
-      },
-      required: ['description', 'lessonsLearned', 'implementer', 'fundingSource', 'cost', 'currency', 'scale', 'startDate', 'endDate', 'metrics', 'sources', 'links', 'notes'],
-      additionalProperties: false,
+interface LocationAgentResult {
+  action: 'keep' | 'relocate'
+  confidence: number
+  reason: string
+  chosenPlaceId: number | null
+}
+
+const LOCATION_FIX_CONFIDENCE = 0.7
+// Below this shift the corrected point is treated as the "same place", so a
+// centroid nudged by a few metres never triggers a write on its own.
+const LOCATION_MIN_SHIFT_DEG = 0.01
+const GEOCODE_USER_AGENT = 'CommunityFix-Moderation/1.0 (+https://communityfix.org)'
+
+// Agentic location resolution. The model drives the `geocode` tool (Nominatim),
+// possibly across several queries, then names the best-matching candidate by
+// place_id. We resolve that id to the candidate's real centroid + GeoJSON area
+// here — inside the same durable step — so nothing depends on the in-memory
+// candidate cache surviving a Workflow replay.
+export async function resolveLocation(ctx: Ctx, target: LocationTarget, document: string): Promise<LocationVerdict> {
+  const geocode = createGeocodeTool(GEOCODE_USER_AGENT)
+  const out = await runAgent<LocationAgentResult>(ctx.anthropic, 'location.resolve', {
+    locationName: target.locationName,
+    scale: target.scale ?? 'unspecified',
+    latitude: String(target.location.y),
+    longitude: String(target.location.x),
+    document,
+  }, [geocode], `${target.kind} ${target.id}`)
+
+  const keep: LocationVerdict = { action: 'keep', confidence: out.confidence, reason: out.reason, latitude: null, longitude: null, area: null }
+  if (out.action !== 'relocate' || out.chosenPlaceId == null) return keep
+
+  const candidate = geocode.byPlaceId.get(out.chosenPlaceId)
+  if (!candidate) return keep
+
+  const area = candidate.geojson ?? (candidate.boundingbox ? bboxToPolygon(candidate.boundingbox) : null)
+  return { action: 'relocate', confidence: out.confidence, reason: out.reason, latitude: candidate.lat, longitude: candidate.lon, area }
+}
+
+export async function applyLocationFix(ctx: Ctx, target: LocationTarget, verdict: LocationVerdict): Promise<void> {
+  const { db } = ctx
+  const { latitude, longitude } = verdict
+  if (verdict.action !== 'relocate' || verdict.confidence < LOCATION_FIX_CONFIDENCE) return
+  if (latitude == null || longitude == null) return
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return
+
+  const current = target.location
+  const samePoint = Math.abs(current.y - latitude) < LOCATION_MIN_SHIFT_DEG && Math.abs(current.x - longitude) < LOCATION_MIN_SHIFT_DEG
+  // Nothing to do if the point is unchanged and there's no new area to attach.
+  if (samePoint && verdict.area == null) return
+
+  const point = { x: longitude, y: latitude }
+  if (target.kind === 'issue') {
+    await db.update(issues).set({ location: point, area: verdict.area }).where(eq(issues.id, target.id))
+  }
+  else {
+    await db.update(caseStudies).set({ location: point, area: verdict.area }).where(eq(caseStudies.id, target.id))
+  }
+
+  await createAuditLog(db, {
+    type: 'moderation',
+    action: 'relocate',
+    status: 'needs_review',
+    issueId: target.kind === 'issue' ? target.id : null,
+    userId: target.authorId,
+    reason: verdict.reason,
+    details: {
+      kind: target.kind,
+      ...(target.kind === 'case-study' ? { caseStudyId: target.id } : {}),
+      locationName: target.locationName,
+      from: { latitude: current.y, longitude: current.x },
+      to: { latitude, longitude },
+      hasArea: verdict.area != null,
+      confidence: verdict.confidence,
+      promptVersion: STEPS['location.resolve'].version,
     },
-    context: `curation for case study ${cs.id}`,
   })
+  console.log(`[review-${target.kind}] ${target.kind} ${target.id} relocated → ${latitude}, ${longitude} (${verdict.reason})`)
+}
+
+export interface IssueCurationResult {
+  summary: string | null
+  description: string | null
+  notes: string
+}
+
+const SUMMARY_MAX = 280
+
+export async function applyIssueCurate(ctx: Ctx, prep: IssuePrep, curate: IssueCurationResult): Promise<void> {
+  const { db } = ctx
+  const issueId = prep.issue.id
+  const updates: { summary?: string, description?: string } = {}
+  const changed: string[] = []
+
+  if (curate.summary != null) {
+    const trimmed = curate.summary.trim().slice(0, SUMMARY_MAX)
+    if (trimmed && trimmed !== prep.summary) { updates.summary = trimmed; changed.push('summary') }
+  }
+  if (curate.description != null && curate.description.trim() !== (prep.description ?? '').trim()) {
+    updates.description = curate.description
+    changed.push('description')
+  }
+  if (changed.length === 0) return
+
+  // Re-embed when the summary changed — the embedding is built from title+summary
+  // and feeds the structural pass that runs next.
+  let embedding: number[] | null = null
+  if (updates.summary != null) {
+    try {
+      embedding = await embed(ctx.openai, `${prep.title}\n${updates.summary}`)
+    }
+    catch (err) {
+      console.error(`[review-issue] Re-embedding after curation failed for issue ${issueId}:`, err)
+    }
+  }
+
+  await db.update(issues)
+    .set({ ...updates, ...(embedding ? { embedding } : {}) })
+    .where(eq(issues.id, issueId))
+  await createAuditLog(db, {
+    type: 'moderation',
+    action: 'curate',
+    issueId,
+    userId: prep.issue.authorId,
+    reason: curate.notes,
+    details: { fields: changed, notes: curate.notes, promptVersion: STEPS['issue.curate'].version },
+  })
+  console.log(`[review-issue] Issue ${issueId} curated (${changed.join(', ')})`)
+}
+
+export async function rejectCaseStudy(ctx: Ctx, cs: CaseStudyRow, moderation: CaseStudyModeration): Promise<void> {
+  const { db } = ctx
+  await db.update(caseStudies)
+    .set({ status: 'rejected', rejectionReason: moderation.reason, rejectedAt: new Date(), isSpam: moderation.isSpam ?? false })
+    .where(eq(caseStudies.id, cs.id))
+  await createAuditLog(db, {
+    type: 'moderation',
+    action: moderation.isSpam ? 'flag_spam' : 'reject',
+    userId: cs.authorId,
+    reason: moderation.reason,
+    details: { caseStudyId: cs.id, solutionId: cs.solutionId, isSpam: moderation.isSpam, promptVersion: STEPS['case-study.moderate'].version },
+  })
+  if (cs.authorId) {
+    await checkAndApplyBan(db, cs.authorId)
+    await updateUserTrustScore(ctx, cs.authorId)
+  }
 }
 
 function diffStripped(before: CaseStudyRow, after: CurationResult): string[] {
@@ -598,7 +592,7 @@ function diffStripped(before: CaseStudyRow, after: CurationResult): string[] {
   return stripped
 }
 
-export async function finalizeCaseStudy(ctx: Ctx, cs: CaseStudyRow, solution: { title: string, summary: string } | null | undefined, moderation: CaseStudyModeration, curated: CurationResult): Promise<void> {
+export async function finalizeCaseStudy(ctx: Ctx, cs: CaseStudyRow, solution: SolutionRef, moderation: CaseStudyModeration, curated: CurationResult): Promise<void> {
   const { db } = ctx
   const caseStudyId = cs.id
 
@@ -653,7 +647,7 @@ export async function finalizeCaseStudy(ctx: Ctx, cs: CaseStudyRow, solution: { 
     action: 'approve',
     userId: cs.authorId,
     reason: moderation.reason,
-    details: { caseStudyId, solutionId: cs.solutionId, curation: { notes: curated.notes, strippedFields: diffStripped(cs, curated) } },
+    details: { caseStudyId, solutionId: cs.solutionId, curation: { notes: curated.notes, strippedFields: diffStripped(cs, curated) }, promptVersion: STEPS['case-study.moderate'].version },
   })
   if (cs.authorId) await updateUserTrustScore(ctx, cs.authorId)
 }

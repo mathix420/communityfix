@@ -18,6 +18,16 @@ export type AppealStatus = typeof APPEAL_STATUSES[number]
 export const LOCATION_SCALES = ['neighborhood', 'city', 'region', 'national', 'global'] as const
 export type LocationScale = typeof LOCATION_SCALES[number]
 
+// A GeoJSON geometry (Polygon / MultiPolygon, or a bbox expressed as a Polygon)
+// describing the *area* of a location. Stored in the `area` jsonb column; the
+// `location` point column remains the representative centroid / map marker.
+// `coordinates` is the GeoJSON nesting union (Point → MultiPolygon); kept
+// concrete (not `unknown`) so it satisfies the Workers `Serializable` bound.
+export interface GeoJsonGeometry {
+  type: string
+  coordinates: number[] | number[][] | number[][][] | number[][][][]
+}
+
 export const SOLUTION_STATUSES = ['plan', 'in-progress', 'done'] as const
 export type SolutionStatus = typeof SOLUTION_STATUSES[number]
 
@@ -36,6 +46,7 @@ export const AUDIT_LOG_ACTIONS = [
   'override_approve', 'override_reject',
   'request_info', 'flag_uncertain',
   'remod',
+  'relocate', 'curate',
 ] as const
 export type AuditLogAction = typeof AUDIT_LOG_ACTIONS[number]
 
@@ -126,6 +137,9 @@ export const issues = pgTable('issues', {
   locationName: text('location_name'),
   location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }),
   scale: text('scale').$type<LocationScale>(),
+  // GeoJSON area for the location, resolved during moderation. `location` above
+  // is the representative centroid; this is the full extent (region/biome/etc).
+  area: jsonb('area').$type<GeoJsonGeometry>(),
   // Only meaningful when type='solution'.
   solutionStatus: text('solution_status').$type<SolutionStatus>(),
   // External resources — only surfaced for solutions.
@@ -284,6 +298,8 @@ export const caseStudies = pgTable('case_studies', {
   scale: text('scale').$type<LocationScale>(),
   locationName: text('location_name').notNull(),
   location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }).notNull(),
+  // GeoJSON area for the location (see issues.area). The point above is the centroid.
+  area: jsonb('area').$type<GeoJsonGeometry>(),
   // Admin-set: lets us mark a case study as independently verified.
   verified: boolean('verified').notNull().default(false),
   implementer: text('implementer'),

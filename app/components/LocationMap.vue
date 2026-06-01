@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import type { GeoJsonGeometry } from '../../server/database/schema'
+
 const props = defineProps<{
   latitude: number
   longitude: number
   scale?: string | null
+  // Persisted GeoJSON area (resolved during moderation). When present it is
+  // drawn directly and we skip the Nominatim lookup.
+  area?: GeoJsonGeometry | null
 }>()
 
 const mapEl = ref<HTMLElement>()
@@ -51,6 +56,16 @@ async function initMap() {
     subdomains: 'abcd',
   }).addTo(map)
 
+  renderArea()
+}
+
+function renderArea() {
+  // Prefer the persisted area — no network round-trip. Fall back to a Nominatim
+  // lookup only for legacy rows that have no stored area yet.
+  if (props.area) {
+    showArea({ geojson: props.area as unknown as GeoJSON.Geometry })
+    return
+  }
   fetchArea()
 }
 

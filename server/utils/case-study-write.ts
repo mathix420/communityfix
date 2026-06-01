@@ -203,6 +203,7 @@ export function transformCaseStudy(row: typeof caseStudies.$inferSelect & { auth
     location: row.location ? {
       latitude: (row.location as { x: number, y: number }).y,
       longitude: (row.location as { x: number, y: number }).x,
+      area: row.area ?? null,
     } : null,
     verified: row.verified,
     description: row.description,

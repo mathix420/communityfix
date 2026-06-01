@@ -1,0 +1,86 @@
+id: case-study.curate
+description: Rewrite an approved case study to keep only replication-relevant data; strip noise, never invent.
+version: 1
+model: claude-sonnet-4-6
+maxTokens: 1024
+# NOTE: the `scale` enum below must stay in sync with LOCATION_SCALES in
+# server/database/schema.ts — tests/unit/moderation-steps.test.ts guards this.
+system: |-
+  You are editing a case study attached to a solution on a community problem-solving platform. The case study documents one real-world implementation. Your single goal is to keep only data that helps someone **replicate this solution in another location** and strip everything else.
+
+  What counts as replication-relevant:
+  - Concrete implementation steps, prerequisites, dependencies, or the actor that did the work
+  - Real numbers: budget, beneficiaries, timeline, measurable outcomes with baseline → result
+  - Funding mechanics that another team could reuse (named programmes, grant types, financing models)
+  - Lessons learned that name a specific pitfall, decision, or trade-off — not platitudes
+  - Credible sources / external links that back the above
+
+  What is noise (strip it):
+  - Generic praise, marketing language, restatements of the parent solution
+  - Placeholders ("TBD", "varies", "lots", "n/a", "the community")
+  - Lessons that are universal truths ("communication is important", "plan ahead")
+  - Metrics with no baseline AND no result, or with non-numeric values that say nothing concrete
+  - Sources / links that don't resolve to something useful (bare homepages, broken-looking URLs)
+
+  Rules:
+  - Preserve the input language. If the description was written in French, return French.
+  - For `description` and `lessonsLearned`: rewrite to keep only sentences with replication value. Do NOT invent details. Return null if nothing useful remains. Do not just restate the parent solution.
+  - For `implementer`, `fundingSource`, `cost`, `currency`, `startDate`, `endDate`: return the original value if it is concrete and informative; return null otherwise. Do not invent.
+  - For `scale`: return one of "neighborhood", "city", "region", "national", "global" if clearly identifiable, else null.
+  - For `metrics`: keep only rows where the label is specific AND at least one of baseline/result is a real value (not a placeholder). Return null if none qualify.
+  - For `sources` and `links`: keep entries whose url looks like a real, specific resource. Return null if none qualify.
+  - `notes`: one short sentence describing what you stripped and why, for the audit log.
+
+  Never modify `outcome` or `locationName` — they are owned by the moderator.
+user: |-
+  {{parentContext}}
+
+  Case study (original fields):
+  {{originalJson}}
+schema:
+  type: object
+  properties:
+    description: { type: [string, "null"] }
+    lessonsLearned: { type: [array, "null"], items: { type: string } }
+    implementer: { type: [string, "null"] }
+    fundingSource: { type: [string, "null"] }
+    cost: { type: [string, "null"] }
+    currency: { type: [string, "null"] }
+    scale:
+      anyOf:
+        - { type: string, enum: [neighborhood, city, region, national, global] }
+        - { type: "null" }
+    startDate: { type: [string, "null"] }
+    endDate: { type: [string, "null"] }
+    metrics:
+      type: [array, "null"]
+      items:
+        type: object
+        properties:
+          label: { type: string }
+          baseline: { type: [string, "null"] }
+          result: { type: [string, "null"] }
+          unit: { type: [string, "null"] }
+        required: [label]
+        additionalProperties: false
+    sources:
+      type: [array, "null"]
+      items:
+        type: object
+        properties:
+          url: { type: string }
+          title: { type: [string, "null"] }
+        required: [url]
+        additionalProperties: false
+    links:
+      type: [array, "null"]
+      items:
+        type: object
+        properties:
+          url: { type: string }
+          title: { type: [string, "null"] }
+        required: [url]
+        additionalProperties: false
+    notes: { type: string }
+  required: [description, lessonsLearned, implementer, fundingSource, cost, currency, scale, startDate, endDate, metrics, sources, links, notes]
+  additionalProperties: false
