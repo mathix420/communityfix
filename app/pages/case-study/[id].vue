@@ -81,24 +81,58 @@ onMounted(() => {
 })
 
 if (study.value) {
-  const title = study.value.locationName
-  const description = study.value.description?.slice(0, 200)
-    || `Real-world implementation in ${study.value.locationName}.`
+  const s = study.value
+  // OG headline stays the bare location; document <title> is descriptive and
+  // suffix-free (global titleTemplate adds the brand suffix).
+  const ogHeadline = s.locationName
+  const pageTitle = s.solutionTitle
+    ? `${s.solutionTitle} — ${s.locationName}`
+    : `Case study — ${s.locationName}`
+  const description = s.description?.slice(0, 200)
+    || `Real-world implementation in ${s.locationName}.`
+  const studyUrl = `${SITE_URL}/case-study/${s.id}`
+
   useSeoMeta({
-    title: `${title} - CommunityFix`,
+    title: pageTitle,
     description,
-    ogTitle: title,
+    ogTitle: pageTitle,
     ogDescription: description,
+    ogType: 'article',
   })
 
+  const crumbs: { name: string, url: string }[] = [{ name: 'Home', url: SITE_URL }]
+  if (parent.value) {
+    crumbs.push({ name: parent.value.title, url: `${SITE_URL}/issue/${parent.value.id}` })
+  }
+  crumbs.push({ name: pageTitle, url: studyUrl })
+
+  useJsonLd([
+    breadcrumbSchema(crumbs),
+    creativeWorkSchema({
+      title: pageTitle,
+      description: s.description ?? undefined,
+      url: studyUrl,
+      locationName: s.locationName,
+      ...(s.location
+        ? { latitude: s.location.latitude, longitude: s.location.longitude }
+        : {}),
+      startDate: s.startDate ?? undefined,
+      endDate: s.endDate ?? undefined,
+      implementer: s.implementer ?? undefined,
+      sources: s.sources?.map(src => src.url).filter(Boolean) ?? undefined,
+      datePublished: s.createdAt,
+      dateModified: s.updatedAt ?? undefined,
+    }),
+  ])
+
   defineOgImage('Community', {
-    title,
+    title: ogHeadline,
     kind: 'Case Study',
-    id: study.value.id,
+    id: s.id,
     // Eyebrow hinting at the parent solution + its outcome. Read off the
     // awaited study payload so it's present when the OG image is captured.
-    subtitle: study.value.solutionTitle ?? undefined,
-    subtitleLabel: ogOutcomeLabel[study.value.outcome] ?? undefined,
+    subtitle: s.solutionTitle ?? undefined,
+    subtitleLabel: ogOutcomeLabel[s.outcome] ?? undefined,
     subtitleColor: '3b82f6', // blue for now (6-digit hex, no leading `#`)
   })
 }

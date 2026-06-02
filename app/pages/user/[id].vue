@@ -114,6 +114,20 @@ defineOgImage('Community', {
   title: displayName.value,
   kind: 'Member',
 })
+
+const profileUrl = computed(() => `${SITE_URL}/user/${userId}`)
+
+useJsonLd([
+  breadcrumbSchema([
+    { name: 'Home', url: SITE_URL },
+    { name: displayName.value, url: profileUrl.value },
+  ]),
+  personSchema({
+    name: displayName.value,
+    url: profileUrl.value,
+    description: user.value?.headline || user.value?.bio || undefined,
+  }),
+])
 </script>
 
 <template>

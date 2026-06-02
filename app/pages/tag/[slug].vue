@@ -51,6 +51,22 @@ defineOgImage('Community', {
   kind: 'Tag',
 })
 
+const tagName = computed(() => tagSlug.value as string)
+const tagUrl = computed(() => `${SITE_URL}/tag/${tagSlug.value}`)
+
+useJsonLd([
+  breadcrumbSchema([
+    { name: 'Home', url: SITE_URL },
+    { name: tagName.value, url: tagUrl.value },
+  ]),
+  {
+    '@type': 'CollectionPage',
+    'name': tagName.value,
+    'url': tagUrl.value,
+    'isPartOf': { '@id': WEBSITE_ID },
+  },
+])
+
 const allTags = computed(() => {
   if (!issues.value) return []
 

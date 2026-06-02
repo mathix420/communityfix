@@ -19,9 +19,11 @@ useSeoMeta({
   ogDescription: 'Join a community where people pool skills, knowledge, and resources to solve real-world issues together.',
   ogType: 'website',
   ogSiteName: 'CommunityFix',
-  twitterTitle: 'CommunityFix | Community-Driven Solutions Platform',
-  twitterDescription: 'Collaborate on community issues, share solutions, and support impact projects on CommunityFix.',
 })
+
+// Site-wide Organization + WebSite JSON-LD + self-canonical.
+useJsonLd([orgSchema(), websiteSchema()])
+useCanonical()
 
 // Site-wide fallback OG image; pages override with Community/Editorial.
 defineOgImage('Home')
