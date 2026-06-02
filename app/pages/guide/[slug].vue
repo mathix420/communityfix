@@ -19,6 +19,29 @@ defineOgImage('Editorial', {
   title: page.value?.title || 'Guides',
   category: 'Guide',
 })
+
+// Optional frontmatter; flows into Article schema only when declared.
+const guideMeta = computed(() => page.value as
+  | { datePublished?: string, dateModified?: string, date?: string, author?: string }
+  | null)
+
+const guideUrl = computed(() => `${SITE_URL}/guide/${slug}`)
+
+useJsonLd([
+  breadcrumbSchema([
+    { name: 'Home', url: SITE_URL },
+    { name: 'Guides', url: `${SITE_URL}/guides` },
+    { name: page.value?.title || 'Guide', url: guideUrl.value },
+  ]),
+  articleSchema({
+    title: page.value?.title || 'Guide',
+    description: page.value?.description || undefined,
+    url: guideUrl.value,
+    datePublished: guideMeta.value?.datePublished || guideMeta.value?.date || undefined,
+    dateModified: guideMeta.value?.dateModified || undefined,
+    authorName: guideMeta.value?.author || undefined,
+  }),
+])
 </script>
 
 <template>
