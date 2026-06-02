@@ -3,6 +3,12 @@ const route = useRoute()
 const issueId = computed(() => route.params.issueId)
 const { data: issue } = await useFetch(() => `/api/issue/${issueId.value}`)
 
+// Parent issue (if any) so the breadcrumb can name it.
+const { data: parentIssue } = await useFetch(
+  () => `/api/issue/${issue.value?.parentId}`,
+  { immediate: !!issue.value?.parentId, watch: false },
+)
+
 // Solutions can't have sub-solutions, so the Solutions tab is meaningless on
 // a solution page — case studies replace it. Inverse for issues: no case
 // studies tab there (the studies route still resolves for direct links).
@@ -29,12 +35,25 @@ const tabs = computed(() => {
 // switches between solution-mode and issue-mode based on `issue.type`).
 provide('issue', issue)
 
+// Distinct <title> per sub-tab. Reactive getter because the parent stays
+// mounted across tabs; the brand suffix is added by the global titleTemplate.
+const tabSuffix = computed(() => {
+  const path = route.path
+  if (path.endsWith('/solutions')) return ' — Solutions'
+  if (path.endsWith('/issues')) return ' — Sub-issues'
+  if (path.endsWith('/studies')) return ' — Case studies'
+  if (path.endsWith('/funding')) return ' — Funding'
+  if (path.endsWith('/tree')) return ' — Tree'
+  return '' // Overview (index)
+})
+
 if (issue.value) {
   useSeoMeta({
-    title: issue.value.title,
+    title: () => `${issue.value!.title}${tabSuffix.value}`,
     description: issue.value.summary || `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
     ogTitle: `${issue.value.title} - CommunityFix`,
     ogDescription: issue.value.summary || `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
+    ogType: 'article',
     keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
   })
 
@@ -43,6 +62,31 @@ if (issue.value) {
     kind: issue.value.type === 'solution' ? 'Solution' : 'Issue',
     id: issue.value.id,
   })
+
+  const crumbs = [{ name: 'Home', url: SITE_URL }]
+  if (parentIssue.value) {
+    crumbs.push({
+      name: parentIssue.value.title,
+      url: `${SITE_URL}/issue/${parentIssue.value.id}`,
+    })
+  }
+  crumbs.push({
+    name: issue.value.title,
+    url: `${SITE_URL}/issue/${issue.value.id}`,
+  })
+
+  useJsonLd([
+    breadcrumbSchema(crumbs),
+    articleSchema({
+      title: issue.value.title,
+      description: issue.value.summary || issue.value.description || undefined,
+      url: `${SITE_URL}/issue/${issue.value.id}`,
+      datePublished: issue.value.date || undefined,
+      authorName: issue.value.author && issue.value.author !== 'Anonymous'
+        ? issue.value.author
+        : undefined,
+    }),
+  ])
 }
 </script>
 
