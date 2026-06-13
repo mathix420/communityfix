@@ -39,7 +39,7 @@ Madame Zaidi,
 
 Je me permets de revenir vers vous au sujet de mon message du [DATE J].
 
-Le SIRMOTOM figure parmi les rares structures intercommunales à avoir piloté la distribution de poules pondeuses avec un dispositif de suivi structuré. Ce type de retour d'expérience — même sans conclusion définitive — est précieux pour les collectivités qui envisagent des initiatives similaires.
+Le SIRMOTOM figure parmi les rares structures intercommunales à avoir piloté la distribution de poules pondeuses avec un dispositif de suivi structuré. Ce type de retour d'expérience — même sans conclusion définitive — est précieux pour les collectivités qui envisagent des initiatives similaires. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 N'hésitez pas à me répondre directement par email si vous souhaitez consulter la fiche ou y apporter des précisions.
 
@@ -59,7 +59,7 @@ Madame Zaidi,
 
 Sans réponse de votre part, je ne vous solliciterai plus sur ce sujet.
 
-L'étude de cas reste accessible sur CommunityFix. Si vous souhaitez à tout moment la compléter, la corriger ou la supprimer, n'hésitez pas à me contacter à l'adresse ci-dessous.
+L'étude de cas reste accessible sur CommunityFix. Si vous souhaitez à tout moment la compléter, la corriger ou la supprimer, n'hésitez pas à me contacter à l'adresse ci-dessous. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Merci pour l'action menée par le SIRMOTOM sur ce sujet.
 
