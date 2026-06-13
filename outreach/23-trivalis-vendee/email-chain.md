@@ -56,7 +56,7 @@ Bonjour,
 
 C'est mon dernier message au sujet de l'étude de cas de Trivalis publiée sur CommunityFix, qui documente votre programme de distribution de poules et poulaillers en Vendée.
 
-La fiche reste en ligne telle quelle. Si à l'avenir vous souhaitez la vérifier, la corriger ou l'enrichir, n'hésitez pas à nous écrire à cette adresse ou via communityfix.org.
+La fiche reste en ligne telle quelle. Si à l'avenir vous souhaitez la vérifier, la corriger ou l'enrichir, n'hésitez pas à nous écrire à cette adresse ou via communityfix.org. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Merci pour votre travail en faveur de la réduction des biodéchets en Vendée.
 

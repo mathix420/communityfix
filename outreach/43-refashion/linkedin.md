@@ -18,6 +18,8 @@ Merci d'avoir accepté ma demande de connexion.
 
 Je vous contacte car le programme de hausse d'urgence des soutiens REP à la tonne mis en œuvre par Refashion — pour préserver la filière française du tri textile — est documenté comme étude de cas sur CommunityFix (communityfix.org), une plateforme publique qui recense les solutions concrètes à des problèmes collectifs.
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Nous souhaiterions vous inviter à vérifier l'exactitude de la fiche et, si vous le souhaitez, à l'enrichir (métriques, sources, retours d'expérience).
 
 Seriez-vous la bonne personne pour cela, ou pouvez-vous nous orienter vers un interlocuteur chez Refashion ?

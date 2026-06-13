@@ -18,7 +18,7 @@ Thank you for connecting. I'm Arnaud Gissinger, founder of CommunityFix (communi
 
 We've featured Dar Si Hmad's fog-water harvesting programme on Mount Boutmezguida as a reference case study on the platform. The project's combination of scale (serving over 600 people across several villages), technical ingenuity, and its deliberate model of women as operators and programme stewards makes it one of the clearest examples of community-led water access we've come across.
 
-The idea behind CommunityFix is simple: by documenting what was actually tried — costs and pitfalls included — other communities can avoid the same mistakes and go straight to what works. It's turning one community's hard-won experience into knowledge everyone can build on.
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
 
 I have two small requests for Dr. Bargach or your communications team:
 
