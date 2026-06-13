@@ -21,7 +21,7 @@ I'm Arnaud Gissinger, founder of CommunityFix (communityfix.org) — an open pla
 
 GivePower's containerised solar-PV reverse-osmosis plant in Kiunga, Kenya is documented as a case study on our platform. The project stands out: producing roughly 75,000 litres of clean water a day with off-grid solar in a coastal community is a compelling proof of concept that many practitioners are actively looking for.
 
-The idea behind CommunityFix is simple: by documenting what was actually tried — costs and pitfalls included — other communities can avoid the same mistakes and go straight to what works. It's turning one community's hard-won experience into knowledge everyone can build on.
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
 
 I'm reaching out for two reasons:
 

@@ -39,7 +39,7 @@ Je me permets de revenir vers vous suite à mon message de la semaine dernière.
 
 Votre expérience de recontractualisation d'un collecteur de textile après la suspension de Le Relais est exactement le type de retour terrain qui peut aider d'autres collectivités confrontées à la même situation. Même un retour bref sur ce qui a fonctionné — ou ce qui s'est avéré plus difficile — aurait une vraie valeur pour la plateforme.
 
-N'hésitez pas à me répondre directement ou à me rediriger vers la personne en charge de ce dossier.
+N'hésitez pas à me répondre directement ou à me rediriger vers la personne en charge de ce dossier. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Cordialement,
 
@@ -57,7 +57,7 @@ Bonjour,
 
 Je reviens une dernière fois au sujet de l'étude de cas documentant votre démarche de recontractualisation d'un collecteur de textile en Sarthe.
 
-Sans nouvelles de votre part, je laisse la fiche en l'état sur CommunityFix. Si vous souhaitez à tout moment la compléter, la corriger ou la retirer, vous pouvez me contacter à cette adresse.
+Sans nouvelles de votre part, je laisse la fiche en l'état sur CommunityFix. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur. Si vous souhaitez à tout moment la compléter, la corriger ou la retirer, vous pouvez me contacter à cette adresse.
 
 Merci pour l'action que vous menez sur le territoire.
 

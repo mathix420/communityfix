@@ -20,6 +20,8 @@ As I mentioned, CommunityFix (communityfix.org) is an open platform documenting 
 
 It's a strong example of municipal circular-economy action that's genuinely easy for others to replicate, and we want the record to do it justice.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 If someone on your team has a few minutes, we'd welcome:
 
 - A quick read-through to confirm the details are accurate

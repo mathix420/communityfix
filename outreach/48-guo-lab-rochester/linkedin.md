@@ -20,6 +20,8 @@ Thank you for connecting.
 
 I wanted to reach out about a case study we have published on CommunityFix (communityfix.org) documenting your lab's ABF-STIC proof-of-concept — the femtosecond-laser-structured superwicking crystallizer that enables simultaneous solar desalination and near-zero liquid discharge salt recovery. It is exactly the kind of partial-but-promising result that the platform is designed to surface: technically significant, reproducible in principle, and honest about what remains to be solved.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I am writing for two reasons:
 
 1. **Accuracy check.** If anything in the case study misrepresents your work — the surface mechanism, the performance figures, the framing of the outcome — I would very much appreciate a correction.

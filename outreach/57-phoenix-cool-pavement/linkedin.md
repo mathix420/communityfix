@@ -18,6 +18,8 @@ Thanks for connecting. I'm reaching out because CommunityFix (communityfix.org) 
 
 What makes this case study particularly valuable to the practitioners who find it is precisely the nuance in the results: surface cooling was demonstrated, but the evaluation also identified an increase in pedestrian radiant load. That honest, mixed finding is rare and important for other cities weighing similar interventions.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I have two small asks:
 
 1. If someone on the sustainability or street transportation team could take a quick look and flag anything that should be corrected, we'd be grateful.

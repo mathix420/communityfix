@@ -61,7 +61,7 @@ Bonjour,
 
 Je me permets de vous adresser un dernier message au sujet de l'étude de cas POUL'BELLE publiée sur CommunityFix.
 
-Sans nouvelle de votre part, nous maintenons le dossier en l'état sur la plateforme. Si vous souhaitez à tout moment vérifier, corriger ou enrichir les informations, vous pouvez nous écrire à cette adresse — nous serons heureux de faire les ajustements nécessaires.
+Sans nouvelle de votre part, nous maintenons le dossier en l'état sur la plateforme. Si vous souhaitez à tout moment vérifier, corriger ou enrichir les informations, vous pouvez nous écrire à cette adresse — nous serons heureux de faire les ajustements nécessaires. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Merci pour le travail accompli sur le terrain avec l'opération POUL'BELLE ; ce type d'expérimentation mesurée est précieux pour l'ensemble des collectivités qui cherchent à réduire leurs déchets résiduels.
 

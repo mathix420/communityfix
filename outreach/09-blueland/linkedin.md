@@ -23,7 +23,7 @@ I'm reaching out because I'd love two things from you, if you're open to it:
 1. **A quick accuracy check** — you're the primary source, and I'd rather have it right than fast.
 2. **Any enrichment you're comfortable sharing** — recent numbers on plastic eliminated, a lesson from scaling DTC, or even a photo of the bottle in use. Even one concrete detail makes the case study far more useful for the next founder trying to replicate the model.
 
-Everything on CommunityFix is openly accessible, no paywall, and attribution is always given to the implementer.
+Everything on CommunityFix is openly accessible, no paywall, and attribution is always given to the implementer. The idea behind it is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other founders and brands can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one company's hard-won experience into knowledge everyone can build on.
 
 Happy to send you a direct link to the case study so you can see exactly how it's presented. No obligation — but if Blueland's approach can help one more brand rethink their packaging, it feels worth the ask.
 

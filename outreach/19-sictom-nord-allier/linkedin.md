@@ -24,6 +24,8 @@ Je vous invite à :
 - **vérifier les informations** publiées dans le dossier,
 - **enrichir l'étude de cas** si vous souhaitez ajouter des précisions ou des enseignements.
 
+En documentant ce qui a réellement été tenté — coûts et écueils compris —, d'autres collectivités peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution concrète à un monde meilleur : transformer l'expérience durement acquise d'un territoire en un savoir utile à tous.
+
 N'hésitez pas à me répondre ici ou par email (communityfix.org → contact) pour tout retour.
 
 Bien cordialement,

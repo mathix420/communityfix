@@ -15,6 +15,8 @@ My name is Arnaud Gissinger, and I am the founder of CommunityFix (communityfix.
 
 We have documented your lab's ABF-STIC work — the femtosecond-laser-structured superwicking surface used to drive simultaneous solar desalination and salt crystallization — as a reference case study on the platform. The ability to achieve near-zero liquid discharge alongside freshwater production at the proof-of-concept stage is precisely the kind of outcome our community needs to learn from, including its current limitations and the engineering challenges still to be solved.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I am writing for two reasons:
 
 1. **Accuracy review.** We want to make sure the case study reflects your work faithfully. If any detail is off — the described mechanism, the reported efficiency figures, or the framing of the outcome — we would be grateful for a correction.
@@ -43,6 +45,8 @@ I wanted to follow up briefly on my previous message. I understand academic sche
 
 We have documented your lab's ABF-STIC solar desalination crystallizer on CommunityFix as a case study showing how femtosecond-laser surface texturing can enable simultaneous freshwater recovery and salt harvesting — a partial but technically significant result. Our goal is to help practitioners and researchers elsewhere understand both what worked and what remains unsolved.
 
+Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world.
+
 If you have five minutes to glance at the entry and flag anything that should be corrected or added, I would genuinely appreciate it. A simple reply to this email is enough — no account or form required if you prefer not.
 
 Thank you for your time.
@@ -64,7 +68,7 @@ Dear Prof. Guo,
 
 This is my last follow-up. I do not want to crowd your inbox.
 
-The case study documenting your ABF-STIC femtosecond-laser desalination work remains live on CommunityFix. It will stay there as a public reference regardless of whether you respond — your research merits the visibility. But if you ever want to review it for accuracy, add lessons learned, or link supplementary materials, the door is open: a reply to this email is all it takes and I will handle the rest.
+The case study documenting your ABF-STIC femtosecond-laser desalination work remains live on CommunityFix. It will stay there as a public reference regardless of whether you respond — your research merits the visibility. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. But if you ever want to review it for accuracy, add lessons learned, or link supplementary materials, the door is open: a reply to this email is all it takes and I will handle the rest.
 
 Thank you for the work your lab does. I hope our paths cross again at some point.
 

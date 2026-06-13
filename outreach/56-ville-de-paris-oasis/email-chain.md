@@ -46,7 +46,7 @@ Je me permets de revenir vers vous suite à mon message du [date d'envoi].
 
 Je sais que les agendas sont chargés, aussi je serai bref : il s'agit simplement de vous signaler que le programme **Cours Oasis** figure parmi nos études de cas les plus consultées, notamment par des collectivités étrangères en quête de modèles de renaturation scolaire.
 
-Un retour de votre part — même succinct — nous permettrait de garantir la fiabilité des informations publiées et, si vous le souhaitez, de mentionner les chiffres les plus récents (surfaces déminéralisées, températures relevées, budget moyen par cour…).
+Un retour de votre part — même succinct — nous permettrait de garantir la fiabilité des informations publiées et, si vous le souhaitez, de mentionner les chiffres les plus récents (surfaces déminéralisées, températures relevées, budget moyen par cour…). Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 N'hésitez pas à me répondre directement ou à me proposer un créneau d'échange.
 
@@ -68,7 +68,7 @@ Madame Thiollier,
 
 Je vous envoie ce dernier message afin de ne pas encombrer davantage votre boîte mail.
 
-La fiche **Cours Oasis** reste publiée telle quelle sur CommunityFix. Si à l'avenir vous souhaitez la compléter ou la corriger, la porte reste ouverte — il vous suffira de me contacter à cette adresse.
+La fiche **Cours Oasis** reste publiée telle quelle sur CommunityFix. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur. Si à l'avenir vous souhaitez la compléter ou la corriger, la porte reste ouverte — il vous suffira de me contacter à cette adresse.
 
 En attendant, nous continuons à citer votre programme comme exemple inspirant de désimperméabilisation à grande échelle, et espérons qu'il contribuera à essaimer la démarche bien au-delà de Paris.
 

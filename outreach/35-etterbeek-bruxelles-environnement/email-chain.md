@@ -58,7 +58,7 @@ Bonjour,
 
 Je reviens une dernière fois au sujet de l'étude de cas sur l'action de poules co-construits à Etterbeek, publiée sur CommunityFix.
 
-Sans retour de votre part, nous conserverons la fiche en l'état. Si vous souhaitez à tout moment la faire modifier ou enrichir, vous pouvez nous écrire à cette adresse — notre offre reste ouverte.
+Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur. Sans retour de votre part, nous conserverons la fiche en l'état. Si vous souhaitez à tout moment la faire modifier ou enrichir, vous pouvez nous écrire à cette adresse — notre offre reste ouverte.
 
 Merci pour votre attention et pour l'inspiration que représente ce projet.
 

@@ -20,6 +20,8 @@ Je vous contacte pour deux raisons :
 
 Votre retour, même bref, aurait une vraie valeur pour les collectivités qui cherchent à reproduire ce type d'initiative.
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Bien cordialement,
 
 Arnaud Gissinger
@@ -35,7 +37,7 @@ Bonjour,
 
 Je me permets de revenir vers vous suite à mon message de la semaine dernière.
 
-CommunityFix documente le programme de distribution de 1 200 poules mené par Trivalis en Vendée. Nous aimerions simplement nous assurer que la fiche est exacte et, si vous le souhaitez, l'enrichir avec vos retours d'expérience.
+CommunityFix documente le programme de distribution de 1 200 poules mené par Trivalis en Vendée. Nous aimerions simplement nous assurer que la fiche est exacte et, si vous le souhaitez, l'enrichir avec vos retours d'expérience. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Une réponse courte suffit — même un simple « tout est correct » nous est utile.
 

@@ -15,6 +15,8 @@ Nous souhaiterions vous inviter à :
 1. **Vérifier l'exactitude** des informations publiées ;
 2. **Enrichir la fiche** si vous disposez de données complémentaires (métriques, retours d'expérience, sources).
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Vous pouvez consulter l'étude de cas directement sur communityfix.org. N'hésitez pas à nous répondre via ce formulaire ou à nous contacter à l'adresse indiquée sur le site.
 
 Cordialement,
