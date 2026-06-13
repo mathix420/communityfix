@@ -62,7 +62,7 @@ I won't keep pestering you — this will be my last nudge on this.
 
 The Project Sponge case study remains on CommunityFix as a reference for communities working on flood resilience. If at any point you or a colleague would like to review or enrich it, the door is always open — you're welcome to reach out via the platform or reply to this email.
 
-I have great respect for the National Flood Forum's work supporting communities like those in Chalvey and HCB, and I hope CommunityFix can play even a small part in helping that work spread further.
+I have great respect for the National Flood Forum's work supporting communities like those in Chalvey and HCB, and I hope CommunityFix can play even a small part in helping that work spread further — so other communities can skip the same mistakes and adopt what works, a small step toward a better world.
 
 With warm regards,
 

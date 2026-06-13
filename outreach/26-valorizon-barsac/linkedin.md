@@ -27,6 +27,8 @@ Je souhaitais simplement :
 1. Vous en informer et vous inviter à vérifier l'exactitude de la fiche ;
 2. Vous proposer de l'enrichir si vous disposez de données supplémentaires (tonnages détournés, nombre de foyers bénéficiaires, retours d'expérience…).
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Seriez-vous la bonne personne pour en discuter, ou puis-je me rapprocher d'un autre contact chez ValOrizon ?
 
 Bien cordialement,
