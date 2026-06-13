@@ -24,6 +24,8 @@ L'objectif est de permettre à d'autres collectivités de s'en inspirer. Nous so
 - vérifier que la fiche est exacte ;
 - l'enrichir si vous avez des éléments à ajouter (résultats, enseignements, chiffres clés).
 
+En documentant ce qui a réellement été tenté — coûts et écueils compris —, d'autres collectivités peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution concrète à un monde meilleur : transformer l'expérience d'un territoire en un savoir utile à tous.
+
 Seriez-vous disponible pour un échange rapide, ou préférez-vous répondre par écrit ?
 
 Bien cordialement,
