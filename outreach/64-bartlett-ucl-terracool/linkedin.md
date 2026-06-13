@@ -16,7 +16,7 @@ Hi Lachlan,
 
 Thanks for connecting. I wanted to reach out about TerraCool — your ceramic evaporative cooling module project from the Bartlett.
 
-I run CommunityFix (communityfix.org), a public knowledge base that documents real-world attempts to address urban and environmental challenges. We include projects with inconclusive or in-progress outcomes, not just clear-cut successes — the process and the lessons are what matter to practitioners trying to build on existing work.
+I run CommunityFix (communityfix.org), a public knowledge base that documents real-world attempts to address urban and environmental challenges. We include projects with inconclusive or in-progress outcomes, not just clear-cut successes — the process and the lessons are what matter to practitioners trying to build on existing work. The idea behind it is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
 
 I've added a case study entry for TerraCool (#64). I'd really value you (and Dilara, if she's up for it) taking a look to:
 

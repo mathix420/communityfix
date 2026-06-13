@@ -23,7 +23,7 @@ I'm reaching out for two reasons:
 1. **Accuracy** — We want to be sure what we've published is correct. If anything doesn't reflect the work as it actually stands, we'd welcome a correction.
 2. **Enrichment** — If you're willing to share recent figures, lessons learned, or photos, those additions would make the case study far more valuable to other communities facing similar flood challenges who are looking for a replicable model.
 
-There's no commercial angle here — CommunityFix is free and open. The aim is simply to make good, honest practice easier to find and adapt.
+There's no commercial angle here — CommunityFix is free and open. The idea behind it is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other communities can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
 
 I'm happy to share the current draft directly, or point you to the live page, whichever is more convenient.
 

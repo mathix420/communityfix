@@ -46,7 +46,7 @@ Hello,
 
 I wanted to follow up on my note from last week in case it got buried.
 
-We're particularly keen to make sure the pilot's scope — the three communities served and the intended resilience outcomes — is described correctly. Even a brief note confirming the basics would be very helpful, and any updates you can share would make the case study much more useful for other cities looking to replicate this approach.
+We're particularly keen to make sure the pilot's scope — the three communities served and the intended resilience outcomes — is described correctly. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. Even a brief note confirming the basics would be very helpful, and any updates you can share would make the case study much more useful for other cities looking to replicate this approach.
 
 If there's a better contact within the Sustainability Division for this kind of outreach, please do pass this along — I'm happy to connect with whoever is most appropriate.
 
@@ -70,7 +70,7 @@ Hello,
 
 I'll keep this brief — I know inboxes get full.
 
-This will be my last note on this. The Minneapolis solar-plus-storage resilience hub case study will remain on CommunityFix as a resource for other cities. If at any point you'd like to review it for accuracy or add context, the door is always open — you can reach me at any time at arnaud@communityfix.org.
+This will be my last note on this. The Minneapolis solar-plus-storage resilience hub case study will remain on CommunityFix as a resource for other cities. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. If at any point you'd like to review it for accuracy or add context, the door is always open — you can reach me at any time at arnaud@communityfix.org.
 
 Thank you for the important work your division does, and I hope the programme continues to expand.
 

@@ -21,6 +21,8 @@ I've added a case study entry for TerraCool (case study #64). Before it goes ful
 
 You can view and edit the case study directly at: https://communityfix.org/case-studies/64
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 There's no obligation here — even a quick "looks fine" reply is helpful.
 
 Thanks for building something worth documenting.
@@ -42,7 +44,7 @@ Just a gentle nudge on this — I know end-of-term periods are hectic.
 
 In case it helps to know what I'm hoping to capture: for TerraCool specifically, even rough notes on the fabrication process, the material sourcing, or what you'd do differently would make the entry much more useful to practitioners looking at evaporative cooling in other contexts.
 
-No pressure at all if timing doesn't work right now. The case study is live and I'll keep it updated as I learn more.
+Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. No pressure at all if timing doesn't work right now. The case study is live and I'll keep it updated as I learn more.
 
 https://communityfix.org/case-studies/64
 
@@ -61,7 +63,7 @@ Hi Lachlan,
 
 Last message from me on this — I don't want to crowd your inbox.
 
-The TerraCool case study is live at https://communityfix.org/case-studies/64 and will stay there as a reference for others working on passive cooling. If you or Dilara ever want to update it, correct anything, or add fabrication notes or links down the line, the door is open — just reach out.
+The TerraCool case study is live at https://communityfix.org/case-studies/64 and will stay there as a reference for others working on passive cooling. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. If you or Dilara ever want to update it, correct anything, or add fabrication notes or links down the line, the door is open — just reach out.
 
 Thanks for the work. I hope the project finds its next chapter.
 

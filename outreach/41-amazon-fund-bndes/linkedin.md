@@ -18,6 +18,8 @@ Thank you for connecting. I wanted to share a bit more context on why I reached 
 
 CommunityFix (communityfix.org) is an open, non-commercial platform that maps proven solutions to environmental and social challenges. We have documented the Amazon Fund (Fundo Amazônia) as a reference case study, highlighting its performance-based model — whereby independently verified reductions in Amazon deforestation trigger payments from international donors — as a successful example of results-based forest finance.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 We reached out for two reasons:
 
 1. **Accuracy** — We want to make sure the case study reflects the Fund correctly. If anything is off, your team's corrections are very welcome.

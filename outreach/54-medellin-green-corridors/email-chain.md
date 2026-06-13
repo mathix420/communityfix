@@ -48,7 +48,7 @@ I wanted to follow up briefly on my previous message in case it got buried.
 
 We have documented the Secretaría de Medio Ambiente's green corridors programme on CommunityFix as a case study highlighting how 30+ interconnected corridors achieved meaningful reductions in local temperatures at a remarkably low cost per resident. Our goal is simply to make this experience accessible to city governments and practitioners who are looking for proven approaches to urban heat.
 
-If you have a few minutes to verify the details or point us to someone on your team who works on this programme, we would be very grateful. Even a brief note confirming the broad facts would be helpful.
+If you have a few minutes to verify the details or point us to someone on your team who works on this programme, we would be very grateful. Even a brief note confirming the broad facts would be helpful. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world.
 
 Thank you again for your time and for the Secretaría's continued leadership on urban greening.
 
@@ -70,7 +70,7 @@ Dear Marcela,
 
 This will be my last follow-up — I know your office receives a great volume of correspondence.
 
-We will keep the case study on CommunityFix as it stands, with a note that it has not yet been reviewed by the implementing team. If you or a colleague ever have time to review or enrich it — whether now or in the future — the door is always open. You can reach me directly at this address.
+We will keep the case study on CommunityFix as it stands, with a note that it has not yet been reviewed by the implementing team. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. If you or a colleague ever have time to review or enrich it — whether now or in the future — the door is always open. You can reach me directly at this address.
 
 Medellín's green corridors programme is genuinely one of the standout examples on our platform, and we hope it continues to inspire replication in other cities.
 

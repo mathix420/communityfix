@@ -19,6 +19,8 @@ Je vous contacte pour deux raisons :
 1. **Vérifier l'exactitude** des informations publiées, afin que le dossier reflète fidèlement votre programme.
 2. **Vous inviter à l'enrichir** si vous souhaitez ajouter des précisions, des métriques complémentaires ou des enseignements tirés de l'expérience.
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Vous pouvez consulter l'étude de cas directement sur le site. Je reste disponible pour tout échange ou correction.
 
 Bien cordialement,
@@ -40,7 +42,7 @@ Je me permets de revenir vers vous suite à mon précédent message du [date].
 
 Je souhaitais m'assurer que vous aviez bien reçu ma prise de contact concernant l'étude de cas POUL'BELLE publiée sur CommunityFix. Le résultat de 1,83 tonne de déchets détournée grâce à la pesée embarquée sur 20 foyers est un chiffre parlant que nous aimerions présenter avec la plus grande fidélité.
 
-N'hésitez pas à me répondre si vous avez des questions ou des corrections à apporter. Une simple confirmation que les informations sont exactes nous serait également très utile.
+N'hésitez pas à me répondre si vous avez des questions ou des corrections à apporter. Une simple confirmation que les informations sont exactes nous serait également très utile. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Bien cordialement,
 

@@ -19,6 +19,8 @@ As I mentioned in my note, I'm the founder of CommunityFix (communityfix.org), a
 
 We've added Loop's reusable-packaging pilots — the multi-country programme across the US, UK, Canada, and Japan — as a reference case study on the platform. The record examines the structural barriers the programme encountered when trying to move beyond the pilot phase, and it's being consulted by people working on circular-packaging and waste-reduction initiatives globally.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I'm reaching out for two reasons:
 
 1. **Accuracy** — We want to represent the programme fairly and precisely. If there's anything in the case study that doesn't reflect Loop's own understanding, we'd very much welcome a correction or addition.

@@ -20,6 +20,8 @@ Thank you for connecting. I'm reaching out because CommunityFix has documented L
 
 CommunityFix (communityfix.org) is an open resource that maps proven environmental and community solutions so other municipalities and waste authorities around the world can discover and replicate them. Your programme is one of the clearest examples we have of a retail-partnered approach to household food-waste reduction, and we wanted to make sure the information we published is accurate.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 Two quick asks:
 
 1. Would someone at Limburg.net be willing to review the case study for factual accuracy?

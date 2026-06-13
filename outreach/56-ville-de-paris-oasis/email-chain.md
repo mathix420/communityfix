@@ -22,6 +22,8 @@ Je vous contacte pour deux raisons :
 
 La fiche est accessible directement depuis notre plateforme ; je serais heureux de vous en partager le lien précis sur votre retour.
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Merci d'avance pour votre attention.
 
 Cordialement,

@@ -20,6 +20,8 @@ Je vous contacte pour deux raisons :
 
 N'hésitez pas à me revenir directement à cette adresse.
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Bien cordialement,
 
 **Arnaud Gissinger**
@@ -36,7 +38,7 @@ Bonjour,
 
 Je me permets de revenir vers vous suite à mon message de la semaine dernière concernant l'étude de cas sur l'action de poules à Etterbeek.
 
-Si vous avez eu l'occasion de consulter la fiche sur CommunityFix, je serais ravi d'avoir vos retours — une correction, un ajout ou simplement une confirmation que les informations sont correctes nous serait très utile.
+Si vous avez eu l'occasion de consulter la fiche sur CommunityFix, je serais ravi d'avoir vos retours — une correction, un ajout ou simplement une confirmation que les informations sont correctes nous serait très utile. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Je reste disponible pour un échange rapide si vous le souhaitez.
 

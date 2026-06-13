@@ -18,6 +18,8 @@ Dans le cadre de CommunityFix (communityfix.org), plateforme open-source de docu
 
 La plateforme est entièrement gratuite et à but non lucratif. Toute contribution reste attribuée à votre organisation.
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 N'hésitez pas à nous répondre via ce formulaire ou à consulter directement la fiche sur CommunityFix.
 
 Cordialement,

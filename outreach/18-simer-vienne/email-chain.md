@@ -21,6 +21,8 @@ Je vous contacte pour deux raisons :
 
 Votre retour serait précieux pour les porteurs de projets similaires qui s'appuient sur CommunityFix pour s'inspirer et reproduire ce type d'initiative.
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 N'hésitez pas à me répondre directement ou à consulter la fiche en ligne.
 
 Bien cordialement,
@@ -38,7 +40,7 @@ Bonjour,
 
 Je me permets de revenir vers vous suite à mon message de la semaine dernière concernant la documentation du programme R'œuf'cyclage sur CommunityFix.
 
-Si vous n'avez pas eu le temps d'y donner suite, pas d'inquiétude — une réponse en quelques lignes suffit. Même un simple retour pour confirmer que les informations publiées sont exactes nous serait déjà très utile.
+Si vous n'avez pas eu le temps d'y donner suite, pas d'inquiétude — une réponse en quelques lignes suffit. Même un simple retour pour confirmer que les informations publiées sont exactes nous serait déjà très utile. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Si vous avez des questions sur la plateforme ou souhaitez un échange rapide, je suis disponible.
 
@@ -57,7 +59,7 @@ Bonjour,
 
 Pour ne pas encombrer votre boîte mail, je vous envoie ce dernier message concernant l'étude de cas R'œuf'cyclage sur CommunityFix.
 
-La fiche reste en ligne telle quelle. Si vous souhaitez à tout moment la vérifier, la compléter ou simplement échanger, la porte est ouverte — n'hésitez pas à me contacter.
+La fiche reste en ligne telle quelle. Si vous souhaitez à tout moment la vérifier, la compléter ou simplement échanger, la porte est ouverte — n'hésitez pas à me contacter. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Merci pour le travail concret que le SIMER mène sur ces sujets. Ce sont précisément ce type d'initiatives que CommunityFix cherche à valoriser.
 

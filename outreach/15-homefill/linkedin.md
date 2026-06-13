@@ -18,6 +18,8 @@ Thanks for connecting! As mentioned, I run CommunityFix (communityfix.org) — a
 
 We've documented Homefill as a reference case study: a refill shop in Arvada, Colorado that diverted more than 9,500 single-use bottles from landfill in 2024 through bring-your-own-container refills. It's one of the clearest examples of the model working at a tangible scale.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 Two things I'd appreciate:
 
 1. **A quick accuracy check** — If you have five minutes to skim the case study and flag anything that's off, I'd be grateful. Getting the details right matters, especially when shop owners in other cities use it as a reference point.

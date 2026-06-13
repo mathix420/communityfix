@@ -19,6 +19,8 @@ Je vous contacte pour deux raisons :
 
 Seriez-vous disponible pour un échange rapide, ou préférez-vous me transmettre vos retours par email ?
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Cordialement,
 
 **Arnaud Gissinger**

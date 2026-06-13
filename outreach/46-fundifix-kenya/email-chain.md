@@ -17,6 +17,8 @@ CommunityFix is an open platform that maps proven solutions to real community pr
 
 The case study is live at: https://communityfix.org
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 We'd love two things from you, if you're open to it:
 
 1. **A quick accuracy check** — please let us know if anything in the description is wrong or out of date. We want the record to reflect your work faithfully.
@@ -46,6 +48,8 @@ I wanted to follow up on my note from last week. I appreciate how busy operation
 
 FundiFix's performance-contract model for handpump maintenance in Kitui and Kwale is one of the stronger examples of sustainable rural water service delivery we've come across. Having it on CommunityFix — accurate and well-documented — would help other counties and countries that are trying to move away from reactive, break-and-fix approaches.
 
+Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world.
+
 If a quick review or a few added data points is something someone on your team could manage, I'd be grateful. A reply to this email is all it takes to get started.
 
 Best regards,
@@ -66,7 +70,7 @@ Hello,
 
 This will be my last follow-up — I don't want to clutter your inbox.
 
-The FundiFix case study remains published on CommunityFix as-is. If you ever want to review it for accuracy or add context (metrics, funding sources, lessons learned from scaling to new counties), the offer stands — just reply to this email at any time.
+The FundiFix case study remains published on CommunityFix as-is. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. If you ever want to review it for accuracy or add context (metrics, funding sources, lessons learned from scaling to new counties), the offer stands — just reply to this email at any time.
 
 Thank you for your work on sustainable handpump maintenance in Kenya. It matters, and it deserves to be known.
 

@@ -70,7 +70,7 @@ Dear Amazon Fund Department,
 
 This is my final note on this topic. I understand that inboxes get busy, and I do not want to be a persistent distraction.
 
-The Amazon Fund case study remains live on CommunityFix as a positive reference for performance-based forest finance. Should you ever wish to review it, add information, or request any change, our contact details are on the site and we would be glad to hear from you.
+The Amazon Fund case study remains live on CommunityFix as a positive reference for performance-based forest finance. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. Should you ever wish to review it, add information, or request any change, our contact details are on the site and we would be glad to hear from you.
 
 Thank you for the Fund's continued work in protecting the Amazon.
 

@@ -22,6 +22,8 @@ Je voulais vous informer que le programme R'œuf'cyclage du SIMER — le suivi e
 
 L'objectif de la plateforme est de permettre à d'autres territoires et organisations de s'inspirer d'initiatives qui ont fait leurs preuves. Votre démarche en fait clairement partie.
 
+En documentant ce qui a réellement été tenté — coûts et écueils compris —, d'autres collectivités peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution concrète à un monde meilleur : transformer l'expérience d'une collectivité en un savoir utile à tous.
+
 Si vous souhaitez vérifier l'exactitude de la fiche ou l'enrichir (chiffres récents, retours d'expérience, photos), je suis à votre disposition.
 
 Bien cordialement,

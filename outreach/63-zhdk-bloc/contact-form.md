@@ -19,6 +19,8 @@ I would be very grateful if you could forward this message to Luc and Andrin. We
 1. **Invite them to review the case study** for accuracy — we want to make sure the description faithfully represents their work.
 2. **Invite them to enrich it** with any additional context, outcome data, lessons learned, or links they would like to share publicly.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 There is no obligation and no commercial intent; CommunityFix is a non-profit knowledge commons. If they are open to it, they are also welcome to claim the entry and edit it directly.
 
 Thank you for passing this along.

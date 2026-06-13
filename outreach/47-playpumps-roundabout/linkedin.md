@@ -33,6 +33,8 @@ I am reaching out for two reasons:
 
 **2. Enrichment.** If Roundabout Water Solutions is willing, we would like to add your perspective on what the programme taught the sector. That might include: what design or financing assumptions proved incorrect, what the successor work has taken forward, or what you would advise anyone considering a similar model today. These insights, attributed or anonymous as you prefer, would make the case study significantly more useful to others.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other organisations can avoid the same mistakes and go straight to the approaches that work. It's a small but real contribution to a better world: turning hard-won experience into knowledge everyone can build on.
+
 We recognise this programme has been the subject of considerable public scrutiny, and we do not approach that lightly. The goal of CommunityFix is not to assign blame but to give future implementers honest, usable knowledge. A documented failure examined carefully is often more instructive than a claimed success examined superficially.
 
 There is no obligation and no deadline. If a brief call or a written exchange suits your team better, I am happy to accommodate either.

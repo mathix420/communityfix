@@ -20,6 +20,8 @@ As mentioned, CommunityFix (communityfix.org) is a free public platform that map
 
 We chose it because the policy design is genuinely distinctive: binding obligations on developers, paired with financial incentives that make compliance economically viable. It's the kind of integrated approach many cities are trying to replicate but rarely get right.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 We'd welcome a quick review from your side to make sure all the details are accurate. And if anyone on the team would like to add metrics, updated programme data, or lessons learned, that would make the record even more valuable for policymakers looking to adapt the model.
 
 Case study: https://communityfix.org (search "City in Nature Singapore")

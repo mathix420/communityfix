@@ -19,6 +19,8 @@ I wanted to share that FundiFix's professionalised handpump maintenance service 
 
 Your model — performance contracts, remote monitoring, and a professionalised technician network — is exactly the kind of durable, evidence-based approach that others trying to fix rural water service delivery need to see.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 We'd be glad to hear from you on two points:
 
 1. **Accuracy** — does the case study reflect your work correctly? Any corrections or updates are welcome.

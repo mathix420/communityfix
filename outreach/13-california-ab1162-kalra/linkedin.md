@@ -20,6 +20,8 @@ I founded CommunityFix (communityfix.org) to build an open, structured library o
 
 California AB 1162, which you authored, is documented on CommunityFix as a case study on reducing single-use plastic waste through hotel amenity regulation. It is exactly the kind of clear, enacted, outcome-verified policy that our users — local officials, advocates, researchers — find most valuable.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I have two small asks:
 
 1. **Accuracy check** — if you or a member of your team could glance at the entry and flag anything that should be corrected, I would be grateful.

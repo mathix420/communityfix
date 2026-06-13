@@ -23,7 +23,7 @@ I'm reaching out for two reasons:
 1. **Accuracy review** — We want to represent your work correctly. If any detail is off, we'd welcome your corrections.
 2. **Enrichment** — Recent figures (acreage, tree counts, number of rain gardens), lessons learned, or photos you're comfortable sharing openly would make the case study much more useful for other cities looking to follow Nashville's lead.
 
-There's no commercial agenda — the platform is a public resource and any contribution would be credited to Cumberland River Compact.
+There's no commercial agenda — the platform is a public resource and any contribution would be credited to Cumberland River Compact. The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
 
 If this is something your team has bandwidth for — even a 20-minute call or a few notes by message — I'd be genuinely grateful. If there's a better colleague to connect with on this, I'm happy to be redirected.
 

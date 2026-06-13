@@ -19,6 +19,8 @@ Nous souhaiterions deux choses :
 
 Seriez-vous disponible pour un échange rapide, ou préférez-vous que je vous envoie directement le lien vers la fiche pour relecture ?
 
+L'idée derrière CommunityFix est simple : en documentant ce qui a réellement été tenté — et ce que cela a donné, coûts et écueils compris —, d'autres villes, régions et pays peuvent éviter les mêmes erreurs et aller droit aux solutions qui fonctionnent. C'est une contribution modeste mais concrète à un monde meilleur : transformer l'expérience durement acquise d'une collectivité en un savoir utile à tous.
+
 Bien cordialement,
 
 Arnaud Gissinger
@@ -39,7 +41,7 @@ Pour rappel, il s'agit de la fiche CommunityFix consacrée au programme d'urgenc
 
 Si vous n'êtes pas la bonne interlocutrice pour ce sujet, n'hésitez pas à m'indiquer vers qui me tourner — je ne veux pas vous faire perdre de temps.
 
-Dans le cas contraire, un simple retour par email suffit pour commencer.
+Dans le cas contraire, un simple retour par email suffit pour commencer. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Bien cordialement,
 
@@ -57,7 +59,7 @@ Madame Roger,
 
 Je reviens une dernière fois au sujet de la fiche CommunityFix consacrée au programme de soutien REP de Refashion.
 
-Sans retour de votre part, nous conserverons les informations publiées en l'état. La fiche reste accessible et modifiable ultérieurement si Refashion souhaite un jour y contribuer.
+Sans retour de votre part, nous conserverons les informations publiées en l'état. La fiche reste accessible et modifiable ultérieurement si Refashion souhaite un jour y contribuer. Même une relecture rapide aiderait d'autres collectivités à apprendre de votre expérience et à éviter les mêmes erreurs — un petit pas vers un monde meilleur.
 
 Merci en tout cas pour l'action menée par Refashion sur ce dossier — le maintien de la filière de tri textile en France est un enjeu que nous souhaitons documenter avec soin.
 

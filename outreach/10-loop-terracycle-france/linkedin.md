@@ -20,6 +20,8 @@ CommunityFix (communityfix.org) is an open platform that documents proven, real-
 
 We've documented Loop's reusable-packaging programme in France, and in particular the commercial-scale rollout with Carrefour (370+ products, 345 stores) as a reference case study. It's one of the most concrete examples we have of a closed-loop reuse system moving beyond pilot phase into mainstream retail.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I'm reaching out with two requests:
 
 1. **Accuracy review** — could someone on the team take a few minutes to check the case study and flag anything that should be corrected or updated?

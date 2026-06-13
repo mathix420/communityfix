@@ -32,7 +32,7 @@ We would be very grateful if someone from the Gerencia de Urbanismo y Medio Ambi
 1. **Review the case study** for accuracy (a few minutes of your time).
 2. **Add recent figures or lessons learned** that would help other cities implement similar approaches.
 
-There is no commercial purpose; CommunityFix is a public-interest resource. By documenting what was actually tried — costs and pitfalls included — other cities can avoid the same mistakes and go straight to what works, turning one community's hard-won experience into knowledge everyone can build on.
+There is no commercial purpose; CommunityFix is a public-interest resource. The idea behind it is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
 
 If this reaches the right person, please feel free to reply here or contact us through communityfix.org.
 

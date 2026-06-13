@@ -18,6 +18,8 @@ We want to make sure the record is accurate and does your work justice. I'd be g
 
 Case study link: https://communityfix.org (search "City in Nature Singapore")
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 If you're open to it, adding metrics, updated source links, or lessons learned directly on the platform would make it more useful to policymakers and urban planners looking to replicate Singapore's approach elsewhere.
 
 Thank you for the remarkable work NParks has done on this — it genuinely sets a benchmark for cities worldwide.
@@ -38,7 +40,7 @@ I wanted to follow up on my note from last week regarding the City in Nature cas
 
 In particular, I noticed that the Skyrise Greenery Incentive Scheme has been a key lever for private developers — we'd love to capture outcome data (hectares of skyrise greenery added, number of projects funded, etc.) if that's publicly available and you're happy for us to include it.
 
-Even a brief reply confirming the record looks correct would be genuinely helpful.
+Even a brief reply confirming the record looks correct would be genuinely helpful. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world.
 
 Case study link: https://communityfix.org (search "City in Nature Singapore")
 
@@ -58,7 +60,7 @@ Dear NParks team,
 
 This is my last follow-up on the City in Nature case study we've published on CommunityFix. I won't continue to reach out after this.
 
-The case study is live and public as it stands. If at any point someone from your team would like to review, correct, or enrich it, you're always welcome to get in touch at arnaud@communityfix.org.
+The case study is live and public as it stands. Even a quick review would help other communities learn from your experience and skip the same mistakes — a small step toward a better world. If at any point someone from your team would like to review, correct, or enrich it, you're always welcome to get in touch at arnaud@communityfix.org.
 
 We'll keep pointing urban planners, policymakers, and researchers to Singapore's model — it remains one of the strongest examples of integrating nature into a dense city at policy scale.
 

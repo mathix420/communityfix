@@ -25,6 +25,8 @@ At CommunityFix we curate a public knowledge base of real-world solutions to urb
 
 We added it because BLOC stands out: it tackles the growing urban heat problem with a low-tech, modular, publicly deployable approach, and that's exactly the kind of thinking CommunityFix is built to preserve and share.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I'm reaching out for two reasons:
 
 1. **Accuracy check** — our entry is based on publicly available information. You and Andrin know the project far better than we do. If anything is off — the description, the framing, the outcome — we'd genuinely like to fix it.

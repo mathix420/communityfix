@@ -23,6 +23,8 @@ I am the founder of CommunityFix (communityfix.org), a public-interest platform 
 
 We have documented the Secretaría de Medio Ambiente's network of 30+ interconnected green corridors as a case study on our platform. The programme stands out for two reasons that make it especially valuable to share: the documented temperature reductions at corridor sites, and the remarkably low cost — around $6.50 per resident — which puts this approach within reach for cities with limited budgets.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 We would love to do two things, if you are open to it:
 
 1. **Have you or a colleague review the case study** to make sure we have represented the programme accurately.

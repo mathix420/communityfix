@@ -18,6 +18,8 @@ Thanks for connecting!
 
 As I mentioned, CommunityFix (communityfix.org) is an open platform where communities document replicable solutions to shared problems. We've written up Algramo's RFID-tracked refill programme in Santiago as one of our reference case studies — specifically the shift from roughly 10% to 80%+ reuse rates in neighbourhood stores. It's consistently one of the entries practitioners point to when making the case for tech-enabled reuse infrastructure.
 
+The idea behind CommunityFix is simple: by documenting what was actually tried — and what came of it, costs and pitfalls included — other cities, regions and countries can avoid the same mistakes and go straight to the solutions that work. It's a small but real contribution to a better world: turning one community's hard-won experience into knowledge everyone can build on.
+
 I'm reaching out for two straightforward reasons:
 
 1. **Accuracy** — if any details are off or outdated, we want to fix them. You know the programme far better than we do.
