@@ -117,6 +117,24 @@ export default defineNuxtConfig({
       // wrangler 4.x rejects redirected configs that contain env blocks.
       deployConfig: true,
       wrangler: {
+        // @nuxt/content v3 serves `queryCollection` from a SQL database at
+        // runtime. Under the `cloudflare` preset it defaults to a D1 binding
+        // named `DB` and lazily imports its bundled content dump into that D1 on
+        // the first request. Without the binding the Worker has no content
+        // database, so every markdown-backed page (/privacy, /terms,
+        // /whitepaper, /mcp, /guides, /guide/*) 404s in production. Wire the
+        // pre-provisioned content D1s, branch-aware like the other bindings.
+        d1_databases: [
+          {
+            binding: 'DB',
+            database_name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+              ? 'communityfix_nuxt_content_staging'
+              : 'communityfix_nuxt_content',
+            database_id: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+              ? 'bfd9a625-c402-4713-b887-7b545e5688ae' // communityfix_nuxt_content_staging
+              : '9c5ab51d-ec5e-4aed-9883-85d79bea6b85', // communityfix_nuxt_content (prod)
+          },
+        ],
         hyperdrive: [
           {
             binding: 'HYPERDRIVE',
