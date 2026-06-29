@@ -11,8 +11,12 @@ const props = defineProps<{
 const mapEl = ref<HTMLElement>()
 let map: any = null
 let areaLayer: any = null
-let areaCenter: [number, number] | null = null
+let areaBounds: any = null
 let L: any = null
+
+// Pad the fitted area inside the viewport, and never zoom past street level for a
+// tiny polygon (e.g. a single block) so it still reads as a place, not a point.
+const FIT_OPTIONS = { padding: [24, 24] as [number, number], maxZoom: 16 }
 
 const areaStyle = {
   color: 'var(--color-primary-500, #2563eb)',
@@ -107,36 +111,40 @@ function scaleToNominatimZoom(scale: string | null | undefined): string {
 function showArea(result: { geojson?: GeoJSON.Geometry, boundingbox?: [string, string, string, string] }) {
   if (!map || !L) return
 
-  let center: [number, number] | null = null
+  let bounds: any = null
 
   if (result.geojson && (result.geojson.type === 'Polygon' || result.geojson.type === 'MultiPolygon')) {
     areaLayer = L.geoJSON(result.geojson, { style: areaStyle }).addTo(map)
-    const c = areaLayer.getBounds().getCenter()
-    center = [c.lat, c.lng]
+    bounds = areaLayer.getBounds()
   }
   else if (result.boundingbox) {
     const [south, north, west, east] = result.boundingbox.map(Number)
-    const bounds = L.latLngBounds([[south, west], [north, east]])
+    bounds = L.latLngBounds([[south, west], [north, east]])
     areaLayer = L.rectangle(bounds, { ...areaStyle, opacity: 0.4, fillOpacity: 0.06 }).addTo(map)
-    const c = bounds.getCenter()
-    center = [c.lat, c.lng]
   }
 
-  if (center) {
-    areaCenter = center
-    map.setView(center, scaleToZoom(props.scale))
+  // Fit the whole area into the viewport rather than centring on its bbox centre
+  // at a fixed zoom — the latter lets a large polygon spill off-screen and drift
+  // the framing away from the location.
+  if (bounds && bounds.isValid()) {
+    areaBounds = bounds
+    map.fitBounds(bounds, FIT_OPTIONS)
   }
 }
 
 onMounted(initMap)
-onBeforeUnmount(() => { map?.remove(); map = null; areaLayer = null; L = null })
+onBeforeUnmount(() => { map?.remove(); map = null; areaLayer = null; areaBounds = null; L = null })
 
 defineExpose({
   invalidateSize: () => {
     if (!map) return
     map.invalidateSize()
-    const center = areaCenter || [props.latitude, props.longitude]
-    map.setView(center, scaleToZoom(props.scale))
+    if (areaBounds && areaBounds.isValid()) {
+      map.fitBounds(areaBounds, FIT_OPTIONS)
+    }
+    else {
+      map.setView([props.latitude, props.longitude], scaleToZoom(props.scale))
+    }
   },
 })
 </script>
