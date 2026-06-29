@@ -14,13 +14,15 @@ const COORD_DP = 5
 
 // Simplification tolerance in degrees, by location scale. Smaller scales keep
 // crisp outlines; a country or biome is flattened hard since its on-map area
-// dwarfs the error. ~0.001° ≈ 110 m at the equator.
+// dwarfs the error. ~0.001° ≈ 110 m at the equator. Tolerance is capped at
+// 2.2 km (national) — coarser than that gives no further payload win worth the
+// extra distortion, so global reuses the national bound.
 const TOLERANCE_BY_SCALE: Record<LocationScale, number> = {
   neighborhood: 0.0003, // ~33 m
   city: 0.001, //         ~110 m
   region: 0.005, //       ~550 m
   national: 0.02, //      ~2.2 km
-  global: 0.05, //        ~5.5 km
+  global: 0.02, //        ~2.2 km (capped)
 }
 const DEFAULT_TOLERANCE = 0.01 // unknown scale → ~1.1 km
 
