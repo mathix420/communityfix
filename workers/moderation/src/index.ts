@@ -8,6 +8,7 @@ import {
   prepareStructure, applyStructure,
   prepareCaseStudy, rejectCaseStudy, finalizeCaseStudy,
   resolveLocation, applyLocationFix,
+  CASE_STUDY_DUPLICATE_THRESHOLD,
   type IssuePrep, type ModerationResult, type TagResult, type SdgResult,
   type StructureVerdict, type CaseStudyModeration, type CurationResult,
   type IssueCurationResult, type LocationTarget,
@@ -110,6 +111,20 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
   private async reviewCaseStudy(ctx: Ctx, step: WorkflowStep, id: number) {
     const prep = await step.do('prepare', STEP, () => prepareCaseStudy(ctx, id))
     if (!prep) return
+
+    // Reject a near-duplicate before spending a moderation call: a case study that
+    // re-records an approved deployment under the same solution is a duplicate, not
+    // a fresh submission. Mirrors the issue/solution dedup hard-check.
+    const duplicate = prep.similar.find(s => s.similarity >= CASE_STUDY_DUPLICATE_THRESHOLD)
+    if (duplicate) {
+      await step.do('reject', STEP, () => rejectCaseStudy(ctx, prep.cs, {
+        approved: false,
+        isSpam: false,
+        reason: `Near-duplicate of existing case study #${duplicate.id} (${(duplicate.similarity * 100).toFixed(0)}% similarity)`,
+        duplicateOfId: duplicate.id,
+      }))
+      return
+    }
 
     const moderation = await step.do('moderate', STEP, () => runStep<CaseStudyModeration>(ctx.anthropic, 'case-study.moderate', { caseStudyText: prep.caseStudyText }, `case-study ${id}`))
     if (!moderation.approved) {
