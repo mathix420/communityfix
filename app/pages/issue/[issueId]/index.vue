@@ -547,6 +547,28 @@ async function submitAppeal() {
           <UIcon name="lucide:arrow-right" class="size-3.5 text-gray-400 shrink-0" />
         </NuxtLink>
       </div>
+
+      <!-- Quiet meta links — who maintains the node and how it changed over time.
+      Deliberately at the very bottom: useful, but not what the page is about. -->
+      <div class="flex items-center justify-center gap-4 pt-1 text-xs font-mono text-gray-400">
+        <NuxtLink
+          :to="`/issue/${issueId}/contributors`"
+          class="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors"
+          @click="track('Overview meta link', { tab: 'contributors' })"
+        >
+          <UIcon name="lucide:users" class="size-3.5" />
+          Contributors
+        </NuxtLink>
+        <span class="text-gray-300">·</span>
+        <NuxtLink
+          :to="`/issue/${issueId}/history`"
+          class="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors"
+          @click="track('Overview meta link', { tab: 'history' })"
+        >
+          <UIcon name="lucide:history" class="size-3.5" />
+          History
+        </NuxtLink>
+      </div>
     </div>
   </div>
   <div

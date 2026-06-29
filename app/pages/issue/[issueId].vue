@@ -27,8 +27,10 @@ const tabs = computed(() => {
     { name: 'Issues', path: `/issue/${issueId.value}/issues` },
     { name: 'Funding', path: `/issue/${issueId.value}/funding` },
     { name: 'Tree View', path: `/issue/${issueId.value}/tree` },
-    { name: 'History', path: `/issue/${issueId.value}/history` },
   )
+  // History is intentionally left off the primary tab bar — it's a niche view.
+  // Owners/admins still reach it via the pending-proposals banner; direct links
+  // (and the /history route) keep working.
   return base
 })
 
@@ -165,8 +167,6 @@ if (issue.value) {
       :value="issue.summary"
       class="text-toned text-lg my-8"
     />
-
-    <NodeMembers :kind="'issue'" :node-id="issue.id" class="mb-4" />
 
     <NuxtLink
       v-if="canApply && pendingCount > 0 && !onHistoryTab"

@@ -6,6 +6,10 @@
 const props = defineProps<{
   kind: 'issue' | 'case_study'
   nodeId: number
+  // When the panel is the whole point of the view (e.g. a dedicated Contributors
+  // page) always render it, even for a lone owner. Inline placements leave this
+  // off so a single-owner node stays uncluttered.
+  alwaysShow?: boolean
 }>()
 
 const { track } = useUmami()
@@ -39,7 +43,7 @@ const ownerCount = computed(() => data.value?.owners.length ?? 0)
 // Hide the panel entirely when there's nothing worth showing — a lone owner and
 // no contributors — unless the viewer can manage members (then they need it).
 const showPanel = computed(() =>
-  canManage.value || ownerCount.value > 1 || (data.value?.collaborators.length ?? 0) > 0,
+  props.alwaysShow || canManage.value || ownerCount.value > 1 || (data.value?.collaborators.length ?? 0) > 0,
 )
 
 const busyId = ref<string | null>(null)
@@ -66,15 +70,18 @@ function avatarUrl(m: Member) {
 </script>
 
 <template>
-  <div v-if="showPanel" class="rounded-2xl border border-gray-200 bg-white p-4">
+  <div v-if="showPanel" class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
     <!-- Owners -->
     <div>
-      <p class="text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
-        {{ ownerCount > 1 ? 'Owners' : 'Owner' }}
-      </p>
+      <div class="flex items-center gap-2 mb-2.5">
+        <UIcon name="lucide:user-check" class="size-4 text-gray-400" />
+        <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+          {{ ownerCount > 1 ? 'Owners' : 'Owner' }}
+        </p>
+      </div>
       <ul class="flex flex-col gap-1.5">
         <li v-for="m in data?.owners" :key="m.id || m.name" class="flex items-center gap-2">
-          <img :src="avatarUrl(m)" :alt="m.name" class="size-6 rounded-full ring-1 ring-primary-300 shrink-0">
+          <img :src="avatarUrl(m)" :alt="m.name" class="size-6 rounded-full bg-gray-100 shrink-0">
           <NuxtLink v-if="m.id" :to="`/user/${m.id}`" class="text-sm hover:underline truncate">{{ m.name }}</NuxtLink>
           <span v-else class="text-sm truncate text-gray-700">{{ m.name }}</span>
           <span v-if="m.changes" class="text-[11px] font-mono text-gray-400 whitespace-nowrap">
@@ -94,13 +101,16 @@ function avatarUrl(m: Member) {
     </div>
 
     <!-- Collaborators -->
-    <div v-if="data?.collaborators.length" class="mt-4">
-      <p class="text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
-        Contributors
-      </p>
+    <div v-if="data?.collaborators.length" class="mt-6">
+      <div class="flex items-center gap-2 mb-2.5">
+        <UIcon name="lucide:users" class="size-4 text-gray-400" />
+        <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
+          Contributors
+        </p>
+      </div>
       <ul class="flex flex-col gap-1.5">
         <li v-for="m in data.collaborators" :key="m.id || m.name" class="flex items-center gap-2">
-          <img :src="avatarUrl(m)" :alt="m.name" class="size-6 rounded-full ring-1 ring-gray-200 shrink-0">
+          <img :src="avatarUrl(m)" :alt="m.name" class="size-6 rounded-full bg-gray-100 shrink-0">
           <NuxtLink v-if="m.id" :to="`/user/${m.id}`" class="text-sm hover:underline truncate">{{ m.name }}</NuxtLink>
           <span v-else class="text-sm truncate text-gray-700">{{ m.name }}</span>
           <span v-if="m.changes" class="text-[11px] font-mono text-gray-400 whitespace-nowrap">
