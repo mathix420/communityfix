@@ -37,7 +37,6 @@ export const mcpToolInputSchemas = {
     summary: z.string().min(1),
     description: z.string().optional(),
     parentId: id.optional(),
-    confirmNew: z.boolean().optional(),
     ...locationFields,
   }),
   create_solution: z.object({
@@ -45,7 +44,6 @@ export const mcpToolInputSchemas = {
     summary: z.string().min(1),
     description: z.string().optional(),
     parentId: id,
-    confirmNew: z.boolean().optional(),
     links: z.array(link).optional(),
     ...locationFields,
   }),
@@ -92,7 +90,6 @@ export const mcpToolInputSchemas = {
     sources: z.array(link).optional(),
     lessonsLearned: z.array(z.string()).optional(),
     links: z.array(link).optional(),
-    confirmNew: z.boolean().optional(),
   }),
   update_case_study: z.object({
     id,

@@ -1,6 +1,4 @@
-import { sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
-import { rateLimits } from '../database/schema'
 
 export interface RateLimitResult {
   allowed: boolean
@@ -9,14 +7,21 @@ export interface RateLimitResult {
   resetAt: Date
 }
 
+// Fixed-window counters live in the `auth` KV namespace (Cloudflare KV in prod,
+// in-memory in dev — see `nitro.storage` in nuxt.config.ts). Each window-start
+// is folded into the key so windows are independent rows; the row's TTL is the
+// window length, so KV evicts stale windows on its own (no purge task needed).
+const KV_NAMESPACE = 'auth'
+// Cloudflare KV refuses an expirationTtl below 60s, so never ask for less.
+const MIN_TTL_SEC = 60
+
 /**
- * Fixed-window rate limiter backed by the `rate_limits` table.
+ * Fixed-window rate limiter backed by KV.
  *
- * One row per (bucket, identifier, window-start). The window start is folded
- * into the key so each window is an independent row, and the counter is bumped
- * with an atomic upsert (`INSERT … ON CONFLICT DO UPDATE … RETURNING`) so
- * concurrent requests can't race a read-modify-write. Portable across dev,
- * test, and the Cloudflare Worker — no platform-specific binding required.
+ * KV has no atomic increment, so the counter is a read-modify-write: under a
+ * burst of truly concurrent requests it can slightly under-count (KV is also
+ * eventually consistent), which only ever makes the limiter more permissive —
+ * acceptable for abuse protection, and the failure mode never wrongly blocks.
  */
 export async function rateLimit(opts: {
   bucket: string
@@ -27,25 +32,18 @@ export async function rateLimit(opts: {
   const { bucket, identifier, limit, windowSec } = opts
   const windowMs = windowSec * 1000
   const windowStart = Math.floor(Date.now() / windowMs) * windowMs
-  const key = `${bucket}:${identifier}:${windowStart}`
-  const expiresAt = new Date(windowStart + windowMs)
+  const key = `ratelimit:${bucket}:${identifier}:${windowStart}`
+  const resetAt = new Date(windowStart + windowMs)
 
-  const db = useDB()
-  const rows = await db
-    .insert(rateLimits)
-    .values({ key, count: 1, expiresAt })
-    .onConflictDoUpdate({
-      target: rateLimits.key,
-      set: { count: sql`${rateLimits.count} + 1` },
-    })
-    .returning({ count: rateLimits.count })
+  const storage = useStorage(KV_NAMESPACE)
+  const count = ((await storage.getItem<number>(key)) ?? 0) + 1
+  await storage.setItem(key, count, { ttl: Math.max(MIN_TTL_SEC, windowSec) })
 
-  const count = rows[0]?.count ?? 1
   return {
     allowed: count <= limit,
     limit,
     remaining: Math.max(0, limit - count),
-    resetAt: expiresAt,
+    resetAt,
   }
 }
 

@@ -17,8 +17,7 @@ import {
   updateSolutionAs,
 } from '../../utils/mcp-tools'
 import type { H3Event } from 'h3'
-import { getWhitepaper } from '../../utils/whitepaper'
-import { getGuide, listGuides } from '../../utils/mcp-guides'
+import { getGuide, getWhitepaper, listGuides } from '../../utils/mcp-guides'
 import { formatZodIssues, mcpToolInputSchemas } from '../../utils/mcp-schemas'
 import { rateLimit, assertRateLimit } from '../../utils/rate-limit'
 import { CASE_STUDY_OUTCOMES, LOCATION_SCALES } from '../../database/schema'
@@ -26,7 +25,7 @@ import { CASE_STUDY_OUTCOMES, LOCATION_SCALES } from '../../database/schema'
 const PROTOCOL_VERSION = '2025-06-18'
 const SERVER_INFO = { name: 'communityfix-mcp', version: '0.2.0' }
 
-// Per-authenticated-user rate limits (DB-backed fixed windows).
+// Per-authenticated-user rate limits (KV-backed fixed windows).
 const RATE = {
   // Overall request guard — generous; just stops a runaway client.
   global: { limit: 300, windowSec: 60 },
@@ -49,7 +48,7 @@ Tools come in matched groups by node kind:
 - create_case_study / update_case_study / get_case_study / list_case_studies — for concrete deployments of a solution (require solutionId)
 
 ALWAYS SEARCH BEFORE YOU CREATE.
-Before calling any create_* tool, run search_issues_solutions (and search_tags) to find existing nodes that may already cover the same thing. The catalog must not fill up with near-duplicates. As a safety net the server itself re-checks: a create_* call that resembles an existing approved node will NOT create anything — it returns \`{ "status": "similar_found", "similar": [...] }\`. When that happens, inspect each candidate; if one already fits, use update_issue / update_solution / update_case_study (or attach a case study) instead. Only when you are confident none of them match should you re-issue the same create call with \`confirmNew: true\`.
+Before calling any create_* tool, run search_issues_solutions (and search_tags) to find existing nodes that may already cover the same thing. The catalog must not fill up with near-duplicates. If a search turns up a node that already fits, use update_issue / update_solution / update_case_study (or attach a case study) instead of creating a new one. Only create when you are confident nothing existing covers it.
 
 Every issue and solution has two text fields:
 - \`summary\` — required short plaintext card snippet (≤280 chars).
@@ -107,7 +106,7 @@ const UPDATE = { readOnlyHint: false, destructiveHint: true, idempotentHint: fal
 
 // Output schemas are intentionally permissive (no `required`, extra keys
 // allowed) so `structuredContent` always validates while still signalling the
-// shape. create_/update_ tools may also return `{ status: "similar_found" }`.
+// shape.
 const OUT_OBJECT = { type: 'object' as const }
 const OUT_SEARCH = { type: 'object' as const, properties: { status: { type: 'string' }, results: { type: 'array' } } }
 const OUT_PROFILE = {
@@ -168,7 +167,7 @@ const TOOLS = [
   {
     name: 'create_issue',
     title: 'Create issue',
-    description: 'Create an issue — either top-level (omit `parentId`) or a sub-issue of an existing node (set `parentId`). A sub-issue is a narrower facet of its parent problem. Goes through AI moderation before becoming visible. To propose a solution to an existing issue, use `create_solution`.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. If a similar issue already exists, update it instead. The server blocks near-duplicates and returns `{ status: "similar_found", similar: [...] }`; review those and only re-call with `confirmNew: true` if none match.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this problem itself. Do not pack sub-problems, alternative framings, or surveys of related work — emit additional `create_issue` calls for sub-problems and `create_solution` calls for proposed approaches.',
+    description: 'Create an issue — either top-level (omit `parentId`) or a sub-issue of an existing node (set `parentId`). A sub-issue is a narrower facet of its parent problem. Goes through AI moderation before becoming visible. To propose a solution to an existing issue, use `create_solution`.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. If a similar issue already exists, update it instead of adding a near-duplicate.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this problem itself. Do not pack sub-problems, alternative framings, or surveys of related work — emit additional `create_issue` calls for sub-problems and `create_solution` calls for proposed approaches.',
     annotations: CREATE,
     inputSchema: {
       type: 'object',
@@ -181,7 +180,6 @@ const TOOLS = [
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: [...LOCATION_SCALES] },
-        confirmNew: { type: 'boolean', description: 'Set true only after reviewing `search_issues_solutions` results (or a prior `similar_found` response) and confirming no existing issue covers this. Required to create when the server detects a likely duplicate.' },
       },
       required: ['title', 'summary'],
     },
@@ -190,7 +188,7 @@ const TOOLS = [
   {
     name: 'create_solution',
     title: 'Create solution',
-    description: 'Propose a solution to an existing issue. `parentId` is required and must point at an **issue** (not a solution — solutions cannot be nested). Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`. To document a concrete real-world implementation of a solution, attach a case study to it instead of creating a nested solution.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. The server blocks near-duplicate solutions and returns `{ status: "similar_found", similar: [...] }`; review those and only re-call with `confirmNew: true` if none match.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
+    description: 'Propose a solution to an existing issue. `parentId` is required and must point at an **issue** (not a solution — solutions cannot be nested). Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`. To document a concrete real-world implementation of a solution, attach a case study to it instead of creating a nested solution.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. If a similar solution already exists, update it instead of adding a near-duplicate.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
     annotations: CREATE,
     inputSchema: {
       type: 'object',
@@ -204,7 +202,6 @@ const TOOLS = [
         longitude: { type: 'number' },
         scale: { type: 'string', enum: [...LOCATION_SCALES] },
         links: { ...links, description: 'External resources backing this solution (GitHub repos, design docs, demo videos, hosted PDFs). The platform does not store files itself.' },
-        confirmNew: { type: 'boolean', description: 'Set true only after reviewing search results (or a prior `similar_found` response) and confirming no existing solution covers this. Required to create when the server detects a likely duplicate.' },
       },
       required: ['title', 'summary', 'parentId'],
     },
@@ -319,7 +316,7 @@ const TOOLS = [
   {
     name: 'create_case_study',
     title: 'Create case study',
-    description: 'Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSEARCH FIRST: check `list_case_studies` for the solution before adding one. The server blocks a case study that closely matches an existing one for the same solution and returns `{ status: "similar_found", similar: [...] }`; review those and only re-call with `confirmNew: true` if none match.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that\'s three separate `create_case_study` calls — do not combine them.',
+    description: 'Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSEARCH FIRST: check `list_case_studies` for the solution before adding one, and update an existing study instead of adding a near-duplicate of the same deployment.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that\'s three separate `create_case_study` calls — do not combine them.',
     annotations: CREATE,
     inputSchema: {
       type: 'object',
@@ -374,7 +371,6 @@ const TOOLS = [
             required: ['url'],
           },
         },
-        confirmNew: { type: 'boolean', description: 'Set true only after confirming (via `list_case_studies`) that no existing case study already documents this deployment. Required to create when the server detects a likely duplicate.' },
       },
       required: ['solutionId', 'outcome', 'locationName', 'latitude', 'longitude'],
     },
@@ -606,7 +602,7 @@ async function callTool(name: string, rawArgs: any, ctx: ToolCtx): Promise<{ con
         return wrap(data)
       }
       case 'get_whitepaper': {
-        return wrap(getWhitepaper())
+        return wrap(await getWhitepaper(ctx.event))
       }
       case 'get_guide': {
         if (args.slug) {

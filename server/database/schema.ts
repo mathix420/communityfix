@@ -372,14 +372,3 @@ export const oauthTokens = pgTable('oauth_tokens', {
   index('oauth_tokens_user_idx').on(t.userId),
   index('oauth_tokens_refresh_idx').on(t.refreshHash),
 ])
-
-// Fixed-window rate-limit counters. One row per (bucket, identifier, window):
-// portable across dev/test/prod (no Cloudflare-specific binding) and race-free
-// via an atomic upsert. Stale rows are reaped by the `oauth:purge` task.
-export const rateLimits = pgTable('rate_limits', {
-  key: text('key').primaryKey(),
-  count: integer('count').notNull().default(0),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-}, t => [
-  index('rate_limits_expires_idx').on(t.expiresAt),
-])

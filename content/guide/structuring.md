@@ -85,7 +85,7 @@ Before creating anything, **search**. A near-duplicate splits attention, votes, 
 
 - Search by meaning, not just keywords, and skim the closest matches.
 - If a node already covers your point, **improve it** (edit the summary/description, add a solution, attach a case study) instead of starting a new one.
-- When you create through the API or an AI assistant, the platform actively blocks likely duplicates: it returns a `similar_found` response listing the close matches so you can review them before deciding to proceed.
+- The API and AI assistants don't block duplicates for you — searching first and updating the closest match is the contributor's responsibility.
 
 ---
 

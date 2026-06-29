@@ -1,6 +1,6 @@
 import { and, eq, gt, isNotNull, isNull, lte, or } from 'drizzle-orm'
 import type { H3Event } from 'h3'
-import { oauthClients, oauthCodes, oauthTokens, rateLimits, users } from '../database/schema'
+import { oauthClients, oauthCodes, oauthTokens, users } from '../database/schema'
 
 // Tokens are stored hashed so a DB dump never exposes a usable bearer.
 const ACCESS_TOKEN_TTL_SEC = 60 * 60
@@ -199,9 +199,10 @@ export async function authenticateBearer(event: H3Event) {
   return { token: row, user }
 }
 
-// Reaps stale rows so the OAuth + rate-limit tables don't grow unbounded.
-// Called from the `oauth:purge` scheduled task. Revoked/expired token rows are
-// kept until the refresh window closes so refresh-reuse detection still works.
+// Reaps stale OAuth rows so the tables don't grow unbounded. Called from the
+// `oauth:purge` scheduled task. Revoked/expired token rows are kept until the
+// refresh window closes so refresh-reuse detection still works. (Rate-limit
+// counters live in KV and expire on their own TTL, so they need no purge.)
 export async function purgeExpired() {
   const db = useDB()
   const now = new Date()
@@ -216,11 +217,8 @@ export async function purgeExpired() {
       and(isNotNull(oauthTokens.revokedAt), lte(oauthTokens.revokedAt, refreshCutoff)),
     ))
     .returning({ tokenHash: oauthTokens.tokenHash })
-  const limits = await db.delete(rateLimits)
-    .where(lte(rateLimits.expiresAt, now))
-    .returning({ key: rateLimits.key })
 
-  return { codes: codes.length, tokens: tokens.length, rateLimits: limits.length }
+  return { codes: codes.length, tokens: tokens.length }
 }
 
 // --- Consent CSRF token --------------------------------------------------

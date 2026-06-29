@@ -26,7 +26,7 @@ The single most important rule: **never create blind.**
 2. **`get_tree`** — read the descendant tree of a relevant node to see what sub-issues, solutions, and case studies already exist.
 3. **`suggest_more`** — find nodes similar to one you're looking at.
 
-If a node already covers your point, **update it** rather than adding a near-duplicate. As a backstop, `create_*` tools run their own duplicate check and return `{ "status": "similar_found", "similar": [...] }` instead of creating. When you see that, **stop and inspect the candidates**. Only re-issue the call with `confirmNew: true` once you're confident none of them match.
+If a node already covers your point, **update it** rather than adding a near-duplicate. Treat searching first as your responsibility — the server trusts you to do it and will create whatever you ask for.
 
 ---
 
@@ -83,7 +83,7 @@ This is where automated contribution most often goes wrong:
 
 - **Mind the limits.** Writes and embedding-backed searches are rate-limited per user. Don't loop aggressively; back off on a `429` / rate-limit message and retry after the indicated delay.
 - **Reads are cheap and idempotent; writes are not.** Don't repeat a create to "make sure it worked" — check first with a search or `get_issue`.
-- **Handle `similar_found` every time.** Treat it as a prompt to review and reconsider, not an error to bypass by reflexively setting `confirmNew`.
+- **Dedup is on you.** Nothing stops you from creating a near-duplicate, so search first and update an existing node when one already fits.
 
 ---
 
@@ -94,7 +94,7 @@ This is where automated contribution most often goes wrong:
 3. `get_tree` on the closest match to understand what already exists.
 4. Decide: **update** an existing node, or **create** a new, well-scoped one.
 5. Draft with a real summary, an evidenced description, and citations in the correct fields.
-6. Call the matching `create_*` / `update_*` tool. If `similar_found` comes back, return to step 3.
+6. Call the matching `create_*` / `update_*` tool.
 7. Need several nodes? Repeat per node — one thing each.
 
 ---
@@ -104,7 +104,7 @@ This is where automated contribution most often goes wrong:
 | Don't | Do instead |
 |---|---|
 | Create without searching | `search_issues_solutions` + `get_tree` first |
-| Bypass `similar_found` with `confirmNew` by default | Inspect candidates; update when one fits |
+| Add a near-duplicate of an existing node | Inspect matches; update the one that fits |
 | Pack alternatives/sub-issues into one node | Emit separate `create_*` calls |
 | Truncate the description into the summary | Write a standalone synopsis |
 | Invent sources, metrics, or outcomes | Use real, checkable evidence — or omit |

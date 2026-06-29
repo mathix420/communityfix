@@ -19,8 +19,8 @@ describe('mcp tool input schemas', () => {
     expect(r.success).toBe(false)
   })
 
-  it('accepts confirmNew on create_issue', () => {
-    const r = mcpToolInputSchemas.create_issue.safeParse({ title: 'x', summary: 'y', confirmNew: true })
+  it('accepts an optional parentId on create_issue', () => {
+    const r = mcpToolInputSchemas.create_issue.safeParse({ title: 'x', summary: 'y', parentId: 3 })
     expect(r.success).toBe(true)
   })
 

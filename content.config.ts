@@ -5,6 +5,12 @@ export default defineContentConfig({
     content: defineCollection({
       type: 'page',
       source: '**/*.md',
+      // `rawbody` keeps the original markdown alongside the parsed AST so the
+      // MCP `get_whitepaper` tool can serve content/whitepaper.md as real
+      // markdown (same trick as the `guides` collection below).
+      schema: z.object({
+        rawbody: z.string(),
+      }),
     }),
     guides: defineCollection({
       type: 'page',
