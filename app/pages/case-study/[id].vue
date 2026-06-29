@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { SerializedRevision } from '../../../server/utils/revision-write'
+
 const route = useRoute()
 const id = computed(() => route.params.id as string)
 
-const { data: study } = await useFetch(() => `/api/case-study/${id.value}`)
+const { data: study, refresh: refreshStudy } = await useFetch(() => `/api/case-study/${id.value}`)
 
 const { data: parent } = await useFetch(
   () => `/api/issue/${study.value?.solutionId}`,
@@ -80,6 +82,47 @@ onMounted(() => {
   mapVisible.value = true
 })
 
+// Edit / Suggest-edit + collaborative-revision history. Owner/admin edit
+// directly; other logged-in users propose a change; logged-out users go to
+// /login. Approved revisions are public history; pending/rejected ones are only
+// returned to owner/admin/proposer (the endpoint filters).
+const { track } = useUmami()
+const { user, loggedIn } = useUserSession()
+const { isAdmin } = usePendingRevisions()
+
+// Ownership is resolved server-side from node_members and returned on the study.
+const isOwner = computed(() => !!study.value?.viewerIsOwner)
+const canApply = computed(() => isOwner.value || isAdmin.value)
+const editLabel = computed(() => (canApply.value ? 'Edit' : 'Propose changes'))
+
+const editOpen = ref(false)
+function openEdit() {
+  if (!loggedIn.value) {
+    navigateTo('/login')
+    return
+  }
+  track('Open edit modal', { kind: 'case_study', mode: canApply.value ? 'edit' : 'suggest' })
+  editOpen.value = true
+}
+
+const { data: revisions, refresh: refreshRevisions } = await useFetch<SerializedRevision[]>(
+  () => `/api/case-study/${id.value}/revisions`,
+  { default: () => [] },
+)
+const pendingCount = computed(() =>
+  canApply.value ? (revisions.value ?? []).filter(r => r.status === 'pending').length : 0,
+)
+
+async function onEdited() {
+  await Promise.all([refreshStudy(), refreshRevisions()])
+}
+
+const historyRef = ref<HTMLElement | null>(null)
+function scrollToHistory() {
+  track('Pending proposals banner click', { count: pendingCount.value })
+  historyRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 if (study.value) {
   const s = study.value
   // OG headline stays the bare location; document <title> is descriptive and
@@ -155,10 +198,33 @@ if (study.value) {
             {{ study.locationName }}
           </h1>
         </div>
-        <p class="text-5xl text-black/10 font-mono sm:mt-0 -mt-5 shrink-0">
-          #{{ study.id.toString().padStart(5, '0') }}
-        </p>
+        <div class="flex items-center justify-between gap-3 shrink-0">
+          <p class="text-5xl text-black/10 font-mono sm:mt-0 -mt-5">
+            #{{ study.id.toString().padStart(5, '0') }}
+          </p>
+          <UButton
+            :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
+            size="sm"
+            color="neutral"
+            variant="ghost"
+            class="sm:hidden text-gray-500 hover:text-gray-900"
+            @click="openEdit"
+          >
+            {{ editLabel }}
+          </UButton>
+        </div>
       </header>
+
+      <UButton
+        :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
+        size="sm"
+        color="neutral"
+        variant="ghost"
+        class="hidden sm:inline-flex mb-4 text-gray-500 hover:text-gray-900"
+        @click="openEdit"
+      >
+        {{ editLabel }}
+      </UButton>
 
       <div class="flex items-center gap-2 flex-wrap mb-8">
         <UiBadge :variant="outcomeVariant[study.outcome] ?? 'default'">
@@ -176,6 +242,24 @@ if (study.value) {
           {{ scaleLabel[study.scale] ?? study.scale }}
         </UiBadge>
       </div>
+
+      <NodeMembers :kind="'case_study'" :node-id="study.id" class="mb-8" />
+
+      <button
+        v-if="canApply && pendingCount > 0"
+        type="button"
+        class="mb-8 flex w-full items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800 transition-colors hover:bg-yellow-100"
+        @click="scrollToHistory"
+      >
+        <UIcon name="lucide:git-pull-request-arrow" class="size-4 shrink-0" />
+        <span class="flex-1 text-left">
+          {{ pendingCount }} suggested {{ pendingCount === 1 ? 'edit is' : 'edits are' }} awaiting your review.
+        </span>
+        <span class="inline-flex items-center gap-1 font-medium">
+          Review
+          <UIcon name="lucide:arrow-down" class="size-3.5" />
+        </span>
+      </button>
 
       <div class="space-y-3">
         <div
@@ -389,6 +473,29 @@ if (study.value) {
           <UserButton :author-id="study.authorId" :name="study.author" />
         </div>
       </div>
+
+      <section ref="historyRef" class="mt-12 scroll-mt-6">
+        <div class="mb-4 flex items-baseline gap-3">
+          <UiSectionTitle>History</UiSectionTitle>
+          <span v-if="revisions?.length" class="font-mono text-[10px] text-gray-400 tracking-widest">
+            · {{ revisions.length }}
+          </span>
+        </div>
+        <RevisionTimeline
+          :revisions="revisions ?? []"
+          :can-decide="canApply"
+          :viewer-id="loggedIn ? user?.id : null"
+          @changed="onEdited"
+        />
+      </section>
+
+      <RevisionEditModal
+        v-model:open="editOpen"
+        kind="case_study"
+        :can-apply="canApply"
+        :case-study="study"
+        @submitted="onEdited"
+      />
     </div>
   </AppContainer>
   <AppContainer v-else>

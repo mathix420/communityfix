@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const issueId = computed(() => route.params.issueId)
-const { data: issue } = await useFetch(() => `/api/issue/${issueId.value}`)
+const { data: issue, refresh: refreshIssue } = await useFetch(() => `/api/issue/${issueId.value}`)
 
 // Parent issue (if any) so the breadcrumb can name it.
 const { data: parentIssue } = await useFetch(
@@ -27,13 +27,61 @@ const tabs = computed(() => {
     { name: 'Issues', path: `/issue/${issueId.value}/issues` },
     { name: 'Funding', path: `/issue/${issueId.value}/funding` },
     { name: 'Tree View', path: `/issue/${issueId.value}/tree` },
+    { name: 'History', path: `/issue/${issueId.value}/history` },
   )
   return base
 })
 
 // Make the loaded row available to nested route children (e.g. studies.vue
-// switches between solution-mode and issue-mode based on `issue.type`).
+// switches between solution-mode and issue-mode based on `issue.type`; history.vue
+// reads authorId).
 provide('issue', issue)
+
+// Edit / Suggest-edit entry point + collaborative-revision wiring. Owner/admin
+// edit directly; other logged-in users propose a change; logged-out users are
+// bounced to /login. Pending proposals (owner/admin only) surface a banner that
+// links to the History tab.
+const { track } = useUmami()
+const { loggedIn } = useUserSession()
+const { isAdmin } = usePendingRevisions()
+
+// Ownership is resolved server-side from node_members and returned on the issue.
+const isOwner = computed(() => !!issue.value?.viewerIsOwner)
+const canApply = computed(() => isOwner.value || isAdmin.value)
+
+const editKind = computed<'issue' | 'solution'>(() =>
+  issue.value?.type === 'solution' ? 'solution' : 'issue',
+)
+const editLabel = computed(() => (canApply.value ? 'Edit' : 'Propose changes'))
+
+const editOpen = ref(false)
+function openEdit() {
+  if (!loggedIn.value) {
+    navigateTo('/login')
+    return
+  }
+  track('Open edit modal', { kind: editKind.value, mode: canApply.value ? 'edit' : 'suggest' })
+  editOpen.value = true
+}
+
+async function onEdited() {
+  await refreshIssue()
+  await refreshPendingCount()
+}
+
+// Cheap pending-proposal count for the owner/admin banner. Only fetched for
+// people who could act on it; anyone else never sees the callout.
+const { data: revisionRows, refresh: refreshPendingCount } = await useFetch<{ status: string }[]>(
+  () => `/api/issue/${issueId.value}/revisions`,
+  { key: 'issue-pending-banner', default: () => [], immediate: false },
+)
+watchEffect(() => {
+  if (canApply.value && issue.value) refreshPendingCount()
+})
+const pendingCount = computed(() =>
+  canApply.value ? (revisionRows.value ?? []).filter(r => r.status === 'pending').length : 0,
+)
+const onHistoryTab = computed(() => route.path.endsWith('/history'))
 
 // Distinct <title> per sub-tab. Reactive getter because the parent stays
 // mounted across tabs; the brand suffix is added by the global titleTemplate.
@@ -44,6 +92,7 @@ const tabSuffix = computed(() => {
   if (path.endsWith('/studies')) return ' — Case studies'
   if (path.endsWith('/funding')) return ' — Funding'
   if (path.endsWith('/tree')) return ' — Tree'
+  if (path.endsWith('/history')) return ' — History'
   return '' // Overview (index)
 })
 
@@ -92,20 +141,58 @@ if (issue.value) {
 
 <template>
   <AppContainer v-if="issue">
-    <div class="flex justify-between mb-4 flex-col-reverse">
-      <h1 :class="underlinedTitle">
-        {{ issue.title }}
-      </h1>
-      <p class="text-5xl text-black/10 font-mono -mt-5">
-        #{{ issue.id.toString().padStart(5, '0') }}
-      </p>
+    <div class="flex justify-between gap-4 mb-4 flex-col-reverse sm:flex-row sm:items-start">
+      <div class="min-w-0 flex flex-col-reverse">
+        <h1 :class="underlinedTitle">
+          {{ issue.title }}
+        </h1>
+        <p class="text-5xl text-black/10 font-mono -mt-5">
+          #{{ issue.id.toString().padStart(5, '0') }}
+        </p>
+      </div>
+      <UButton
+        :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
+        size="sm"
+        color="neutral"
+        variant="ghost"
+        class="shrink-0 self-end sm:self-start text-gray-500 hover:text-gray-900"
+        @click="openEdit"
+      >
+        {{ editLabel }}
+      </UButton>
     </div>
     <UiMarkdown
       :value="issue.summary"
       class="text-toned text-lg my-8"
     />
 
+    <NodeMembers :kind="'issue'" :node-id="issue.id" class="mb-4" />
+
+    <NuxtLink
+      v-if="canApply && pendingCount > 0 && !onHistoryTab"
+      :to="`/issue/${issueId}/history`"
+      class="mb-4 flex items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800 transition-colors hover:bg-yellow-100"
+      @click="track('Pending proposals banner click', { count: pendingCount })"
+    >
+      <UIcon name="lucide:git-pull-request-arrow" class="size-4 shrink-0" />
+      <span class="flex-1">
+        {{ pendingCount }} suggested {{ pendingCount === 1 ? 'edit is' : 'edits are' }} awaiting your review.
+      </span>
+      <span class="inline-flex items-center gap-1 font-medium">
+        Review
+        <UIcon name="lucide:arrow-right" class="size-3.5" />
+      </span>
+    </NuxtLink>
+
     <UiNavTabs :tabs="tabs" />
+
+    <RevisionEditModal
+      v-model:open="editOpen"
+      :kind="editKind"
+      :can-apply="canApply"
+      :issue="issue"
+      @submitted="onEdited"
+    />
 
     <NuxtPage />
   </AppContainer>

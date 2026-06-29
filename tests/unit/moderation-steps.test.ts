@@ -11,6 +11,7 @@ const IDS: StepId[] = [
   'case-study.curate',
   'issue.curate',
   'location.resolve',
+  'revision.prescreen',
 ]
 
 describe('moderation step registry', () => {
@@ -113,5 +114,12 @@ describe('rendered prompts (golden)', () => {
     expect(render(step.user, { kind: 'solution', title: 'Rain gardens', summary: 'Build rain gardens', description: 'Long body.' }))
       .toBe('Type: solution\nTitle: Rain gardens\n\nCurrent summary:\nBuild rain gardens\n\nCurrent description:\nLong body.')
     expect(render(step.system, { kind: 'solution' })).toMatchSnapshot()
+  })
+
+  it('revision.prescreen lays out the original/proposed text and note', () => {
+    const step = STEPS['revision.prescreen']
+    expect(render(step.user, { originalText: 'BEFORE', proposedText: 'AFTER', note: 'fixed a typo' }))
+      .toBe('Original text:\nBEFORE\n\nProposed text:\nAFTER\n\nProposer\'s note: fixed a typo')
+    expect(render(step.system, {})).toMatchSnapshot()
   })
 })

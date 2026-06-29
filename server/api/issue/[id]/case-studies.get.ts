@@ -38,5 +38,5 @@ export default defineEventHandler(async (event) => {
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
   })
 
-  return rows.map(transformCaseStudy)
+  return withMembers('case_study', rows.map(transformCaseStudy))
 })

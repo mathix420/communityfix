@@ -9,6 +9,8 @@ import { isAdminEmail } from './admin'
 import { triggerModeration } from './moderation-trigger'
 import { generateEmbedding } from './embeddings'
 import { sanitizeLinks, type Link } from './issue-write'
+import { editableCaseStudySnapshot, recordRevision } from './revision-write'
+import { isNodeOwner, addNodeMember } from './node-members'
 
 type Metric = { label: string, baseline?: string, result?: string, unit?: string }
 type Source = { url: string, title?: string }
@@ -36,6 +38,9 @@ export interface CreateCaseStudyInput {
 export interface UpdateCaseStudyInput extends Partial<Omit<CreateCaseStudyInput, 'solutionId'>> {
   id: number
   verified?: boolean
+  // Re-attach the case study to a different solution (reparent). Validated via
+  // assertSolution — the target must be an existing solution.
+  solutionId?: number
 }
 
 // Embeddings need at least one short string of context — without a title or
@@ -114,6 +119,37 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
   const created = rows[0]!
   await triggerModeration('case-study', created.id)
 
+  // Bootstrap version history with a born-approved "Created" revision.
+  // Best-effort — recording history must never fail creation.
+  try {
+    const snapshot = editableCaseStudySnapshot(created)
+    await recordRevision({
+      targetKind: 'case_study',
+      issueId: null,
+      caseStudyId: created.id,
+      proposerId: authorId,
+      status: 'approved',
+      changes: snapshot,
+      baseSnapshot: {},
+      appliedSnapshot: snapshot,
+      decidedById: authorId,
+      decidedByRole: 'owner',
+      note: 'Created',
+    })
+  }
+  catch (err) {
+    console.error(`[case-study:create] Failed to record creation revision for ${created.id}:`, err)
+  }
+
+  // Creator becomes the case study's first owner — the membership row, not
+  // authorId, is what grants edit/decide rights.
+  try {
+    await addNodeMember({ kind: 'case_study', nodeId: created.id, userId: authorId, role: 'owner', source: 'creator' })
+  }
+  catch (err) {
+    console.error(`[case-study:create] Failed to seed owner membership for ${created.id}:`, err)
+  }
+
   return created
 }
 
@@ -124,12 +160,23 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
 
   const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } })
   const isAdmin = isAdminEmail(me?.email)
-  if (existing.authorId !== userId && !isAdmin) {
-    throw createError({ statusCode: 403, statusMessage: 'Only the author or an admin can update this case study' })
+  // Editing without approval is an owner/admin right (see node_members).
+  if (!isAdmin && !(await isNodeOwner(userId, 'case_study', existing.id))) {
+    throw createError({ statusCode: 403, statusMessage: 'Only an owner or an admin can update this case study' })
   }
   if (!isAdmin) await assertNotBanned(userId)
 
+  // Editable snapshot before any mutation — lets callers record an accurate
+  // born-approved revision without a second read.
+  const before = editableCaseStudySnapshot(existing)
+
   const patch: Partial<typeof caseStudies.$inferInsert> = { updatedAt: new Date() }
+  // Re-attach to a different solution (reparent). Validate the target is a
+  // real solution, exactly like createCaseStudy does.
+  if (input.solutionId !== undefined && input.solutionId !== existing.solutionId) {
+    await assertSolution(input.solutionId)
+    patch.solutionId = input.solutionId
+  }
   if (input.outcome !== undefined) patch.outcome = input.outcome
   if (input.scale !== undefined) patch.scale = input.scale
   if (input.locationName !== undefined && input.locationName.trim()) patch.locationName = input.locationName.trim()
@@ -183,7 +230,17 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
   if (textChanged) {
     await triggerModeration('case-study', input.id)
   }
-  return rows[0]!
+  return { caseStudy: rows[0]!, before, contentChanged: textChanged }
+}
+
+/**
+ * Re-attach a case study to a different solution. Thin wrapper over
+ * updateCaseStudy's solutionId path so the revision-apply code has a clearly
+ * named structural-move entry point. Returns the updated row.
+ */
+export async function reparentCaseStudy(userId: string, id: number, solutionId: number) {
+  const { caseStudy } = await updateCaseStudy(userId, { id, solutionId })
+  return caseStudy
 }
 
 export function transformCaseStudy(row: typeof caseStudies.$inferSelect & {

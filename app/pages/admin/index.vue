@@ -6,6 +6,7 @@ const { data: queue, refresh: refreshQueue } = await useFetch('/api/admin/queue'
 const { data: health } = await useFetch('/api/admin/ai-health', { query: { days: 30 } })
 
 const { run, isPending } = useAdminAction()
+const { track } = useUmami()
 async function refreshAll() {
   await Promise.all([refreshQueue(), refreshStats()])
 }
@@ -136,6 +137,45 @@ async function denyBanAppeal(userId: string) {
     $fetch(`/api/admin/users/${userId}/ban-appeal`, { method: 'PATCH' as const, body: { status: 'denied' } }),
   )
   if (result) await refreshAll()
+}
+
+// --- Suggested edits (collaborative revisions) ---
+const revisionRejectOpen = ref(false)
+const revisionRejectTarget = ref<{ id: number, label: string } | null>(null)
+
+function revisionLink(rev: { node: { targetKind: 'issue' | 'case_study', issueId: number | null, caseStudyId: number | null } }) {
+  return rev.node.targetKind === 'issue'
+    ? `/issue/${rev.node.issueId}`
+    : `/case-study/${rev.node.caseStudyId}`
+}
+
+async function approveRevision(id: number) {
+  const result = await run(`rev-approve-${id}`, () =>
+    $fetch(`/api/revisions/${id}/approve`, { method: 'POST' as const, body: {} }),
+  )
+  if (result) {
+    track('Approve suggested edit', { revisionId: id })
+    await refreshAll()
+  }
+}
+
+function askRejectRevision(id: number, label: string) {
+  revisionRejectTarget.value = { id, label }
+  revisionRejectOpen.value = true
+}
+
+async function onRejectRevision(reason: string) {
+  if (!revisionRejectTarget.value) return
+  const id = revisionRejectTarget.value.id
+  const result = await run(`rev-reject-${id}`, () =>
+    $fetch(`/api/revisions/${id}/reject`, { method: 'POST' as const, body: { reason } }),
+  )
+  if (result) {
+    track('Reject suggested edit', { revisionId: id })
+    revisionRejectOpen.value = false
+    revisionRejectTarget.value = null
+    await refreshAll()
+  }
 }
 
 function formatConfidence(c: number | undefined | null) {
@@ -614,6 +654,82 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
       </div>
     </section>
 
+    <!-- Suggested edits (collaborative revisions) -->
+    <section v-if="queue?.pendingRevisions?.length">
+      <div class="mb-3 flex items-baseline gap-2">
+        <h2 class="font-mono text-sm uppercase tracking-widest text-gray-700">Suggested edits</h2>
+        <span class="font-mono text-[10px] text-gray-400 tracking-widest">· {{ queue.pendingRevisions.length }}</span>
+      </div>
+      <div class="space-y-2">
+        <AdminQueueCard
+          v-for="rev in queue.pendingRevisions"
+          :key="rev.id"
+          :since="rev.createdAt"
+        >
+          <template #header>
+            <div class="flex items-center gap-2 flex-wrap">
+              <NuxtLink :to="revisionLink(rev)" class="font-medium hover:underline truncate">
+                {{ rev.node.label }}
+              </NuxtLink>
+              <UiBadge>{{ rev.node.targetKind === 'issue' ? 'issue' : 'case study' }}</UiBadge>
+              <UiBadge
+                v-if="rev.aiVerdict && rev.aiVerdict !== 'ok'"
+                variant="error"
+                :title="rev.aiReason ?? undefined"
+              >
+                <UIcon name="lucide:flag" class="inline size-3" /> {{ rev.aiVerdict }}{{ rev.aiConfidence != null ? ` ${formatConfidence(rev.aiConfidence)}` : '' }}
+              </UiBadge>
+              <UiBadge v-else-if="rev.aiVerdict === 'ok'" variant="success">
+                AI: ok{{ rev.aiConfidence != null ? ` ${formatConfidence(rev.aiConfidence)}` : '' }}
+              </UiBadge>
+              <AdminSlaBadge :since="rev.createdAt" hide-when-fresh />
+            </div>
+            <p v-if="rev.note" class="text-sm text-toned line-clamp-2">{{ rev.note }}</p>
+            <AdminAuthorBadge
+              v-if="rev.proposer"
+              :author="{ ...rev.proposer, email: '' }"
+              :timestamp="rev.createdAt"
+              timestamp-label="proposed"
+            />
+          </template>
+
+          <template #actions>
+            <UButton
+              size="xs"
+              color="primary"
+              :loading="isPending(`rev-approve-${rev.id}`)"
+              :disabled="isPending(`rev-approve-${rev.id}`)"
+              @click="approveRevision(rev.id)"
+            >
+              Approve
+            </UButton>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="outline"
+              @click="askRejectRevision(rev.id, rev.node.label)"
+            >
+              Reject
+            </UButton>
+          </template>
+
+          <template #meta>
+            <div v-if="rev.aiReason && rev.aiVerdict && rev.aiVerdict !== 'ok'" class="bg-red-50 rounded-lg px-3 py-2 text-xs text-red-700">
+              {{ rev.aiReason }}
+            </div>
+          </template>
+
+          <template #preview>
+            <RevisionDiff
+              :before="rev.baseSnapshot"
+              :after="rev.appliedSnapshot ?? {}"
+              :changes="rev.changes"
+            />
+          </template>
+        </AdminQueueCard>
+      </div>
+    </section>
+
     <!-- Ban Appeals -->
     <section v-if="queue?.banAppeals?.length">
       <div class="mb-3 flex items-baseline gap-2">
@@ -682,6 +798,14 @@ function detailSimilar(details: unknown): Array<{ id: number, similarity: number
       v-model:open="rejectOpen"
       :target="rejectTarget?.label"
       @submit="onReject"
+    />
+
+    <!-- Reject suggested-edit modal -->
+    <AdminRejectModal
+      v-model:open="revisionRejectOpen"
+      title="Reject suggested edit"
+      :target="revisionRejectTarget?.label"
+      @submit="onRejectRevision"
     />
 
     <!-- Edit & approve modal -->

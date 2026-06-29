@@ -11,6 +11,7 @@ import caseStudyModerateYaml from './steps/case-study/moderate.yaml'
 import caseStudyCurateYaml from './steps/case-study/curate.yaml'
 import issueCurateYaml from './steps/issue/curate.yaml'
 import locationResolveYaml from './steps/location/resolve.yaml'
+import revisionPrescreenYaml from './steps/revision/prescreen.yaml'
 
 const StepFileSchema = z.object({
   id: z.string(),
@@ -53,6 +54,7 @@ export const STEPS = {
   'case-study.curate': loadStep(caseStudyCurateYaml, 'case-study.curate'),
   'issue.curate': loadStep(issueCurateYaml, 'issue.curate'),
   'location.resolve': loadStep(locationResolveYaml, 'location.resolve'),
+  'revision.prescreen': loadStep(revisionPrescreenYaml, 'revision.prescreen'),
 } as const
 
 export type StepId = keyof typeof STEPS

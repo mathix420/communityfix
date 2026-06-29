@@ -9,6 +9,9 @@ import {
   getTree,
   getUserProfile,
   listCaseStudiesFor,
+  listRevisionsFor,
+  proposeEditAs,
+  reviewRevisionAs,
   searchByQuery,
   searchTags,
   suggestMore,
@@ -30,6 +33,8 @@ Tools come in matched groups by node kind:
 - create_issue / update_issue — for problems (top-level or sub-issue under any parent)
 - create_solution / update_solution — for proposed approaches (always require parentId pointing at the issue they address; the parent must itself be an issue, not a solution)
 - create_case_study / update_case_study / get_case_study / list_case_studies — for concrete deployments of a solution (require solutionId)
+
+Editing is collaborative (wiki-style): ANYONE can change ANY node. The node's author or an admin edits it directly; everyone else's change is recorded as a **pending revision proposal** that the owner/admin reviews before it goes live. The update_* tools and propose_edit both route through this — they never fail with a permission error for a non-owner; they create a proposal instead. The response carries \`applied: true\` (your edit went live) or \`applied: false\` with the pending \`revision\`. Use propose_edit when you want one tool for any kind; use list_revisions to see a node's history + visible proposals, and review_revision (owner/admin only) to approve or reject a pending proposal.
 
 Every issue and solution has two text fields:
 - \`summary\` — required short plaintext card snippet (trimmed to 280 chars).
@@ -155,7 +160,7 @@ const TOOLS = [
   },
   {
     name: 'update_issue',
-    description: 'Edit an existing issue. Only the author may update. Editing title/summary/description resends the node through moderation. To edit a solution, use `update_solution`; the call errors if `id` resolves to a solution.\n\nSCOPE RULE: same as `create_issue`. If an edit would introduce sub-problems or proposed approaches, do not append them here — create child nodes via `create_issue` / `create_solution` instead.',
+    description: 'Edit an existing issue. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or pending `revision`. Editing title/summary/description resends a live-edited node through moderation. To edit a solution, use `update_solution`; the call errors if `id` resolves to a solution.\n\nSCOPE RULE: same as `create_issue`. If an edit would introduce sub-problems or proposed approaches, do not append them here — create child nodes via `create_issue` / `create_solution` instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -167,13 +172,15 @@ const TOOLS = [
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: ['neighborhood', 'city', 'region', 'national', 'global'] },
+        parentId: { type: 'integer', description: 'Move this issue under a different parent issue (reparent). A solution cannot be nested under a solution, and a node cannot become its own ancestor.' },
+        note: { type: 'string', description: 'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.' },
       },
       required: ['id'],
     },
   },
   {
     name: 'update_solution',
-    description: 'Edit an existing solution. Only the author may update. Editing title/summary/description resends the node through moderation. To edit an issue, use `update_issue`; the call errors if `id` resolves to an issue.\n\nSCOPE RULE: same as `create_solution`. If an edit would introduce alternative approaches or sub-problems, do not append them here — create sibling/child nodes via `create_solution` / `create_issue` instead.',
+    description: 'Edit an existing solution. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or pending `revision`. Editing title/summary/description resends a live-edited node through moderation. To edit an issue, use `update_issue`; the call errors if `id` resolves to an issue.\n\nSCOPE RULE: same as `create_solution`. If an edit would introduce alternative approaches or sub-problems, do not append them here — create sibling/child nodes via `create_solution` / `create_issue` instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -195,6 +202,8 @@ const TOOLS = [
             required: ['url'],
           },
         },
+        parentId: { type: 'integer', description: 'Re-attach this solution under a different parent issue (reparent). The parent must be an issue, not a solution.' },
+        note: { type: 'string', description: 'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.' },
       },
       required: ['id'],
     },
@@ -309,7 +318,7 @@ const TOOLS = [
   },
   {
     name: 'update_case_study',
-    description: 'Edit an existing case study. Only the author or an admin may update. The `verified` flag is admin-only — non-admin callers cannot change it. Pass only the fields you want to change.',
+    description: 'Edit an existing case study. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting case study or pending `revision`. The `verified` flag is admin-only — non-admin callers cannot change it, and it is never part of a proposal. Pass only the fields you want to change.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -357,7 +366,9 @@ const TOOLS = [
             required: ['url'],
           },
         },
-        verified: { type: 'boolean', description: 'Admin-only: mark as independently verified.' },
+        solutionId: { type: 'integer', description: 'Re-attach this case study to a different solution. Must point at a solution, not an issue.' },
+        verified: { type: 'boolean', description: 'Admin-only: mark as independently verified. Ignored when this lands as a proposal.' },
+        note: { type: 'string', description: 'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.' },
       },
       required: ['id'],
     },
@@ -371,6 +382,94 @@ const TOOLS = [
         query: { type: 'string', description: 'Natural-language description of the tag. Omit for the full list.' },
         limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
       },
+    },
+  },
+  {
+    name: 'propose_edit',
+    description: 'Propose a change to ANY node — an issue, a solution, or a case study — regardless of who authored it. One tool for every kind: set `kind` and `id`, plus only the fields you want to change. If you authored the node (or are an admin) the change applies immediately as a live edit; otherwise it is recorded as a pending revision proposal for the owner/admin to review. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or the pending `revision`. This is equivalent to update_issue / update_solution / update_case_study but unified — prefer it when you do not want to branch on node kind. Issues/solutions also accept `parentId` (reparent), case studies accept `solutionId` (re-attach).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['issue', 'solution', 'case_study'], description: 'What the target node is. Issues and solutions are both in the issue tree; case studies attach to a solution.' },
+        id: { type: 'integer', description: 'Numeric id of the node to edit.' },
+        note: { type: 'string', description: 'Optional rationale / changelog — shown to the reviewer when this lands as a proposal.' },
+        title: { type: 'string', description: 'Issue/solution only. One-line statement.' },
+        summary: { type: 'string', description: 'Issue/solution only. Short plaintext snippet. Trimmed to 280 chars.' },
+        description: { type: 'string', description: 'Markdown long-form body (issue/solution/case study).' },
+        solutionStatus: { type: 'string', enum: ['plan', 'in-progress', 'done'], description: 'Solution only. Lifecycle stage.' },
+        outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES], description: 'Case study only.' },
+        locationName: { type: 'string' },
+        latitude: { type: 'number' },
+        longitude: { type: 'number' },
+        scale: { type: 'string', enum: [...LOCATION_SCALES] },
+        implementer: { type: 'string', description: 'Case study only.' },
+        startDate: { type: 'string', description: 'Case study only. ISO date (YYYY-MM-DD).' },
+        endDate: { type: 'string', description: 'Case study only. ISO date (YYYY-MM-DD).' },
+        metrics: {
+          type: 'array',
+          description: 'Case study only.',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              baseline: { type: 'string' },
+              result: { type: 'string' },
+              unit: { type: 'string' },
+            },
+            required: ['label'],
+          },
+        },
+        cost: { type: ['number', 'string'], description: 'Case study only.' },
+        currency: { type: 'string', description: 'Case study only.' },
+        fundingSource: { type: 'string', description: 'Case study only.' },
+        sources: {
+          type: 'array',
+          description: 'Case study only — citations.',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
+            required: ['url'],
+          },
+        },
+        lessonsLearned: { type: 'array', description: 'Case study only.', items: { type: 'string' } },
+        links: {
+          type: 'array',
+          description: 'Solution/case study only. External resources. Pass `[]` to clear.',
+          items: {
+            type: 'object',
+            properties: { url: { type: 'string' }, title: { type: 'string' } },
+            required: ['url'],
+          },
+        },
+        parentId: { type: 'integer', description: 'Issue/solution only. Move under a different parent issue (reparent).' },
+        solutionId: { type: 'integer', description: 'Case study only. Re-attach to a different solution.' },
+      },
+      required: ['kind', 'id'],
+    },
+  },
+  {
+    name: 'list_revisions',
+    description: 'List the revision history of a node plus any proposals you are allowed to see. Approved revisions are public version history (each carries the field-level diff and the after-snapshot); pending, rejected, withdrawn, and superseded proposals are visible only to the node owner, an admin, or the proposer. Returns rows newest-first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['issue', 'solution', 'case_study'], description: 'What the target node is.' },
+        id: { type: 'integer', description: 'Numeric id of the node whose revisions to list.' },
+      },
+      required: ['kind', 'id'],
+    },
+  },
+  {
+    name: 'review_revision',
+    description: 'Approve or reject a pending revision proposal. Only the node owner or an admin may decide. On approval the change is applied to the live node (re-entering moderation if it changed content); on rejection the proposal is closed with the optional reason. The proposer is notified either way. Use list_revisions to find the `revisionId` of a pending proposal.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        revisionId: { type: 'integer', description: 'Id of the pending revision to decide on.' },
+        action: { type: 'string', enum: ['approve', 'reject'], description: 'Whether to apply the proposal or close it.' },
+        reason: { type: 'string', description: 'Optional explanation, surfaced to the proposer (most useful on reject).' },
+      },
+      required: ['revisionId', 'action'],
     },
   },
 ] as const
@@ -456,6 +555,29 @@ async function callTool(name: string, args: any, userId: string): Promise<{ cont
       case 'update_case_study': {
         if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
         return wrap(await updateCaseStudyAs(userId, args))
+      }
+      case 'propose_edit': {
+        if (args?.kind !== 'issue' && args?.kind !== 'solution' && args?.kind !== 'case_study') {
+          return wrapErr('kind must be one of "issue", "solution", or "case_study"')
+        }
+        if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
+        return wrap(await proposeEditAs(userId, args))
+      }
+      case 'list_revisions': {
+        if (args?.kind !== 'issue' && args?.kind !== 'solution' && args?.kind !== 'case_study') {
+          return wrapErr('kind must be one of "issue", "solution", or "case_study"')
+        }
+        if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
+        const result = await listRevisionsFor(userId, args)
+        return result.status === 'not_found' ? wrapErr(`${args.kind} ${args.id} not found`) : wrap(result.revisions)
+      }
+      case 'review_revision': {
+        if (!Number.isInteger(args?.revisionId)) return wrapErr('revisionId must be an integer')
+        if (args?.action !== 'approve' && args?.action !== 'reject') {
+          return wrapErr('action must be "approve" or "reject"')
+        }
+        const revision = await reviewRevisionAs(userId, args)
+        return revision ? wrap(revision) : wrapErr(`Revision ${args.revisionId} not found`)
       }
       default:
         return wrapErr(`Unknown tool: ${name}`)

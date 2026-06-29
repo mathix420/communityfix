@@ -34,12 +34,6 @@ const scale = ref<LocationScale>()
 
 interface LinkRow { url: string, title: string }
 const links = ref<LinkRow[]>([])
-function addLink() {
-  links.value.push({ url: '', title: '' })
-}
-function removeLink(i: number) {
-  links.value.splice(i, 1)
-}
 
 const { data: banStatus } = await useFetch('/api/user/ban-status')
 
@@ -178,86 +172,17 @@ definePageMeta({
           class="grid gap-4"
           @submit.prevent="submit"
         >
-          <UFormField
-            label="Title"
-            name="title"
-            required
-          >
-            <UInput
-              v-model="title"
-              type="text"
-              :placeholder="childType === 'solution' ? 'A short, descriptive solution title' : 'A short, descriptive title'"
-              size="lg"
-              class="w-full"
-            />
-          </UFormField>
-
-          <UFormField
-            label="Summary"
-            name="summary"
-            required
-          >
-            <UTextarea
-              v-model="summary"
-              :placeholder="childType === 'solution' ? 'Briefly describe the proposed solution' : 'Briefly describe the issue'"
-              size="lg"
-              class="w-full"
-              :rows="3"
-            />
-          </UFormField>
-
-          <UFormField
-            label="Description"
-            name="description"
-          >
-            <UTextarea
-              v-model="description"
-              placeholder="Additional details..."
-              size="lg"
-              class="w-full"
-              :rows="6"
-            />
-          </UFormField>
-
-          <LocationPicker
+          <IssueFields
+            v-model:title="title"
+            v-model:summary="summary"
+            v-model:description="description"
+            v-model:location-name="locationName"
             v-model:latitude="latitude"
             v-model:longitude="longitude"
-            v-model:location-name="locationName"
             v-model:scale="scale"
+            v-model:links="links"
+            :kind="childType"
           />
-
-          <section v-if="childType === 'solution'" class="flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-700">Links</span>
-              <button
-                type="button"
-                class="text-xs font-mono text-primary-700 hover:text-primary-900 inline-flex items-center gap-1"
-                @click="addLink"
-              >
-                <UIcon name="lucide:plus" class="size-3.5" />
-                Add link
-              </button>
-            </div>
-            <div
-              v-for="(l, i) in links"
-              :key="i"
-              class="grid grid-cols-[1fr_1fr_auto] gap-2"
-            >
-              <UInput v-model="l.url" type="url" placeholder="https://..." size="md" />
-              <UInput v-model="l.title" type="text" placeholder="Title (optional)" size="md" />
-              <button
-                type="button"
-                class="text-gray-400 hover:text-red-600 px-2"
-                aria-label="Remove link"
-                @click="removeLink(i)"
-              >
-                <UIcon name="lucide:x" class="size-4" />
-              </button>
-            </div>
-            <p v-if="!links.length" class="text-xs text-gray-400 font-mono">
-              No links yet — GitHub repo, hosted PDFs, demo videos, Notion playbook, design files.
-            </p>
-          </section>
 
           <div
             v-if="similarIssues.length > 0"

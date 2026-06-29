@@ -72,5 +72,5 @@ export default defineEventHandler(async (event) => {
     with: issueWithRelations,
     orderBy: orderByClause,
   })
-  return results.map(i => transformIssue(i))
+  return withMembers('issue', results.map(i => transformIssue(i)))
 })
