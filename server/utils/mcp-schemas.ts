@@ -115,6 +115,7 @@ export const mcpToolInputSchemas = {
     verified: z.boolean().optional(),
   }),
   get_whitepaper: z.object({}),
+  get_guide: z.object({ slug: z.string().optional() }),
 } as const
 
 export type McpToolName = keyof typeof mcpToolInputSchemas

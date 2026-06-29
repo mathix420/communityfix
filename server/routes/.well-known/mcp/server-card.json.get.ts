@@ -58,6 +58,7 @@ export default defineEventHandler((event) => {
       { name: 'get_user', description: 'Fetch a public user profile.' },
       { name: 'whoami', description: 'Get the authenticated user profile.' },
       { name: 'get_whitepaper', description: 'Read the CommunityFix whitepaper (mission, principles, model).' },
+      { name: 'get_guide', description: 'Read authoring guides for writing good issues, solutions, and case studies.' },
     ],
     contact: {
       name: 'CommunityFix',

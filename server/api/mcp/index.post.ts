@@ -16,7 +16,9 @@ import {
   updateIssueAs,
   updateSolutionAs,
 } from '../../utils/mcp-tools'
+import type { H3Event } from 'h3'
 import { getWhitepaper } from '../../utils/whitepaper'
+import { getGuide, listGuides } from '../../utils/mcp-guides'
 import { formatZodIssues, mcpToolInputSchemas } from '../../utils/mcp-schemas'
 import { rateLimit, assertRateLimit } from '../../utils/rate-limit'
 import { CASE_STUDY_OUTCOMES, LOCATION_SCALES } from '../../database/schema'
@@ -39,7 +41,7 @@ const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutio
 - a **solution** — a proposed way to address its parent issue. Solutions are leaves in the tree: they cannot have sub-solutions.
 - a **case study** — a structured record of one real-world implementation of a solution (where it was tried, by whom, what happened, metrics, sources, lessons). Case studies attach to a solution and are NOT part of the issue/solution tree.
 
-Read \`get_whitepaper\` first if you need the platform's mission, principles, and how the catalog is meant to be used.
+Read \`get_whitepaper\` first if you need the platform's mission, principles, and how the catalog is meant to be used. Before authoring anything, read the relevant authoring guide via \`get_guide\` (call it with no \`slug\` to list guides, then fetch one — e.g. \`get_guide({ slug: "writing" })\` covers how to write good issues, solutions, and case studies, choose tags, and scope nodes).
 
 Tools come in matched groups by node kind:
 - create_issue / update_issue — for problems (top-level or sub-issue under any parent)
@@ -461,11 +463,34 @@ const TOOLS = [
       properties: { title: { type: 'string' }, url: { type: 'string' }, markdown: { type: 'string' } },
     },
   },
+  {
+    name: 'get_guide',
+    title: 'Get authoring guide',
+    description: 'Read the authoring guides for contributing high-quality content (how to write a good issue, solution, or case study; how to choose tags; how to scope nodes). Call with no `slug` to list available guides; pass a `slug` (e.g. "writing") to get the full markdown. CONSULT THE RELEVANT GUIDE BEFORE create_issue / create_solution / create_case_study.',
+    annotations: READ,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Guide slug to fetch (e.g. "writing"). Omit to list all available guides.' },
+      },
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        guides: { type: 'array', description: 'Present when no slug is passed: the list of available guides.' },
+        slug: { type: 'string' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        url: { type: 'string' },
+        markdown: { type: 'string' },
+      },
+    },
+  },
 ] as const
 
 type ToolName = typeof TOOLS[number]['name']
 
-interface ToolCtx { userId: string, clientId: string }
+interface ToolCtx { userId: string, clientId: string, event: H3Event }
 
 function auditWrite(tool: string, ctx: ToolCtx, data: unknown) {
   const d = data as { id?: number, status?: string }
@@ -583,6 +608,13 @@ async function callTool(name: string, rawArgs: any, ctx: ToolCtx): Promise<{ con
       case 'get_whitepaper': {
         return wrap(getWhitepaper())
       }
+      case 'get_guide': {
+        if (args.slug) {
+          const guide = await getGuide(ctx.event, args.slug)
+          return guide ? wrap(guide) : wrapErr(`Guide "${args.slug}" not found. Call get_guide with no slug to list available guides.`)
+        }
+        return wrap({ guides: await listGuides(ctx.event) })
+      }
       default:
         return wrapErr(`Unknown tool: ${name}`)
     }
@@ -661,7 +693,7 @@ export default defineEventHandler(async (event) => {
     return fail(null, ERR.PARSE, 'Invalid JSON body')
   }
 
-  const ctx: ToolCtx = { userId: authed.user.id, clientId: authed.token.clientId }
+  const ctx: ToolCtx = { userId: authed.user.id, clientId: authed.token.clientId, event }
   const batch = Array.isArray(body) ? body : [body]
   if (batch.length === 0) return fail(null, ERR.INVALID_REQUEST, 'Empty batch')
 
