@@ -1,4 +1,5 @@
 import { consumeAuthorizationCode, issueAccessToken, rotateRefreshToken, verifyPkce } from '../../utils/oauth'
+import { assertRateLimit, clientIp } from '../../utils/rate-limit'
 
 interface TokenBody {
   grant_type?: string
@@ -7,6 +8,7 @@ interface TokenBody {
   client_id?: string
   code_verifier?: string
   refresh_token?: string
+  resource?: string
 }
 
 function err(statusCode: number, error: string, description: string) {
@@ -16,6 +18,8 @@ function err(statusCode: number, error: string, description: string) {
 export default defineEventHandler(async (event) => {
   setHeader(event, 'cache-control', 'no-store')
   setHeader(event, 'pragma', 'no-cache')
+
+  await assertRateLimit(event, { bucket: 'oauth_token', identifier: clientIp(event), limit: 60, windowSec: 300 })
 
   const body = await readBody<TokenBody>(event)
   const grantType = body?.grant_type
@@ -33,10 +37,17 @@ export default defineEventHandler(async (event) => {
     const ok = await verifyPkce(code_verifier, row.codeChallenge, row.codeChallengeMethod)
     if (!ok) throw err(400, 'invalid_grant', 'PKCE verification failed')
 
+    // RFC 8707: if the client narrows the resource at the token step it must
+    // match what was authorized; otherwise inherit the code's bound resource.
+    if (body.resource && row.resource && body.resource.replace(/\/+$/, '') !== row.resource.replace(/\/+$/, '')) {
+      throw err(400, 'invalid_target', 'resource does not match the authorized resource')
+    }
+
     const { accessToken, refreshToken, expiresIn } = await issueAccessToken({
       clientId: row.clientId,
       userId: row.userId,
       scope: row.scope,
+      resource: row.resource,
       withRefresh: true,
     })
 

@@ -270,6 +270,10 @@ export const oauthCodes = pgTable('oauth_codes', {
   codeChallenge: text('code_challenge').notNull(),
   codeChallengeMethod: text('code_challenge_method').notNull().default('S256'),
   scope: text('scope').notNull().default(''),
+  // RFC 8707 resource indicator the client bound the grant to. Carried onto
+  // the issued token so access tokens are audience-restricted to our MCP
+  // endpoint and can't be replayed at another resource trusting this AS.
+  resource: text('resource'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   consumedAt: timestamp('consumed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -357,6 +361,9 @@ export const oauthTokens = pgTable('oauth_tokens', {
   clientId: text('client_id').notNull().references(() => oauthClients.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   scope: text('scope').notNull().default(''),
+  // RFC 8707 audience this token is valid for (the MCP resource URL). Bearer
+  // auth rejects the token at any other resource. Null on legacy tokens.
+  resource: text('resource'),
   refreshHash: text('refresh_hash'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -364,4 +371,15 @@ export const oauthTokens = pgTable('oauth_tokens', {
 }, t => [
   index('oauth_tokens_user_idx').on(t.userId),
   index('oauth_tokens_refresh_idx').on(t.refreshHash),
+])
+
+// Fixed-window rate-limit counters. One row per (bucket, identifier, window):
+// portable across dev/test/prod (no Cloudflare-specific binding) and race-free
+// via an atomic upsert. Stale rows are reaped by the `oauth:purge` task.
+export const rateLimits = pgTable('rate_limits', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull().default(0),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+}, t => [
+  index('rate_limits_expires_idx').on(t.expiresAt),
 ])

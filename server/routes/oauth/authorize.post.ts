@@ -1,4 +1,4 @@
-import { getClient, issueAuthorizationCode } from '../../utils/oauth'
+import { getClient, issueAuthorizationCode, mcpResource, verifyConsentToken } from '../../utils/oauth'
 
 function redirectBack(redirectUri: string, params: Record<string, string>) {
   const u = new URL(redirectUri)
@@ -14,14 +14,21 @@ export default defineEventHandler(async (event) => {
   const codeChallenge = body.code_challenge ?? ''
   const codeChallengeMethod = body.code_challenge_method ?? 'S256'
   const scope = body.scope ?? ''
+  const resource = body.resource || mcpResource(event)
   const state = body.state
   const decision = body.decision
+  const csrf = body.csrf ?? ''
 
   const client = await getClient(clientId)
   if (!client) throw createError({ statusCode: 400, statusMessage: 'Unknown client_id' })
   if (!client.redirectUris.includes(redirectUri)) {
     throw createError({ statusCode: 400, statusMessage: 'redirect_uri does not match a registered URI' })
   }
+
+  // CSRF: the consent form carries a token bound to this exact
+  // (user, client, redirect). A forged cross-site POST can't reproduce it.
+  const csrfOk = await verifyConsentToken(csrf, { userId: session.user.id, clientId, redirectUri })
+  if (!csrfOk) throw createError({ statusCode: 400, statusMessage: 'Invalid or missing consent token. Restart the authorization flow.' })
 
   if (decision !== 'approve') {
     return sendRedirect(event, redirectBack(redirectUri, {
@@ -46,6 +53,7 @@ export default defineEventHandler(async (event) => {
     codeChallenge,
     codeChallengeMethod,
     scope,
+    resource,
   })
 
   return sendRedirect(event, redirectBack(redirectUri, {

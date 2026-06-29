@@ -11,7 +11,7 @@ export default defineEventHandler((event) => {
     $schema: 'https://modelcontextprotocol.io/schemas/server-card/v0.1',
     serverInfo: {
       name: 'communityfix-mcp',
-      version: '0.1.0',
+      version: '0.2.0',
       description: 'CommunityFix MCP server — search, browse, and contribute issues, solutions, and case studies to the global community-driven catalog.',
       vendor: 'CommunityFix',
       homepage: origin,
@@ -34,8 +34,12 @@ export default defineEventHandler((event) => {
       authorizationServer: `${origin}/.well-known/oauth-authorization-server`,
       scopesSupported: ['mcp'],
       dynamicClientRegistration: `${origin}/oauth/register`,
+      revocationEndpoint: `${origin}/oauth/revoke`,
       grantTypesSupported: ['authorization_code', 'refresh_token'],
       pkce: { required: true, methods: ['S256'] },
+      // RFC 8707: tokens are audience-bound to this resource.
+      resource: `${origin}/api/mcp`,
+      resourceIndicatorsSupported: true,
     },
     tools: [
       { name: 'search_issues_solutions', description: 'Semantic vector search across CommunityFix issues and solutions.' },
@@ -53,6 +57,7 @@ export default defineEventHandler((event) => {
       { name: 'search_tags', description: 'Search the tag taxonomy by name or slug.' },
       { name: 'get_user', description: 'Fetch a public user profile.' },
       { name: 'whoami', description: 'Get the authenticated user profile.' },
+      { name: 'get_whitepaper', description: 'Read the CommunityFix whitepaper (mission, principles, model).' },
     ],
     contact: {
       name: 'CommunityFix',

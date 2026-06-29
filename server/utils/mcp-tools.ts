@@ -14,6 +14,99 @@ import { triggerModeration } from './moderation-trigger'
 const SEARCH_SIMILARITY_THRESHOLD = 0.25
 const SUGGEST_LIMIT = 8
 
+// Duplicate-detection gate. Before any node is created the candidate text is
+// embedded and compared against existing approved nodes; anything at or above
+// these thresholds is surfaced and creation is blocked until the caller passes
+// `confirmNew: true`. Higher than SEARCH_SIMILARITY_THRESHOLD because a true
+// duplicate is much closer than a merely relevant search hit.
+const DEDUP_THRESHOLD = 0.5
+const CASE_STUDY_DEDUP_THRESHOLD = 0.6
+const DEDUP_LIMIT = 5
+
+function dedupText(input: { title?: string | null, summary?: string | null, description?: string | null }): string {
+  return [input.title, input.summary, input.description].filter(Boolean).join('\n').trim()
+}
+
+function similarFound(kind: 'issue' | 'solution' | 'case study', candidates: unknown[]) {
+  return {
+    status: 'similar_found' as const,
+    message: `Found ${candidates.length} existing ${kind}${candidates.length === 1 ? '' : 's'} that may already cover this. `
+      + `Inspect them (get_${kind === 'case study' ? 'case_study' : 'issue'}) and, if one already fits, update it instead of creating a duplicate. `
+      + `Only if none truly match, call again with confirmNew: true to create a new ${kind}.`,
+    similar: candidates,
+  }
+}
+
+async function similarNodes(text: string, type: IssueType) {
+  if (text.length < 3) return [] as Array<{ id: number, type: IssueType, title: string, summary: string, similarity: number }>
+  let embedding: number[]
+  try {
+    embedding = await generateEmbedding(text)
+  }
+  catch (err) {
+    // Never block a legitimate create on an embedding outage — just skip the gate.
+    console.error('[mcp.dedup] embedding failed, skipping duplicate check:', err)
+    return []
+  }
+  const above = await findSimilar<{ id: number, similarity: number }>({
+    table: 'issues',
+    columns: 'id',
+    embedding,
+    where: sql`status = 'approved' AND type = ${type}`,
+    limit: DEDUP_LIMIT,
+    threshold: DEDUP_THRESHOLD,
+  })
+  if (above.length === 0) return []
+  const db = useDB()
+  const rows = await db.query.issues.findMany({
+    where: inArray(issues.id, above.map(r => r.id)),
+    with: issueWithRelations,
+  })
+  const byId = new Map(rows.map(r => [r.id, r]))
+  return above
+    .map((r) => {
+      const row = byId.get(r.id)
+      if (!row) return null
+      const t = transformIssue(row)
+      return { id: t.id, type: t.type, title: t.title, summary: t.summary, similarity: Math.round(r.similarity * 100) }
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null)
+}
+
+async function similarCaseStudies(input: CreateCaseStudyInput) {
+  const text = [input.locationName, input.implementer, input.outcome, input.description].filter(Boolean).join('\n').trim()
+  if (text.length < 3) return []
+  let embedding: number[]
+  try {
+    embedding = await generateEmbedding(text)
+  }
+  catch (err) {
+    console.error('[mcp.dedup] case-study embedding failed, skipping duplicate check:', err)
+    return []
+  }
+  const above = await findSimilar<{ id: number, similarity: number }>({
+    table: 'case_studies',
+    columns: 'id',
+    embedding,
+    where: sql`solution_id = ${input.solutionId} AND status = 'approved'`,
+    limit: DEDUP_LIMIT,
+    threshold: CASE_STUDY_DEDUP_THRESHOLD,
+  })
+  if (above.length === 0) return []
+  const db = useDB()
+  const rows = await db.query.caseStudies.findMany({
+    where: inArray(caseStudies.id, above.map(r => r.id)),
+    columns: { id: true, locationName: true, outcome: true, implementer: true },
+  })
+  const byId = new Map(rows.map(r => [r.id, r]))
+  return above
+    .map((r) => {
+      const row = byId.get(r.id)
+      return row ? { ...row, similarity: Math.round(r.similarity * 100) } : null
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null)
+}
+
 export async function searchByQuery(input: {
   query: string
   type?: IssueType | 'any'
@@ -84,15 +177,27 @@ async function createNode(userId: string, input: CreateIssueInput) {
   return transformIssue(hydrated!)
 }
 
-export async function createIssueAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
-  return createNode(userId, { ...input, type: 'issue' })
+type CreateNodeArgs = Omit<CreateIssueInput, 'type'> & { confirmNew?: boolean }
+
+export async function createIssueAs(userId: string, input: CreateNodeArgs) {
+  const { confirmNew, ...rest } = input
+  if (!confirmNew) {
+    const candidates = await similarNodes(dedupText(rest), 'issue')
+    if (candidates.length) return similarFound('issue', candidates)
+  }
+  return createNode(userId, { ...rest, type: 'issue' })
 }
 
-export async function createSolutionAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
-  if (!input.parentId) {
+export async function createSolutionAs(userId: string, input: CreateNodeArgs) {
+  const { confirmNew, ...rest } = input
+  if (!rest.parentId) {
     throw createError({ statusCode: 400, statusMessage: 'parentId is required for a solution' })
   }
-  return createNode(userId, { ...input, type: 'solution' })
+  if (!confirmNew) {
+    const candidates = await similarNodes(dedupText(rest), 'solution')
+    if (candidates.length) return similarFound('solution', candidates)
+  }
+  return createNode(userId, { ...rest, type: 'solution' })
 }
 
 async function updateNode(userId: string, input: UpdateIssueInput, expectedType: IssueType) {
@@ -123,8 +228,13 @@ async function hydrateCaseStudy(id: number) {
   return row ? transformCaseStudy(row) : null
 }
 
-export async function createCaseStudyAs(userId: string, input: CreateCaseStudyInput) {
-  const created = await createCaseStudy(userId, input)
+export async function createCaseStudyAs(userId: string, input: CreateCaseStudyInput & { confirmNew?: boolean }) {
+  const { confirmNew, ...rest } = input
+  if (!confirmNew) {
+    const candidates = await similarCaseStudies(rest)
+    if (candidates.length) return similarFound('case study', candidates)
+  }
+  const created = await createCaseStudy(userId, rest)
   return (await hydrateCaseStudy(created.id))!
 }
 
