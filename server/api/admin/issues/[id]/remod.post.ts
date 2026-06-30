@@ -17,18 +17,18 @@ export default defineEventHandler(async (event) => {
   const previousStatus = issue.status
 
   if (previousStatus === 'rejected' && issue.parentId) {
-    const counter = issue.type === 'solution'
-      ? { solutionCount: sql`${issues.solutionCount} + 1` }
-      : { subIssueCount: sql`${issues.subIssueCount} + 1` }
-    await db.update(issues)
-      .set(counter)
-      .where(eq(issues.id, issue.parentId))
+    const counter =
+      issue.type === 'solution'
+        ? { solutionCount: sql`${issues.solutionCount} + 1` }
+        : { subIssueCount: sql`${issues.subIssueCount} + 1` }
+    await db.update(issues).set(counter).where(eq(issues.id, issue.parentId))
   }
 
   await db.delete(issueTags).where(eq(issueTags.issueId, id))
   await db.delete(issueSdgs).where(eq(issueSdgs.issueId, id))
 
-  await db.update(issues)
+  await db
+    .update(issues)
     .set({
       status: 'pending',
       rejectionReason: null,

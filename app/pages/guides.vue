@@ -26,21 +26,17 @@ defineOgImage('Editorial', {
     <p class="text-gray-500 mb-8">
       Best practices for using CommunityFix effectively.
     </p>
-
     <div class="flex flex-col gap-4">
       <NuxtLink
         v-for="guide in guides"
         :key="guide.path"
-        :to="guide.path"
         class="block p-4 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors"
+        :to="guide.path"
       >
         <h2 class="text-lg font-semibold">
           {{ guide.title }}
         </h2>
-        <p
-          v-if="guide.description"
-          class="text-sm text-gray-500 mt-1"
-        >
+        <p v-if="guide.description" class="text-sm text-gray-500 mt-1">
           {{ guide.description }}
         </p>
       </NuxtLink>

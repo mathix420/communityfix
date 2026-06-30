@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
       where: eq(issueTags.tagId, tag.id),
       columns: { issueId: true },
     })
-    const issueIds = junctionRows.map(r => r.issueId)
+    const issueIds = junctionRows.map((r) => r.issueId)
     if (issueIds.length === 0) return []
 
     conditions.push(inArray(issues.id, issueIds))
@@ -32,13 +32,18 @@ export default defineEventHandler(async (event) => {
 
   // Full-text search
   if (searchTerm.trim()) {
-    conditions.push(
-      sql`search_vector @@ plainto_tsquery('english', ${searchTerm.trim()})`,
-    )
+    conditions.push(sql`search_vector @@ plainto_tsquery('english', ${searchTerm.trim()})`)
   }
 
   // Location filter
-  if (lat != null && lng != null && radius != null && !isNaN(lat) && !isNaN(lng) && !isNaN(radius)) {
+  if (
+    lat != null &&
+    lng != null &&
+    radius != null &&
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    !isNaN(radius)
+  ) {
     const radiusMeters = radius * 1000
     conditions.push(
       sql`ST_DWithin(${issues.location}::geography, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radiusMeters})`,
@@ -72,5 +77,5 @@ export default defineEventHandler(async (event) => {
     with: issueWithRelations,
     orderBy: orderByClause,
   })
-  return results.map(i => transformIssue(i))
+  return results.map((i) => transformIssue(i))
 })

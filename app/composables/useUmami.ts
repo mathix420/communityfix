@@ -3,8 +3,7 @@ export function useUmami() {
     if (typeof window === 'undefined' || typeof window.umami === 'undefined') return
     if (data) {
       window.umami.track(event, data)
-    }
-    else {
+    } else {
       window.umami.track(event)
     }
   }
@@ -13,8 +12,7 @@ export function useUmami() {
     if (typeof window === 'undefined' || typeof window.umami === 'undefined') return
     if (data) {
       window.umami.identify(id, data)
-    }
-    else {
+    } else {
       window.umami.identify(id)
     }
   }

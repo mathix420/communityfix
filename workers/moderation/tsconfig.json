@@ -3,8 +3,12 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "lib": ["esnext"],
-    "types": ["@cloudflare/workers-types"],
+    "lib": [
+      "esnext"
+    ],
+    "types": [
+      "@cloudflare/workers-types"
+    ],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -13,5 +17,8 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "../../server/database/schema.ts"]
+  "include": [
+    "src/**/*.ts",
+    "../../server/database/schema.ts"
+  ]
 }

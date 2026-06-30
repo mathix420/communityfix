@@ -18,8 +18,12 @@ interface VerifiedRecord {
   expiresAt: number
 }
 
-function pinKey(email: string) { return `email-pin:${email}` }
-function verifiedKey(email: string) { return `email-verified:${email}` }
+function pinKey(email: string) {
+  return `email-pin:${email}`
+}
+function verifiedKey(email: string) {
+  return `email-verified:${email}`
+}
 
 function generatePin(): string {
   // 6-digit, leading zeros allowed. Math.random is fine for one-shot
@@ -63,7 +67,10 @@ export async function verifyEmailPin(email: string, pin: string): Promise<void> 
   const record = await storage.getItem<PinRecord>(pinKey(email))
 
   if (!record) {
-    throw createError({ statusCode: 400, message: 'No verification code requested or it has expired.' })
+    throw createError({
+      statusCode: 400,
+      message: 'No verification code requested or it has expired.',
+    })
   }
   if (Date.now() > record.expiresAt) {
     await storage.removeItem(pinKey(email))

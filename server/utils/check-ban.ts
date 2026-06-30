@@ -39,11 +39,12 @@ export async function checkAndApplyBan(userId: string) {
     columns: { status: true },
   })
 
-  const rejectedCount = recentPosts.filter(p => p.status === 'rejected').length
+  const rejectedCount = recentPosts.filter((p) => p.status === 'rejected').length
 
   if (shouldBan(rejectedCount)) {
     const bannedUntil = computeBanExpiry()
-    await db.update(users)
+    await db
+      .update(users)
       .set({
         bannedUntil,
         banReason: `Automatically banned: ${rejectedCount} of your last ${recentPosts.length} posts were rejected by moderation.`,
@@ -58,7 +59,11 @@ export async function checkAndApplyBan(userId: string) {
       status: 'needs_review',
       userId,
       reason: `Automatically banned: ${rejectedCount} of last ${recentPosts.length} posts rejected`,
-      details: { rejectedCount, lookbackWindow: recentPosts.length, bannedUntil: bannedUntil.toISOString() },
+      details: {
+        rejectedCount,
+        lookbackWindow: recentPosts.length,
+        bannedUntil: bannedUntil.toISOString(),
+      },
     })
   }
 }
@@ -75,7 +80,10 @@ export async function assertNotBanned(userId: string) {
   })
 
   if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'User account not found. Please log in again.' })
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'User account not found. Please log in again.',
+    })
   }
 
   if (user.bannedUntil && user.bannedUntil > new Date()) {

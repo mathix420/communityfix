@@ -37,42 +37,41 @@ function isNewAccount(createdAt?: string) {
 
 <template>
   <div v-if="author" class="text-xs text-toned flex flex-wrap items-center gap-x-2 gap-y-0.5">
-    <NuxtLink :to="`/admin/users/${author.id}`" class="hover:text-black font-medium">
+    <NuxtLink class="hover:text-black font-medium" :to="`/admin/users/${author.id}`">
       {{ author.name || author.email }}
     </NuxtLink>
-
     <span
       v-if="author.trustScore != null"
       class="inline-flex items-center gap-0.5 font-mono"
       :class="author.trustScore < 0 ? 'text-red-600' : 'text-gray-500'"
       :title="`Trust score: ${author.trustScore}`"
     >
-      <UIcon name="lucide:shield" class="size-3" />
+      <UIcon class="size-3" name="lucide:shield" />
       {{ author.trustScore }}
     </span>
-
     <span
       v-if="(author.rejected ?? 0) > 0"
       class="inline-flex items-center gap-0.5 text-red-600"
       :title="`${author.rejected} prior rejection${author.rejected === 1 ? '' : 's'}`"
     >
-      <UIcon name="lucide:x-circle" class="size-3" />
+      <UIcon class="size-3" name="lucide:x-circle" />
       {{ author.rejected }}
     </span>
-
     <span
       v-if="(author.approved ?? 0) > 0"
       class="inline-flex items-center gap-0.5 text-gray-500"
       :title="`${author.approved} prior approval${author.approved === 1 ? '' : 's'}`"
     >
-      <UIcon name="lucide:check" class="size-3" />
+      <UIcon class="size-3" name="lucide:check" />
       {{ author.approved }}
     </span>
-
-    <span v-if="isNewAccount(author.createdAt)" class="text-gray-500 font-medium" title="Account less than 7 days old">
+    <span
+      v-if="isNewAccount(author.createdAt)"
+      class="text-gray-500 font-medium"
+      title="Account less than 7 days old"
+    >
       new
     </span>
-
     <span v-if="timestamp">
       · {{ timestampLabel ? `${timestampLabel} ` : '' }}{{ formatRelative(timestamp) }}
     </span>

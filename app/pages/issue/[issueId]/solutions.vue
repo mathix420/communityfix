@@ -38,15 +38,12 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
-    <div
-      v-if="(solutions?.length ?? 0) > 0 || search.trim()"
-      class="flex items-stretch gap-3"
-    >
+    <div v-if="(solutions?.length ?? 0) > 0 || search.trim()" class="flex items-stretch gap-3">
       <UiSearchAndSortBar
         v-model:search="search"
         v-model:sort="sort"
-        :sort-options="sortOptions"
         placeholder="Search solutions..."
+        :sort-options="sortOptions"
       />
       <UiActionButton
         v-if="allowPropose && !banStatus?.banned"
@@ -56,38 +53,27 @@ const { data: banStatus } = await useFetch('/api/user/ban-status', {
         Propose a solution
       </UiActionButton>
     </div>
-
-    <BanNotice
-      v-if="banStatus?.banned"
-      :ban-status="banStatus"
-      @appealed="refreshNuxtData()"
-    />
-
-    <CardIssue
-      v-for="solution in solutions"
-      :key="solution.id"
-      :issue="solution"
-    />
-
+    <BanNotice v-if="banStatus?.banned" :ban-status="banStatus" @appealed="refreshNuxtData()" />
+    <CardIssue v-for="solution in solutions" :key="solution.id" :issue="solution" />
     <template v-if="solutions?.length === 0">
       <p v-if="search.trim()" class="text-toned text-center py-8">
         No solutions match your search.
       </p>
       <UiEmptyState
         v-else-if="allowPropose"
+        cta-event="Empty state cta solutions"
+        cta-label="Propose a solution"
+        description="Your idea could be the one the community rallies around and turns into action."
         icon="lucide:lightbulb"
         title="Be the first to propose a solution"
-        description="Your idea could be the one the community rallies around and turns into action."
-        cta-label="Propose a solution"
         :cta-to="`/new?parent=${issueId}&type=solution`"
-        cta-event="Empty state cta solutions"
       />
       <UiEmptyState
         v-else
+        cta-label="Open case studies"
+        description="Document a real-world implementation from the Studies tab instead."
         icon="lucide:lightbulb-off"
         title="Solutions can't nest under solutions"
-        description="Document a real-world implementation from the Studies tab instead."
-        cta-label="Open case studies"
         :cta-to="`/issue/${issueId}/studies`"
       />
     </template>

@@ -9,17 +9,30 @@ export default defineEventHandler(async (event) => {
     db.query.users.findFirst({
       where: eq(users.id, id),
       columns: {
-        id: true, email: true, name: true, headline: true, bio: true, location: true, provider: true,
-        bannedUntil: true, banReason: true, banAppealStatus: true, banAppealReason: true, banAppealedAt: true,
-        trustScore: true, trustScoreUpdatedAt: true,
-        createdAt: true, updatedAt: true,
+        id: true,
+        email: true,
+        name: true,
+        headline: true,
+        bio: true,
+        location: true,
+        provider: true,
+        bannedUntil: true,
+        banReason: true,
+        banAppealStatus: true,
+        banAppealReason: true,
+        banAppealedAt: true,
+        trustScore: true,
+        trustScoreUpdatedAt: true,
+        createdAt: true,
+        updatedAt: true,
       },
     }),
 
-    db.select({
-      status: issues.status,
-      count: sql<number>`COUNT(*)`,
-    })
+    db
+      .select({
+        status: issues.status,
+        count: sql<number>`COUNT(*)`,
+      })
       .from(issues)
       .where(eq(issues.authorId, id))
       .groupBy(issues.status),
@@ -27,8 +40,14 @@ export default defineEventHandler(async (event) => {
     db.query.issues.findMany({
       where: eq(issues.authorId, id),
       columns: {
-        id: true, title: true, summary: true, type: true, status: true,
-        rejectionReason: true, appealStatus: true, createdAt: true,
+        id: true,
+        title: true,
+        summary: true,
+        type: true,
+        status: true,
+        rejectionReason: true,
+        appealStatus: true,
+        createdAt: true,
       },
       orderBy: desc(issues.createdAt),
       limit: 20,
@@ -38,8 +57,13 @@ export default defineEventHandler(async (event) => {
       where: eq(caseStudies.authorId, id),
       with: { solution: { columns: { id: true, title: true } } },
       columns: {
-        id: true, solutionId: true, status: true, outcome: true,
-        locationName: true, rejectionReason: true, createdAt: true,
+        id: true,
+        solutionId: true,
+        status: true,
+        outcome: true,
+        locationName: true,
+        rejectionReason: true,
+        createdAt: true,
       },
       orderBy: desc(caseStudies.createdAt),
       limit: 20,
@@ -73,4 +97,3 @@ export default defineEventHandler(async (event) => {
     recentLogs,
   }
 })
-

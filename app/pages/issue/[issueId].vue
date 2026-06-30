@@ -4,23 +4,20 @@ const issueId = computed(() => route.params.issueId)
 const { data: issue } = await useFetch(() => `/api/issue/${issueId.value}`)
 
 // Parent issue (if any) so the breadcrumb can name it.
-const { data: parentIssue } = await useFetch(
-  () => `/api/issue/${issue.value?.parentId}`,
-  { immediate: !!issue.value?.parentId, watch: false },
-)
+const { data: parentIssue } = await useFetch(() => `/api/issue/${issue.value?.parentId}`, {
+  immediate: !!issue.value?.parentId,
+  watch: false,
+})
 
 // Solutions can't have sub-solutions, so the Solutions tab is meaningless on
 // a solution page — case studies replace it. Inverse for issues: no case
 // studies tab there (the studies route still resolves for direct links).
 const tabs = computed(() => {
   const isSolution = issue.value?.type === 'solution'
-  const base = [
-    { name: 'Overview', path: `/issue/${issueId.value}` },
-  ]
+  const base = [{ name: 'Overview', path: `/issue/${issueId.value}` }]
   if (isSolution) {
     base.push({ name: 'Case Studies', path: `/issue/${issueId.value}/studies` })
-  }
-  else {
+  } else {
     base.push({ name: 'Solutions', path: `/issue/${issueId.value}/solutions` })
   }
   base.push(
@@ -50,9 +47,13 @@ const tabSuffix = computed(() => {
 if (issue.value) {
   useSeoMeta({
     title: () => `${issue.value!.title}${tabSuffix.value}`,
-    description: issue.value.summary || `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
+    description:
+      issue.value.summary ||
+      `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
     ogTitle: `${issue.value.title} - CommunityFix`,
-    ogDescription: issue.value.summary || `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
+    ogDescription:
+      issue.value.summary ||
+      `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
     ogType: 'article',
     keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
   })
@@ -82,9 +83,8 @@ if (issue.value) {
       description: issue.value.summary || issue.value.description || undefined,
       url: `${SITE_URL}/issue/${issue.value.id}`,
       datePublished: issue.value.date || undefined,
-      authorName: issue.value.author && issue.value.author !== 'Anonymous'
-        ? issue.value.author
-        : undefined,
+      authorName:
+        issue.value.author && issue.value.author !== 'Anonymous' ? issue.value.author : undefined,
     }),
   ])
 }
@@ -100,13 +100,8 @@ if (issue.value) {
         #{{ issue.id.toString().padStart(5, '0') }}
       </p>
     </div>
-    <UiMarkdown
-      :value="issue.summary"
-      class="text-toned text-lg my-8"
-    />
-
+    <UiMarkdown class="text-toned text-lg my-8" :value="issue.summary" />
     <UiNavTabs :tabs="tabs" />
-
     <NuxtPage />
   </AppContainer>
   <AppContainer v-else>

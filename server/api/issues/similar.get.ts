@@ -27,8 +27,7 @@ export default defineEventHandler(async (event): Promise<SimilarResponse> => {
   let embedding: number[]
   try {
     embedding = await generateEmbedding(`${title}\n${summary}`)
-  }
-  catch (err) {
+  } catch (err) {
     console.error('[similar] Embedding generation failed:', err)
     return { status: 'unavailable', results: [] }
   }
@@ -44,7 +43,7 @@ export default defineEventHandler(async (event): Promise<SimilarResponse> => {
 
   return {
     status: 'ok',
-    results: rows.map(r => ({
+    results: rows.map((r) => ({
       id: r.id,
       title: r.title,
       summary: r.summary,

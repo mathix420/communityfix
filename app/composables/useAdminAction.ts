@@ -21,16 +21,15 @@ export function useAdminAction() {
     lastError.value = null
     try {
       return await fn()
-    }
-    catch (err: unknown) {
-      const msg = (err as { data?: { message?: string }, message?: string })?.data?.message
-        ?? (err as { message?: string })?.message
-        ?? 'Action failed'
+    } catch (err: unknown) {
+      const msg =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Action failed'
       lastError.value = msg
       console.error('[admin-action]', key, err)
       return null
-    }
-    finally {
+    } finally {
       pending.delete(key)
     }
   }

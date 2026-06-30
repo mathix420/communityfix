@@ -3,8 +3,10 @@ name: CI
 on:
   push:
     branches: [master, staging]
+  # synchronize fires on every pushed commit, including while the PR is a
+  # draft; ready_for_review re-runs when a draft is marked ready.
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -79,6 +81,122 @@ jobs:
           # which matches what would be deployed if this PR landed.
           WORKERS_CI_BRANCH: ${{ github.head_ref }}
         run: bun run build
+
+  # ────────────────────────────────────────────────────────────────
+  # CODE QUALITY — vize (lint + format) and fallow (dead code) on every
+  # PR commit, drafts included. Posts ONE sticky comment summarising both
+  # tools and updates it in place on each re-run (matched by the hidden
+  # <!-- code-quality --> marker). Fails the check if any tool fails;
+  # warnings are advisory and don't block.
+  # ────────────────────────────────────────────────────────────────
+  code-quality:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      # Each check runs to completion (set +e) and records its exit code +
+      # a one-line summary as step outputs; the gate is deferred to the end
+      # so the comment always posts first.
+      - name: vize lint
+        id: lint
+        run: |
+          set +e
+          bun run lint 2>&1 | tee lint.out
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          errs=$(grep -oE '[0-9]+ errors?' lint.out | tail -1 | grep -oE '[0-9]+'); errs=${errs:-0}
+          warns=$(grep -oE '[0-9]+ warnings?' lint.out | tail -1 | grep -oE '[0-9]+'); warns=${warns:-0}
+          echo "summary=$errs errors · $warns warnings" >> "$GITHUB_OUTPUT"
+
+      - name: vize format
+        id: fmt
+        run: |
+          set +e
+          bun run format:check 2>&1 | tee fmt.out
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = "0" ]; then
+            echo "summary=all files formatted" >> "$GITHUB_OUTPUT"
+          else
+            n=$(grep -oE '[0-9]+ file\(s\) would be reformatted' fmt.out | grep -oE '[0-9]+' | tail -1)
+            echo "summary=${n:-?} file(s) need formatting" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: fallow dead-code
+        id: fallow
+        run: |
+          set +e
+          bunx fallow dead-code 2>&1 | tee fallow.out
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = "0" ]; then
+            echo "summary=no issues" >> "$GITHUB_OUTPUT"
+          else
+            s=$(grep -oE '✗ [^(]+' fallow.out | tail -1 | sed 's/[[:space:]]*$//')
+            echo "summary=${s:-issues found}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build comment
+        env:
+          LINT_CODE: ${{ steps.lint.outputs.code }}
+          LINT_SUM: ${{ steps.lint.outputs.summary }}
+          FMT_CODE: ${{ steps.fmt.outputs.code }}
+          FMT_SUM: ${{ steps.fmt.outputs.summary }}
+          FALLOW_CODE: ${{ steps.fallow.outputs.code }}
+          FALLOW_SUM: ${{ steps.fallow.outputs.summary }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          icon() { [ "$1" = "0" ] && printf '✅' || printf '❌'; }
+          {
+            echo '<!-- code-quality -->'
+            echo '### 🧹 Code quality'
+            echo
+            echo '| Check | | Summary |'
+            echo '|:--|:-:|:--|'
+            echo "| \`vize\` lint | $(icon "$LINT_CODE") | $LINT_SUM |"
+            echo "| \`vize\` format | $(icon "$FMT_CODE") | $FMT_SUM |"
+            echo "| \`fallow\` dead-code | $(icon "$FALLOW_CODE") | $FALLOW_SUM |"
+            echo
+          } > comment.md
+          # On failure only, attach the tool's tail output in a collapsed block.
+          add() { if [ "$3" != "0" ]; then { echo "<details><summary>$1 output</summary>"; echo; echo '```'; tail -n 40 "$2"; echo '```'; echo '</details>'; echo; } >> comment.md; fi; }
+          add 'vize lint' lint.out "$LINT_CODE"
+          add 'vize format' fmt.out "$FMT_CODE"
+          add 'fallow dead-code' fallow.out "$FALLOW_CODE"
+          echo "<sub>updated for \`${HEAD_SHA:0:7}\` · <a href=\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\">run #$GITHUB_RUN_NUMBER</a></sub>" >> comment.md
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const body = fs.readFileSync('comment.md', 'utf8')
+            const marker = '<!-- code-quality -->'
+            const { owner, repo } = context.repo
+            const issue_number = context.payload.pull_request.number
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number })
+            const existing = comments.find(c => c.body && c.body.includes(marker))
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body })
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body })
+            }
+
+      - name: Gate
+        run: |
+          fail=0
+          [ "${{ steps.lint.outputs.code }}" = "0" ] || fail=1
+          [ "${{ steps.fmt.outputs.code }}" = "0" ] || fail=1
+          [ "${{ steps.fallow.outputs.code }}" = "0" ] || fail=1
+          exit $fail
 
   # ────────────────────────────────────────────────────────────────
   # PRODUCTION DEPLOY — runs on every master push. Builds the Worker

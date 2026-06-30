@@ -12,7 +12,7 @@ const credentialsSection = ref<HTMLElement | null>(null)
 // Narrow the unknown errors thrown by `$fetch` so we can read the API
 // statusMessage without resorting to `any`.
 function fetchErrorMessage(error: unknown, fallback: string): string {
-  const e = error as { data?: { statusMessage?: string }, message?: string }
+  const e = error as { data?: { statusMessage?: string }; message?: string }
   return e?.data?.statusMessage || e?.message || fallback
 }
 
@@ -28,9 +28,10 @@ const joinedDate = computed(() => {
 })
 
 const totalContributions = computed(
-  () => (user.value?.issues?.length ?? 0)
-    + (user.value?.solutions?.length ?? 0)
-    + (user.value?.caseStudies?.length ?? 0),
+  () =>
+    (user.value?.issues?.length ?? 0) +
+    (user.value?.solutions?.length ?? 0) +
+    (user.value?.caseStudies?.length ?? 0),
 )
 
 // Section labels stay in sync with the prior sections being visible. Bio is
@@ -51,20 +52,21 @@ async function endorse(qualificationId: number) {
   if (!requireAuth('endorse credential')) return
   endorsing.value = qualificationId
   try {
-    await $fetch(`/api/qualifications/${qualificationId}/endorse` as '/api/qualifications/:id/endorse', {
-      method: 'POST',
-    })
+    await $fetch(
+      `/api/qualifications/${qualificationId}/endorse` as '/api/qualifications/:id/endorse',
+      {
+        method: 'POST',
+      },
+    )
     track('Credential endorsed', { qualificationId })
     await refresh()
-  }
-  catch (error) {
+  } catch (error) {
     toast.add({
       title: 'Could not endorse',
       description: fetchErrorMessage(error, 'Please try again.'),
       color: 'error',
     })
-  }
-  finally {
+  } finally {
     endorsing.value = null
   }
 }
@@ -72,20 +74,21 @@ async function endorse(qualificationId: number) {
 async function unendorse(qualificationId: number) {
   endorsing.value = qualificationId
   try {
-    await $fetch(`/api/qualifications/${qualificationId}/endorse` as '/api/qualifications/:id/endorse', {
-      method: 'DELETE',
-    })
+    await $fetch(
+      `/api/qualifications/${qualificationId}/endorse` as '/api/qualifications/:id/endorse',
+      {
+        method: 'DELETE',
+      },
+    )
     track('Credential un-endorsed', { qualificationId })
     await refresh()
-  }
-  catch (error) {
+  } catch (error) {
     toast.add({
       title: 'Could not undo endorsement',
       description: fetchErrorMessage(error, 'Please try again.'),
       color: 'error',
     })
-  }
-  finally {
+  } finally {
     endorsing.value = null
   }
 }
@@ -102,11 +105,13 @@ onMounted(() => {
 
 useSeoMeta({
   title: () => `${displayName.value} - CommunityFix`,
-  description: () => user.value?.headline
-    || `View ${displayName.value}'s profile and contributions on CommunityFix.`,
+  description: () =>
+    user.value?.headline ||
+    `View ${displayName.value}'s profile and contributions on CommunityFix.`,
   ogTitle: () => `${displayName.value} - CommunityFix`,
-  ogDescription: () => user.value?.headline
-    || `View ${displayName.value}'s profile and contributions on CommunityFix.`,
+  ogDescription: () =>
+    user.value?.headline ||
+    `View ${displayName.value}'s profile and contributions on CommunityFix.`,
   ogType: 'profile',
 })
 
@@ -135,9 +140,9 @@ useJsonLd([
     <template v-if="user">
       <header class="mt-10 mb-12 flex flex-col items-center text-center gap-5">
         <img
-          :src="`https://api.dicebear.com/9.x/glass/svg?seed=${userId}`"
-          :alt="`${displayName}'s avatar`"
           class="size-28 rounded-full"
+          :alt="`${displayName}'s avatar`"
+          :src="`https://api.dicebear.com/9.x/glass/svg?seed=${userId}`"
         >
         <div>
           <h1 class="font-mono text-4xl sm:text-5xl underline decoration-primary">
@@ -150,43 +155,29 @@ useJsonLd([
             {{ user.headline }}
           </p>
         </div>
-
         <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-mono uppercase tracking-widest text-gray-500">
-          <span
-            v-if="user.location"
-            class="inline-flex items-center gap-1.5"
-          >
-            <UIcon
-              name="lucide:map-pin"
-              class="size-3.5"
-            />
+          <span v-if="user.location" class="inline-flex items-center gap-1.5">
+            <UIcon class="size-3.5" name="lucide:map-pin" />
             {{ user.location }}
           </span>
-          <span
-            v-if="user.location"
-            class="text-gray-300"
-          >·</span>
-          <span>Joined {{ joinedDate }}</span>
+          <span v-if="user.location" class="text-gray-300">
+            ·
+          </span>
+          <span>
+            Joined {{ joinedDate }}
+          </span>
         </div>
-
         <NuxtLink
           v-if="user.viewer.isOwner"
-          to="/settings"
           class="inline-flex items-center gap-1.5 text-sm font-mono text-primary-700 hover:underline mt-1"
+          to="/settings"
           @click="track('Edit own profile')"
         >
-          <UIcon
-            name="lucide:pencil"
-            class="size-3.5"
-          />
+          <UIcon class="size-3.5" name="lucide:pencil" />
           Edit profile
         </NuxtLink>
       </header>
-
-      <UiCard
-        padding="md"
-        class="mb-10"
-      >
+      <UiCard class="mb-10" padding="md">
         <dl class="grid grid-cols-3 divide-x divide-gray-200">
           <div class="text-center px-2">
             <dt class="font-mono text-[10px] uppercase tracking-widest text-gray-500">
@@ -214,14 +205,14 @@ useJsonLd([
           </div>
         </dl>
       </UiCard>
-
-      <section
-        v-if="user.bio"
-        class="mb-12"
-      >
+      <section v-if="user.bio" class="mb-12">
         <div class="mb-4 flex items-baseline gap-3">
-          <span class="font-mono text-xs uppercase tracking-widest text-primary-600">01</span>
-          <UiSectionTitle>About</UiSectionTitle>
+          <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
+            01
+          </span>
+          <UiSectionTitle>
+            About
+          </UiSectionTitle>
         </div>
         <UiCard padding="lg">
           <p class="text-gray-700 leading-relaxed whitespace-pre-line">
@@ -229,29 +220,25 @@ useJsonLd([
           </p>
         </UiCard>
       </section>
-
-      <section
-        ref="credentialsSection"
-        class="mb-12 scroll-mt-8"
-      >
+      <section ref="credentialsSection" class="mb-12 scroll-mt-8">
         <div class="mb-4 flex items-baseline gap-3">
           <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
             {{ user.bio ? '02' : '01' }}
           </span>
-          <UiSectionTitle>Credentials</UiSectionTitle>
+          <UiSectionTitle>
+            Credentials
+          </UiSectionTitle>
         </div>
-
         <!-- Friendly banner for visitors arriving via a "share endorse link" -->
         <div
           v-if="endorseInvite && !user.viewer.isOwner"
           class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
         >
-          <UIcon
-            name="lucide:hand-heart"
-            class="size-4 text-primary-600 mt-0.5 shrink-0"
-          />
+          <UIcon class="size-4 text-primary-600 mt-0.5 shrink-0" name="lucide:hand-heart" />
           <p class="text-xs text-primary-900 leading-relaxed">
-            <span class="font-mono uppercase tracking-wide">{{ displayName }} asked you to vouch — </span>
+            <span class="font-mono uppercase tracking-wide">
+              {{ displayName }} asked you to vouch —
+            </span>
             tap "Endorse" on any credential you can personally vouch for.
             <span
               v-if="user.viewer.isAuthenticated && !user.viewer.canEndorse"
@@ -259,25 +246,20 @@ useJsonLd([
             >
               You'll be able to endorse once your own credentials have at least one endorsement.
             </span>
-            <span
-              v-else-if="!user.viewer.isAuthenticated"
-              class="block mt-1 text-primary-800/80"
-            >
+            <span v-else-if="!user.viewer.isAuthenticated" class="block mt-1 text-primary-800/80">
               Sign in first to leave an endorsement.
             </span>
           </p>
         </div>
-
         <div
           v-if="endorseInvite && !user.viewer.isOwner"
           class="mb-5 flex items-start gap-3 rounded-2xl border border-primary-200 bg-primary-50/60 p-4"
         >
-          <UIcon
-            name="lucide:hand-heart"
-            class="size-4 text-primary-600 mt-0.5 shrink-0"
-          />
+          <UIcon class="size-4 text-primary-600 mt-0.5 shrink-0" name="lucide:hand-heart" />
           <p class="text-xs text-primary-900 leading-relaxed">
-            <span class="font-mono uppercase tracking-wide">{{ displayName }} asked you to vouch — </span>
+            <span class="font-mono uppercase tracking-wide">
+              {{ displayName }} asked you to vouch —
+            </span>
             tap "Endorse" on any credential you can personally vouch for.
             <span
               v-if="user.viewer.isAuthenticated && !user.viewer.canEndorse"
@@ -285,24 +267,13 @@ useJsonLd([
             >
               You'll be able to endorse once your own credentials have at least one endorsement.
             </span>
-            <span
-              v-else-if="!user.viewer.isAuthenticated"
-              class="block mt-1 text-primary-800/80"
-            >
+            <span v-else-if="!user.viewer.isAuthenticated" class="block mt-1 text-primary-800/80">
               Sign in first to leave an endorsement.
             </span>
           </p>
         </div>
-
-        <div
-          v-if="user.qualifications.length > 0"
-          class="flex flex-col gap-3"
-        >
-          <UiCard
-            v-for="q in user.qualifications"
-            :key="q.id"
-            padding="md"
-          >
+        <div v-if="user.qualifications.length > 0" class="flex flex-col gap-3">
+          <UiCard v-for="q in user.qualifications" :key="q.id" padding="md">
             <div class="flex items-start gap-4">
               <div class="flex-1 min-w-0">
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -325,16 +296,13 @@ useJsonLd([
                     class="inline-flex items-center gap-1.5 text-primary-600"
                     title="Verified by the CommunityFix team"
                   >
-                    <UIcon
-                      name="lucide:badge-check"
-                      class="size-3.5"
-                    />
+                    <UIcon class="size-3.5" name="lucide:badge-check" />
                     Verified
                   </span>
                   <span class="inline-flex items-center gap-1.5">
                     <UIcon
-                      name="lucide:check-circle-2"
                       class="size-3.5"
+                      name="lucide:check-circle-2"
                       :class="q.endorsementCount > 0 ? 'text-primary-600' : 'text-gray-400'"
                     />
                     {{ q.endorsementCount }}
@@ -342,7 +310,6 @@ useJsonLd([
                   </span>
                 </div>
               </div>
-
               <div class="shrink-0">
                 <template v-if="user.viewer.isOwner">
                   <span class="text-[10px] font-mono uppercase tracking-widest text-gray-400">
@@ -351,8 +318,8 @@ useJsonLd([
                 </template>
                 <template v-else-if="q.viewerHasEndorsed">
                   <UButton
-                    size="sm"
                     color="primary"
+                    size="sm"
                     variant="soft"
                     :icon="user.viewer.isAdmin ? 'lucide:badge-check' : 'lucide:check'"
                     :loading="endorsing === q.id"
@@ -363,11 +330,11 @@ useJsonLd([
                 </template>
                 <template v-else>
                   <UButton
-                    size="sm"
                     color="primary"
+                    size="sm"
                     variant="outline"
-                    :icon="user.viewer.isAdmin ? 'lucide:badge-check' : 'lucide:thumbs-up'"
                     :disabled="user.viewer.isAuthenticated && !user.viewer.canEndorse"
+                    :icon="user.viewer.isAdmin ? 'lucide:badge-check' : 'lucide:thumbs-up'"
                     :loading="endorsing === q.id"
                     :title="!user.viewer.isAuthenticated
                       ? 'Sign in to endorse credentials'
@@ -382,99 +349,74 @@ useJsonLd([
               </div>
             </div>
           </UiCard>
-
           <p
             v-if="!user.viewer.isOwner && user.viewer.isAuthenticated && !user.viewer.canEndorse"
             class="text-xs text-gray-500 font-mono mt-1"
           >
-            <UIcon
-              name="lucide:info"
-              class="size-3.5 inline -mt-0.5 mr-1"
-            />
+            <UIcon class="size-3.5 inline -mt-0.5 mr-1" name="lucide:info" />
             You'll be able to endorse once your own credentials get at least one endorsement.
           </p>
         </div>
-
         <div
           v-else
           class="rounded-2xl border border-dashed border-gray-300 bg-white/40 p-8 text-center"
         >
-          <UIcon
-            name="lucide:award"
-            class="size-8 text-gray-400 mx-auto"
-          />
+          <UIcon class="size-8 text-gray-400 mx-auto" name="lucide:award" />
           <p class="font-mono text-sm uppercase tracking-wide text-gray-500 mt-3">
             No credentials listed yet
           </p>
           <NuxtLink
             v-if="user.viewer.isOwner"
-            to="/settings"
             class="mt-2 inline-block text-sm text-primary-700 hover:underline"
+            to="/settings"
           >
             Add your first one →
           </NuxtLink>
         </div>
       </section>
-
-      <section
-        v-if="user.issues.length > 0"
-        class="mb-12"
-      >
+      <section v-if="user.issues.length > 0" class="mb-12">
         <div class="mb-4 flex items-baseline gap-3">
           <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
             {{ user.bio ? '03' : '02' }}
           </span>
-          <UiSectionTitle>Issues submitted</UiSectionTitle>
+          <UiSectionTitle>
+            Issues submitted
+          </UiSectionTitle>
         </div>
         <div class="flex flex-col gap-6">
-          <CardIssue
-            v-for="issue in user.issues"
-            :key="issue.id"
-            :issue="issue"
-          />
+          <CardIssue v-for="issue in user.issues" :key="issue.id" :issue="issue" />
         </div>
       </section>
-
-      <section
-        v-if="user.solutions.length > 0"
-        class="mb-12"
-      >
+      <section v-if="user.solutions.length > 0" class="mb-12">
         <div class="mb-4 flex items-baseline gap-3">
           <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
-            {{ user.bio ? (user.issues.length > 0 ? '04' : '03') : (user.issues.length > 0 ? '03' : '02') }}
+            {{ user.bio ? (user.issues.length > 0 ? '04' : '03') : user.issues.length > 0 ? '03' : '02' }}
           </span>
-          <UiSectionTitle>Solutions proposed</UiSectionTitle>
+          <UiSectionTitle>
+            Solutions proposed
+          </UiSectionTitle>
         </div>
         <div class="flex flex-col gap-6">
-          <CardIssue
-            v-for="solution in user.solutions"
-            :key="solution.id"
-            :issue="solution"
-          />
+          <CardIssue v-for="solution in user.solutions" :key="solution.id" :issue="solution" />
         </div>
       </section>
-
-      <section
-        v-if="user.caseStudies && user.caseStudies.length > 0"
-        class="mb-12"
-      >
+      <section v-if="user.caseStudies && user.caseStudies.length > 0" class="mb-12">
         <div class="mb-4 flex items-baseline gap-3">
           <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
             {{ caseStudiesSectionLabel }}
           </span>
-          <UiSectionTitle>Case studies documented</UiSectionTitle>
+          <UiSectionTitle>
+            Case studies documented
+          </UiSectionTitle>
         </div>
         <div class="flex flex-col gap-6">
-          <CardCaseStudy
-            v-for="study in user.caseStudies"
-            :key="study.id"
-            :study="study"
-          />
+          <CardCaseStudy v-for="study in user.caseStudies" :key="study.id" :study="study" />
         </div>
       </section>
-
       <div
-        v-if="user.issues.length === 0 && user.solutions.length === 0 && (!user.caseStudies || user.caseStudies.length === 0)"
+        v-if="user.issues.length === 0 &&
+          user.solutions.length === 0 &&
+          (!user.caseStudies || user.caseStudies.length === 0)"
         class="text-center text-gray-500 mt-12"
       >
         <p class="font-mono text-sm uppercase tracking-wide">
@@ -482,11 +424,7 @@ useJsonLd([
         </p>
       </div>
     </template>
-
-    <div
-      v-else
-      class="w-full my-28 text-center"
-    >
+    <div v-else class="w-full my-28 text-center">
       <p class="text-lg text-gray-500">
         User not found.
       </p>

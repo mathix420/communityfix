@@ -20,20 +20,18 @@ export default defineTask({
 
       const allUsers = await db.select({ id: users.id }).from(users)
       let updated = 0
-      const failures: Array<{ userId: string, error: string }> = []
+      const failures: Array<{ userId: string; error: string }> = []
 
       for (let i = 0; i < allUsers.length; i += CHUNK_SIZE) {
         const chunk = allUsers.slice(i, i + CHUNK_SIZE)
-        const results = await Promise.allSettled(
-          chunk.map(u => updateUserTrustScore(u.id)),
-        )
+        const results = await Promise.allSettled(chunk.map((u) => updateUserTrustScore(u.id)))
         results.forEach((result, idx) => {
           const userId = chunk[idx]!.id
           if (result.status === 'fulfilled') {
             updated++
-          }
-          else {
-            const message = result.reason instanceof Error ? result.reason.message : String(result.reason)
+          } else {
+            const message =
+              result.reason instanceof Error ? result.reason.message : String(result.reason)
             console.error(`[compute:trust-scores] Failed for user ${userId}:`, result.reason)
             failures.push({ userId, error: message })
           }

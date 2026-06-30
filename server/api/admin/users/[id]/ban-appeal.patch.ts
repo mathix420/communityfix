@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
   const db = useDB()
   const id = getRouterParam(event, 'id')!
-  const body = await readBody<{ status: 'approved' | 'denied', reason?: string }>(event)
+  const body = await readBody<{ status: 'approved' | 'denied'; reason?: string }>(event)
 
   if (!['approved', 'denied'].includes(body.status)) {
     throw createError({ statusCode: 400, message: 'Status must be "approved" or "denied"' })
@@ -18,18 +18,16 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.status === 'approved') {
-    await db.update(users)
+    await db
+      .update(users)
       .set({
         bannedUntil: null,
         banReason: null,
         banAppealStatus: 'approved',
       })
       .where(eq(users.id, id))
-  }
-  else {
-    await db.update(users)
-      .set({ banAppealStatus: 'denied' })
-      .where(eq(users.id, id))
+  } else {
+    await db.update(users).set({ banAppealStatus: 'denied' }).where(eq(users.id, id))
   }
 
   await createAuditLog({

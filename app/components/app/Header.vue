@@ -9,25 +9,17 @@ const { track } = useUmami()
       <AuthState v-slot="{ loggedIn, user }">
         <NuxtLink
           v-if="loggedIn"
-          to="/settings"
           class="interactive-underline"
+          to="/settings"
           @click="track('Nav settings')"
         >
           {{ user?.name || user?.email }}
         </NuxtLink>
         <template v-else>
-          <NuxtLink
-            to="/login"
-            class="interactive-underline"
-            @click="track('Nav login')"
-          >
+          <NuxtLink class="interactive-underline" to="/login" @click="track('Nav login')">
             login
           </NuxtLink>
-          <NuxtLink
-            to="/register"
-            class="interactive-underline"
-            @click="track('Nav register')"
-          >
+          <NuxtLink class="interactive-underline" to="/register" @click="track('Nav register')">
             register
           </NuxtLink>
         </template>

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
-  as?: 'h1' | 'h2' | 'h3'
-  size?: 'sm' | 'md' | 'lg' | 'xl'
-  center?: boolean
-}>(), {
-  as: 'h1',
-  size: 'lg',
-  center: false,
-})
+withDefaults(
+  defineProps<{
+    as?: 'h1' | 'h2' | 'h3'
+    size?: 'sm' | 'md' | 'lg' | 'xl'
+    center?: boolean
+  }>(),
+  {
+    as: 'h1',
+    size: 'lg',
+    center: false,
+  },
+)
 
 const sizeClasses = {
   sm: 'text-xl sm:text-2xl',

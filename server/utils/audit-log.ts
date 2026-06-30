@@ -1,4 +1,9 @@
-import { auditLogs, type AuditLogType, type AuditLogAction, type AuditLogStatus } from '../database/schema'
+import {
+  auditLogs,
+  type AuditLogType,
+  type AuditLogAction,
+  type AuditLogStatus,
+} from '../database/schema'
 
 export async function createAuditLog(entry: {
   type: AuditLogType
@@ -20,8 +25,7 @@ export async function createAuditLog(entry: {
       reason: entry.reason ?? null,
       details: entry.details ?? null,
     })
-  }
-  catch (err) {
+  } catch (err) {
     console.error('[audit-log] Failed to write audit log:', err)
   }
 }

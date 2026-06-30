@@ -32,7 +32,8 @@ export default defineWebAuthnRegisterEventHandler({
     if (existing && session.user?.id !== existing.id) {
       throw createError({
         statusCode: 409,
-        message: 'An account already exists for this email. Sign in with your existing method first, then add a passkey from your settings.',
+        message:
+          'An account already exists for this email. Sign in with your existing method first, then add a passkey from your settings.',
       })
     }
 
@@ -41,7 +42,7 @@ export default defineWebAuthnRegisterEventHandler({
     // second passkey from settings). We only check presence here; consumption
     // happens in onSuccess so a failed WebAuthn ceremony doesn't waste it.
     const isAddingToOwnAccount = existing && session.user?.id === existing.id
-    if (!isAddingToOwnAccount && !await hasEmailVerification(email)) {
+    if (!isAddingToOwnAccount && !(await hasEmailVerification(email))) {
       throw createError({
         statusCode: 403,
         message: 'Verify your email with the code we sent before creating a passkey.',
@@ -103,9 +104,8 @@ export default defineWebAuthnRegisterEventHandler({
       console.error('[webauthn/register onSuccess] failed', {
         email,
         credentialId: credential.id,
-        error: err instanceof Error
-          ? { name: err.name, message: err.message, stack: err.stack }
-          : err,
+        error:
+          err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err,
       })
       throw err
     }

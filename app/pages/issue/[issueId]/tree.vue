@@ -73,47 +73,29 @@ function collapseAll() {
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
-    <div
-      v-if="rootChildren.length > 0"
-      class="flex items-center justify-between gap-2"
-    >
+    <div v-if="rootChildren.length > 0" class="flex items-center justify-between gap-2">
       <p class="text-xs text-toned font-mono">
         {{ totalNodes }} {{ totalNodes === 1 ? 'node' : 'nodes' }}
       </p>
       <div class="flex gap-2">
-        <UButton
-          size="sm"
-          variant="ghost"
-          icon="lucide:chevrons-down"
-          @click="expandAll"
-        >
+        <UButton icon="lucide:chevrons-down" size="sm" variant="ghost" @click="expandAll">
           Expand all
         </UButton>
-        <UButton
-          size="sm"
-          variant="ghost"
-          icon="lucide:chevrons-up"
-          @click="collapseAll"
-        >
+        <UButton icon="lucide:chevrons-up" size="sm" variant="ghost" @click="collapseAll">
           Collapse all
         </UButton>
       </div>
     </div>
-
     <UiCard v-if="rootChildren.length > 0" padding="md">
       <IssueTreeNode
         v-for="node in rootChildren"
         :key="node.id"
-        :node="node"
-        :depth="1"
         :default-expanded-depth="DEFAULT_EXPANDED_DEPTH"
+        :depth="1"
+        :node="node"
       />
     </UiCard>
-
-    <p
-      v-else-if="!pending"
-      class="text-toned text-center py-8"
-    >
+    <p v-else-if="!pending" class="text-toned text-center py-8">
       No children yet.
     </p>
   </div>

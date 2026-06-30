@@ -1,16 +1,24 @@
 <script setup lang="ts">
-const { data: privacy } = await useAsyncData('/privacy', () => queryCollection('content').path('/privacy').first())
+const { data: privacy } = await useAsyncData('/privacy', () =>
+  queryCollection('content').path('/privacy').first(),
+)
 
 useSeoMeta({
   title: privacy.value?.title || 'Privacy Policy - CommunityFix',
-  description: privacy.value?.description || 'See how CommunityFix protects your data, respects your privacy, and keeps your community contributions secure.',
-  keywords: 'privacy policy, data protection, user privacy, CommunityFix, information security, GDPR compliance',
+  description:
+    privacy.value?.description ||
+    'See how CommunityFix protects your data, respects your privacy, and keeps your community contributions secure.',
+  keywords:
+    'privacy policy, data protection, user privacy, CommunityFix, information security, GDPR compliance',
   ogTitle: privacy.value?.title || 'Privacy Policy - CommunityFix',
-  ogDescription: privacy.value?.description || 'Our commitment to privacy, transparency, and responsible data handling on CommunityFix.',
+  ogDescription:
+    privacy.value?.description ||
+    'Our commitment to privacy, transparency, and responsible data handling on CommunityFix.',
   ogType: 'website',
   twitterCard: 'summary',
   twitterTitle: privacy.value?.title || 'Privacy Policy - CommunityFix',
-  twitterDescription: privacy.value?.description || 'Learn how we safeguard your data and privacy on CommunityFix.',
+  twitterDescription:
+    privacy.value?.description || 'Learn how we safeguard your data and privacy on CommunityFix.',
 })
 
 defineOgImage('Editorial', {
@@ -22,11 +30,7 @@ defineOgImage('Editorial', {
 <template>
   <AppContainer>
     <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
-    <ContentRenderer
-      v-if="privacy"
-      :value="privacy"
-      class="prose"
-    />
+    <ContentRenderer v-if="privacy" class="prose" :value="privacy" />
     <div v-else>
       Not found
     </div>

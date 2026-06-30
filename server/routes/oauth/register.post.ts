@@ -10,7 +10,9 @@ interface RegistrationBody {
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<RegistrationBody>(event)
-  const redirectUris = Array.isArray(body?.redirect_uris) ? body.redirect_uris.filter(u => typeof u === 'string') : []
+  const redirectUris = Array.isArray(body?.redirect_uris)
+    ? body.redirect_uris.filter((u) => typeof u === 'string')
+    : []
   if (redirectUris.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'redirect_uris is required' })
   }
@@ -19,15 +21,23 @@ export default defineEventHandler(async (event) => {
       const u = new URL(uri)
       // OAuth 2.1 native-app rules: https, http loopback, or custom scheme.
       const isHttps = u.protocol === 'https:'
-      const isLocalhost = u.protocol === 'http:' && (u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '[::1]')
-      const isCustomScheme = /^[a-z][a-z0-9+.-]*:$/i.test(u.protocol) && !['http:', 'https:'].includes(u.protocol)
+      const isLocalhost =
+        u.protocol === 'http:' &&
+        (u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '[::1]')
+      const isCustomScheme =
+        /^[a-z][a-z0-9+.-]*:$/i.test(u.protocol) && !['http:', 'https:'].includes(u.protocol)
       if (!isHttps && !isLocalhost && !isCustomScheme) {
-        throw createError({ statusCode: 400, statusMessage: `redirect_uri ${uri} must be https://, http://localhost, or a custom scheme` })
+        throw createError({
+          statusCode: 400,
+          statusMessage: `redirect_uri ${uri} must be https://, http://localhost, or a custom scheme`,
+        })
       }
-    }
-    catch (e) {
+    } catch (e) {
       if ((e as { statusCode?: number }).statusCode) throw e
-      throw createError({ statusCode: 400, statusMessage: `redirect_uri ${uri} is not a valid URL` })
+      throw createError({
+        statusCode: 400,
+        statusMessage: `redirect_uri ${uri} is not a valid URL`,
+      })
     }
   }
 

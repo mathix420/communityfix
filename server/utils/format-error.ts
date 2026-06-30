@@ -72,8 +72,7 @@ export function formatError(err: unknown): FormattedError | { raw: string } {
     if (cur instanceof Error) {
       causes.push(formatCauseLink(cur))
       cur = (cur as { cause?: unknown }).cause
-    }
-    else {
+    } else {
       causes.push(cur)
       break
     }
