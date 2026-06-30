@@ -179,7 +179,15 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
           >
             Unban
           </UButton>
-          <UButton v-else color="error" size="sm" variant="soft" @click="banOpen = true">
+          <UButton
+            v-else
+            color="error"
+            size="sm"
+            variant="soft"
+            @click="() => {
+              banOpen = true
+            }"
+          >
             Ban user
           </UButton>
           <template v-if="data.user.banAppealStatus === 'pending'">
@@ -368,7 +376,13 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
             <UInput v-model="banDays" class="mt-1 w-32" max="3650" min="1" type="number" />
           </label>
           <div class="flex justify-end gap-2">
-            <UButton color="neutral" variant="ghost" @click="banOpen = false">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="() => {
+                banOpen = false
+              }"
+            >
               Cancel
             </UButton>
             <UButton
