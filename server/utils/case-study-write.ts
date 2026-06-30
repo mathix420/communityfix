@@ -9,7 +9,7 @@ import { isAdminEmail } from './admin'
 import { triggerModeration } from './moderation-trigger'
 import { generateEmbedding } from './embeddings'
 import { sanitizeLinks, type Link } from './issue-write'
-import { editableCaseStudySnapshot, recordRevision } from './revision-write'
+import { editableCaseStudySnapshot, recordRevision } from './revision-record'
 import { isNodeOwner, addNodeMember } from './node-members'
 
 type Metric = { label: string; baseline?: string; result?: string; unit?: string }

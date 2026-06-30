@@ -6,7 +6,7 @@ import { issues, users } from '../database/schema'
 import type { IssueType, LocationScale, SolutionStatus } from '../database/schema'
 import { assertNotBanned } from './check-ban'
 import { isAdminEmail } from './admin'
-import { editableIssueSnapshot, recordRevision } from './revision-write'
+import { editableIssueSnapshot, recordRevision } from './revision-record'
 import { isNodeOwner, addNodeMember } from './node-members'
 
 // Summary doubles as the card snippet — markdown there ships as literal
