@@ -20,6 +20,10 @@ AI clients that speak the Model Context Protocol should use the MCP endpoint —
 
 - [MCP Endpoint](https://communityfix.org/api/mcp): Model Context Protocol JSON-RPC endpoint for AI clients (OAuth 2.1 + PKCE required)
 - [List issues](https://communityfix.org/api/issues): Browse top-level issues. Query params: `search` (full-text), `tag` (slug), `sort` (`most_voted` default, `trending`, `oldest`), and `lat`/`lng`/`radius` (km) for geographic filtering
+- [Search catalog](https://communityfix.org/api/search): Semantic (meaning-based) search across both issues and solutions. Query params: `query` (required, ≥3 chars), `type` (`issue`/`solution`/`any`), `limit`
+- [List by tag or SDG](https://communityfix.org/api/nodes): List issues and solutions filtered by `tag` slug and/or `sdg` id (at least one required). Query params: `tag`, `sdg`, `type`, `sort`, `limit`
+- [Nearby](https://communityfix.org/api/nearby): Issues, solutions and case studies near a point, nearest-first. Query params: `lat`, `lng` (required), `radius` (km), `kind`, `limit`
+- [Discover case studies](https://communityfix.org/api/case-studies): Search and filter case studies across the whole catalog. Query params: `query` (semantic), `outcome`, `scale`, `verified`, `limit`
 - [Get node](https://communityfix.org/api/issue/{id}): Fetch a single issue or solution by numeric id
 - [Get tree](https://communityfix.org/api/issue/{id}/tree): Full descendant tree of an issue — sub-issues and solutions, with approved case studies attached
 - [List sub-issues](https://communityfix.org/api/issue/{id}/issues): Direct sub-issues of an issue
