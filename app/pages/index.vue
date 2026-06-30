@@ -4,7 +4,7 @@ const router = useRouter()
 const { track } = useUmami()
 
 const search = ref((route.query.search as string) || '')
-const sort = ref((route.query.sort as string) || 'newest')
+const sort = ref((route.query.sort as string) || 'most_voted')
 
 const sortOptions = [
   { label: 'Newest', value: 'newest' },
@@ -15,7 +15,7 @@ const sortOptions = [
 
 const queryParams = computed(() => {
   const params: Record<string, string> = {}
-  if (sort.value && sort.value !== 'newest') params.sort = sort.value
+  if (sort.value && sort.value !== 'most_voted') params.sort = sort.value
   if (search.value.trim()) params.search = search.value.trim()
   return params
 })

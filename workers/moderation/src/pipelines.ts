@@ -9,12 +9,19 @@ import {
 } from './lib'
 import { STEPS, runAgent, runStep } from './steps'
 import { createGeocodeTool, bboxToPolygon } from './geocode'
+import { areaSimplifyTolerance, simplifyAreaGeometry } from '../../../server/utils/simplify-geo'
 
 const DUPLICATE_THRESHOLD = 0.92
+// Case studies sit under a single solution and are thematically close by
+// construction, so a true duplicate (the same deployment re-created) scores very
+// high (~0.95+) while genuinely distinct deployments of the same intervention
+// stay well below. A slightly stricter bar than issues keeps false positives down.
+export const CASE_STUDY_DUPLICATE_THRESHOLD = 0.93
 const CONFIDENCE_THRESHOLD = 0.7
 
 interface IssueRef { id: number, type: 'issue' | 'solution', parentId: number | null, authorId: string | null }
 interface SimilarIssue { id: number, title: string, summary: string, similarity: number }
+interface SimilarCaseStudy { id: number, locationName: string | null, similarity: number }
 interface RefItem { id: number, name: string }
 
 export interface IssuePrep {
@@ -169,9 +176,13 @@ export async function finalizeIssue(
     await db.update(issues)
       .set({ status: 'rejected', rejectionReason: moderation.reason, rejectedAt: new Date(), isSpam: moderation.isSpam ?? false })
       .where(eq(issues.id, issueId))
+    let action: 'flag_spam' | 'flag_duplicate' | 'reject' = 'reject'
+    if (moderation.isSpam) action = 'flag_spam'
+    else if (moderation.duplicateOfId) action = 'flag_duplicate'
+
     await createAuditLog(db, {
       type: 'moderation',
-      action: moderation.isSpam ? 'flag_spam' : (moderation.duplicateOfId ? 'flag_duplicate' : 'reject'),
+      action,
       issueId,
       userId: issue.authorId,
       reason: moderation.reason,
@@ -337,7 +348,7 @@ type Metric = { label: string, baseline?: string | null, result?: string | null,
 type Source = { url: string, title?: string | null }
 type LinkRow = { url: string, title?: string | null }
 type SolutionRef = { title: string, summary: string } | null
-export interface CaseStudyModeration { approved: boolean, reason: string, isSpam: boolean }
+export interface CaseStudyModeration { approved: boolean, reason: string, isSpam: boolean, duplicateOfId?: number | null }
 export interface CurationResult {
   description: string | null
   lessonsLearned: string[] | null
@@ -362,6 +373,7 @@ export interface CaseStudyPrep {
   caseStudyText: string
   parentContext: string
   originalJson: string
+  similar: SimilarCaseStudy[]
 }
 
 export async function prepareCaseStudy(ctx: Ctx, caseStudyId: number): Promise<CaseStudyPrep | null> {
@@ -399,7 +411,24 @@ export async function prepareCaseStudy(ctx: Ctx, caseStudyId: number): Promise<C
     solution?.summary ? `Parent summary: ${solution.summary}` : '',
   ].filter(Boolean).join('\n')
 
-  return { cs, solution, caseStudyText, parentContext, originalJson: JSON.stringify(original, null, 2) }
+  // Duplicate guard: case studies had no dedup, so re-creating the same deployment
+  // under a solution slipped straight through (e.g. a seed script run twice).
+  // Mirror the issue/solution path — compare this case study's embedding against
+  // approved siblings under the SAME solution; finalize rejects a near-duplicate.
+  let similar: SimilarCaseStudy[] = []
+  const embedding = cs.embedding as number[] | null
+  if (embedding) {
+    similar = await findSimilar<SimilarCaseStudy>(db, {
+      table: 'case_studies',
+      columns: 'id, location_name AS "locationName"',
+      embedding,
+      where: sql`status = 'approved' AND id <> ${cs.id} AND solution_id = ${cs.solutionId}`,
+      limit: 5,
+      threshold: 0.8,
+    })
+  }
+
+  return { cs, solution, caseStudyText, parentContext, originalJson: JSON.stringify(original, null, 2), similar }
 }
 
 export type LocatedKind = 'issue' | 'case-study'
@@ -455,7 +484,10 @@ export async function resolveLocation(ctx: Ctx, target: LocationTarget, document
   const candidate = geocode.byPlaceId.get(out.chosenPlaceId)
   if (!candidate) return keep
 
-  const area = candidate.geojson ?? (candidate.boundingbox ? bboxToPolygon(candidate.boundingbox) : null)
+  const rawArea = candidate.geojson ?? (candidate.boundingbox ? bboxToPolygon(candidate.boundingbox) : null)
+  // Geocoder polygons (a country/state/biome) can carry thousands of vertices;
+  // simplify before persisting so the stored `area` stays small enough to serve.
+  const area = rawArea ? simplifyAreaGeometry(rawArea, areaSimplifyTolerance(target.scale)) : null
   return { action: 'relocate', confidence: out.confidence, reason: out.reason, latitude: candidate.lat, longitude: candidate.lon, area, locationName }
 }
 
@@ -570,12 +602,16 @@ export async function rejectCaseStudy(ctx: Ctx, cs: CaseStudyRow, moderation: Ca
   await db.update(caseStudies)
     .set({ status: 'rejected', rejectionReason: moderation.reason, rejectedAt: new Date(), isSpam: moderation.isSpam ?? false })
     .where(eq(caseStudies.id, cs.id))
+  let action: 'flag_spam' | 'flag_duplicate' | 'reject' = 'reject'
+  if (moderation.isSpam) action = 'flag_spam'
+  else if (moderation.duplicateOfId) action = 'flag_duplicate'
+
   await createAuditLog(db, {
     type: 'moderation',
-    action: moderation.isSpam ? 'flag_spam' : 'reject',
+    action,
     userId: cs.authorId,
     reason: moderation.reason,
-    details: { caseStudyId: cs.id, solutionId: cs.solutionId, isSpam: moderation.isSpam, promptVersion: STEPS['case-study.moderate'].version },
+    details: { caseStudyId: cs.id, solutionId: cs.solutionId, isSpam: moderation.isSpam, duplicateOfId: moderation.duplicateOfId ?? null, promptVersion: STEPS['case-study.moderate'].version },
   })
   if (cs.authorId) {
     await checkAndApplyBan(db, cs.authorId)
