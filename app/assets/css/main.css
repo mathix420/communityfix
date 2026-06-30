@@ -13,6 +13,9 @@ html,body, #__nuxt {
   --font-mono: 'Oswald', monospace;
   /* --font-title: 'Anek Odia', monospace; */
 
+  /* Real monospace for code (Oswald, our `--font-mono`, is a display font). */
+  --font-code: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
   --ui-text: black;
 }
 
@@ -29,6 +32,39 @@ form label {
   font-size: 0.7rem;
   letter-spacing: 0.06em;
   font-weight: 500;
+}
+
+/* ----------------------------------------------------------------------------
+ * Long-form content pages (whitepaper, MCP docs, guides, privacy, terms).
+ * `.prose-doc` wraps a ContentRenderer/MDC tree already styled by Nuxt UI's
+ * prose components (themed in app.config). Content sits directly on the grainy
+ * page background — no card. Here we add only the page-level chrome that should
+ * NOT bleed into inline markdown (issue/case-study cards): the signature blue
+ * title underline and section dividers. Sharp angles only — never rounded.
+ * ------------------------------------------------------------------------- */
+.prose-doc > :first-child {
+  margin-top: 0;
+}
+
+/* Page title: thick solid blue underline, matching the brand logo. */
+.prose-doc h1 {
+  text-decoration-line: underline;
+  text-decoration-color: var(--ui-primary, var(--color-blue-600));
+  text-decoration-thickness: 4px;
+  text-underline-offset: 0.5rem;
+  /* Solid bar through descenders, like the logo — not skipped ink. */
+  text-decoration-skip-ink: none;
+}
+
+/* Section headings: hairline divider so sections read as distinct blocks. */
+.prose-doc h2 {
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--color-gray-200);
+}
+
+.prose-doc h2:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 @layer utilities {

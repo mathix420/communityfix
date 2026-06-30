@@ -601,19 +601,47 @@ const logs = computed<LogRow[]>(() => (data.value?.logs as LogRow[] | undefined)
       title="No logs match"
     />
     <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 flex-wrap">
-      <UButton size="sm" variant="ghost" :disabled="page <= 1" @click="page = 1">
+      <UButton
+        size="sm"
+        variant="ghost"
+        :disabled="page <= 1"
+        @click="() => {
+          page = 1
+        }"
+      >
         First
       </UButton>
-      <UButton size="sm" variant="ghost" :disabled="page <= 1" @click="page--">
+      <UButton
+        size="sm"
+        variant="ghost"
+        :disabled="page <= 1"
+        @click="() => {
+          page--
+        }"
+      >
         Previous
       </UButton>
       <span class="text-sm text-toned self-center">
         Page {{ page }} of {{ totalPages }}
       </span>
-      <UButton size="sm" variant="ghost" :disabled="page >= totalPages" @click="page++">
+      <UButton
+        size="sm"
+        variant="ghost"
+        :disabled="page >= totalPages"
+        @click="() => {
+          page++
+        }"
+      >
         Next
       </UButton>
-      <UButton size="sm" variant="ghost" :disabled="page >= totalPages" @click="page = totalPages">
+      <UButton
+        size="sm"
+        variant="ghost"
+        :disabled="page >= totalPages"
+        @click="() => {
+          page = totalPages
+        }"
+      >
         Last
       </UButton>
       <span class="text-xs text-toned ml-2">

@@ -16,7 +16,20 @@ CommunityFix exposes an MCP (Model Context Protocol) server so AI assistants can
 
 ## API
 
+AI clients that speak the Model Context Protocol should use the MCP endpoint — it is the richest interface and supports authenticated writes. Clients that cannot speak MCP can still read the public catalog over plain HTTP `GET`: every REST endpoint below returns JSON, needs no authentication, and takes `{id}` as a numeric node id (or UUID for users). Creating or editing content is only available through MCP or the web app.
+
 - [MCP Endpoint](https://communityfix.org/api/mcp): Model Context Protocol JSON-RPC endpoint for AI clients (OAuth 2.1 + PKCE required)
+- [List issues](https://communityfix.org/api/issues): Browse top-level issues. Query params: `search` (full-text), `tag` (slug), `sort` (`most_voted` default, `trending`, `oldest`), and `lat`/`lng`/`radius` (km) for geographic filtering
+- [Get node](https://communityfix.org/api/issue/{id}): Fetch a single issue or solution by numeric id
+- [Get tree](https://communityfix.org/api/issue/{id}/tree): Full descendant tree of an issue — sub-issues and solutions, with approved case studies attached
+- [List sub-issues](https://communityfix.org/api/issue/{id}/issues): Direct sub-issues of an issue
+- [List solutions](https://communityfix.org/api/issue/{id}/solutions): Proposed solutions for an issue
+- [List case studies](https://communityfix.org/api/issue/{id}/case-studies): Case studies aggregated under an issue and its solutions
+- [Get case study](https://communityfix.org/api/case-study/{id}): Fetch a single case study by numeric id
+- [Find similar issues](https://communityfix.org/api/issues/similar): Semantic nearest-neighbour lookup before creating an issue. Query params: `title`, `summary`
+- [List tags](https://communityfix.org/api/tags): The full tag taxonomy
+- [List SDGs](https://communityfix.org/api/sdgs): UN Sustainable Development Goals used for classification
+- [Get user](https://communityfix.org/api/user/{id}): Public profile of a user by UUID
 
 ## MCP Tools
 
@@ -35,6 +48,11 @@ CommunityFix exposes an MCP (Model Context Protocol) server so AI assistants can
 - search_tags: Search the tag taxonomy
 - get_user: Fetch a user profile
 - whoami: Get the authenticated user's profile
+- get_whitepaper: Read the platform whitepaper (mission, incubation model, governance, impact metrics)
+- get_guide: Read the authoring guides; omit the slug to list them, pass one (e.g. "writing") for the full text
+- propose_edit: Propose a change to any issue, solution, or case study — applies live if you own it, otherwise queued as a revision proposal
+- list_revisions: List a node's revision history plus any pending proposals you may see
+- review_revision: Approve or reject a pending revision proposal on a node you own
 
 ## Optional
 

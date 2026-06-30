@@ -16,6 +16,15 @@ export default defineNuxtConfig({
   ],
   devtools: { enabled: true },
 
+  // Code highlighting theme. Nuxt UI defaults to the washed-out `material-theme`
+  // triple; override with a single crisp, high-contrast light theme (the site
+  // is light-only — `ui.colorMode: false`).
+  mdc: {
+    highlight: {
+      theme: 'github-light',
+    },
+  },
+
   // Bind the dev server to IPv4. Without this it listens on `[::1]`, and
   // nuxt-og-image skips its real HTTP font fetch whenever the origin contains
   // `::1` — falling back to an internal route that can't serve @nuxt/fonts'

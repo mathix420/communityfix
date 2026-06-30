@@ -129,13 +129,27 @@ watch(filter, () => {
       title="No users match"
     />
     <div v-if="totalPages > 1" class="flex justify-center gap-2">
-      <UButton size="sm" variant="ghost" :disabled="page <= 1" @click="page--">
+      <UButton
+        size="sm"
+        variant="ghost"
+        :disabled="page <= 1"
+        @click="() => {
+          page--
+        }"
+      >
         Previous
       </UButton>
       <span class="text-sm text-toned self-center">
         Page {{ page }} of {{ totalPages }}
       </span>
-      <UButton size="sm" variant="ghost" :disabled="page >= totalPages" @click="page++">
+      <UButton
+        size="sm"
+        variant="ghost"
+        :disabled="page >= totalPages"
+        @click="() => {
+          page++
+        }"
+      >
         Next
       </UButton>
     </div>
