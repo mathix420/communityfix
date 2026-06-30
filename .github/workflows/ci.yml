@@ -83,11 +83,13 @@ jobs:
         run: bun run build
 
   # ────────────────────────────────────────────────────────────────
-  # CODE QUALITY — vize (lint + format) and fallow (dead code) on every
+  # CODE QUALITY — vize (lint + format) and fallow audit on every
   # PR commit, drafts included. Posts ONE sticky comment summarising both
   # tools and updates it in place on each re-run (matched by the hidden
   # <!-- code-quality --> marker). Fails the check if any tool fails;
-  # warnings are advisory and don't block.
+  # warnings are advisory and don't block. `fallow audit` is diff-scoped:
+  # it only blocks on dead-code/complexity/duplication findings INTRODUCED
+  # by the PR vs its base branch, so pre-existing debt doesn't gate.
   # ────────────────────────────────────────────────────────────────
   code-quality:
     if: github.event_name == 'pull_request'
@@ -97,6 +99,10 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history so `fallow audit --base origin/<base>` can diff the
+          # PR against its target branch — a shallow clone lacks the base ref.
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
@@ -130,19 +136,24 @@ jobs:
             echo "summary=${n:-?} file(s) need formatting" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: fallow dead-code
+      - name: fallow audit
         id: fallow
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set +e
-          bunx fallow dead-code 2>&1 | tee fallow.out
-          code=${PIPESTATUS[0]}
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          if [ "$code" = "0" ]; then
-            echo "summary=no issues" >> "$GITHUB_OUTPUT"
-          else
-            s=$(grep -oE '✗ [^(]+' fallow.out | tail -1 | sed 's/[[:space:]]*$//')
-            echo "summary=${s:-issues found}" >> "$GITHUB_OUTPUT"
-          fi
+          # Diff-scoped gate: dead-code + complexity + duplication on files
+          # changed vs the PR base. `fallow audit` exits 1 only on a `fail`
+          # verdict (findings INTRODUCED by this PR); inherited debt and
+          # `warn` verdicts exit 0. Human pass drives the log + details block.
+          bunx fallow audit --base "origin/$BASE_REF" 2>&1 | tee fallow.out
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          # Second, machine-readable pass for the sticky-comment summary
+          # (verdict + per-analysis counts). Both passes are scoped to the
+          # changed files, so the extra run is sub-second.
+          bunx fallow audit --base "origin/$BASE_REF" --format json -q > audit.json 2>/dev/null
+          read -r v dc cx dup files < <(jq -r '[.verdict, .summary.dead_code_issues, .summary.complexity_findings, .summary.duplication_clone_groups, .changed_files_count] | @tsv' audit.json)
+          echo "summary=${v:-?} · ${dc:-?} dead-code · ${cx:-?} complexity · ${dup:-?} dupes (${files:-?} files)" >> "$GITHUB_OUTPUT"
 
       - name: Build comment
         env:
@@ -163,14 +174,14 @@ jobs:
             echo '|:--|:-:|:--|'
             echo "| \`vize\` lint | $(icon "$LINT_CODE") | $LINT_SUM |"
             echo "| \`vize\` format | $(icon "$FMT_CODE") | $FMT_SUM |"
-            echo "| \`fallow\` dead-code | $(icon "$FALLOW_CODE") | $FALLOW_SUM |"
+            echo "| \`fallow\` audit | $(icon "$FALLOW_CODE") | $FALLOW_SUM |"
             echo
           } > comment.md
           # On failure only, attach the tool's tail output in a collapsed block.
           add() { if [ "$3" != "0" ]; then { echo "<details><summary>$1 output</summary>"; echo; echo '```'; tail -n 40 "$2"; echo '```'; echo '</details>'; echo; } >> comment.md; fi; }
           add 'vize lint' lint.out "$LINT_CODE"
           add 'vize format' fmt.out "$FMT_CODE"
-          add 'fallow dead-code' fallow.out "$FALLOW_CODE"
+          add 'fallow audit' fallow.out "$FALLOW_CODE"
           echo "<sub>updated for \`${HEAD_SHA:0:7}\` · <a href=\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\">run #$GITHUB_RUN_NUMBER</a></sub>" >> comment.md
 
       - name: Post or update PR comment
