@@ -82,11 +82,11 @@ function douglasPeucker(points: number[][], tolerance: number): number[][] {
 function simplifyRing(ring: number[][], tolerance: number): number[][] {
   const simplified = ring.length >= 4 ? douglasPeucker(ring, tolerance) : ring
   const used = simplified.length >= 4 ? simplified : ring
-  return used.map(c => [round(c[0]!), round(c[1]!), ...c.slice(2)])
+  return used.map((c) => [round(c[0]!), round(c[1]!), ...c.slice(2)])
 }
 
 function simplifyPolygon(rings: number[][][], tolerance: number): number[][][] {
-  return rings.map(r => simplifyRing(r, tolerance))
+  return rings.map((r) => simplifyRing(r, tolerance))
 }
 
 /**
@@ -96,12 +96,17 @@ function simplifyPolygon(rings: number[][][], tolerance: number): number[][][] {
  */
 export function simplifyAreaGeometry(geom: GeoJsonGeometry, tolerance: number): GeoJsonGeometry {
   if (geom.type === 'Polygon') {
-    return { type: 'Polygon', coordinates: simplifyPolygon(geom.coordinates as number[][][], tolerance) }
+    return {
+      type: 'Polygon',
+      coordinates: simplifyPolygon(geom.coordinates as number[][][], tolerance),
+    }
   }
   if (geom.type === 'MultiPolygon') {
     return {
       type: 'MultiPolygon',
-      coordinates: (geom.coordinates as number[][][][]).map(poly => simplifyPolygon(poly, tolerance)),
+      coordinates: (geom.coordinates as number[][][][]).map((poly) =>
+        simplifyPolygon(poly, tolerance),
+      ),
     }
   }
   return geom

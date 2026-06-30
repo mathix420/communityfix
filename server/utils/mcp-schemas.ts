@@ -118,7 +118,5 @@ export const mcpToolInputSchemas = {
 export type McpToolName = keyof typeof mcpToolInputSchemas
 
 export function formatZodIssues(error: z.ZodError): string {
-  return error.issues
-    .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
-    .join('; ')
+  return error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ')
 }

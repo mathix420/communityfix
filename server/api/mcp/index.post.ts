@@ -80,8 +80,16 @@ interface JsonRpcRequest {
   params?: unknown
 }
 
-interface JsonRpcSuccess { jsonrpc: '2.0', id: string | number | null, result: unknown }
-interface JsonRpcFailure { jsonrpc: '2.0', id: string | number | null, error: { code: number, message: string, data?: unknown } }
+interface JsonRpcSuccess {
+  jsonrpc: '2.0'
+  id: string | number | null
+  result: unknown
+}
+interface JsonRpcFailure {
+  jsonrpc: '2.0'
+  id: string | number | null
+  error: { code: number; message: string; data?: unknown }
+}
 
 const ERR = {
   PARSE: -32700,
@@ -94,46 +102,79 @@ const ERR = {
 function ok(id: string | number | null, result: unknown): JsonRpcSuccess {
   return { jsonrpc: '2.0', id, result }
 }
-function fail(id: string | number | null, code: number, message: string, data?: unknown): JsonRpcFailure {
+function fail(
+  id: string | number | null,
+  code: number,
+  message: string,
+  data?: unknown,
+): JsonRpcFailure {
   return { jsonrpc: '2.0', id, error: { code, message, ...(data !== undefined ? { data } : {}) } }
 }
 
 // Tool behaviour hints (MCP `annotations`) so clients know what is safe to
 // auto-run vs. confirm. Reads are idempotent; writes are not.
 const READ = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const
-const CREATE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const
-const UPDATE = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false } as const
+const CREATE = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: false,
+} as const
+const UPDATE = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: false,
+} as const
 
 // Output schemas are intentionally permissive (no `required`, extra keys
 // allowed) so `structuredContent` always validates while still signalling the
 // shape.
 const OUT_OBJECT = { type: 'object' as const }
-const OUT_SEARCH = { type: 'object' as const, properties: { status: { type: 'string' }, results: { type: 'array' } } }
+const OUT_SEARCH = {
+  type: 'object' as const,
+  properties: { status: { type: 'string' }, results: { type: 'array' } },
+}
 const OUT_PROFILE = {
   type: 'object' as const,
   properties: {
-    id: { type: 'string' }, name: { type: ['string', 'null'] }, trustScore: { type: 'number' },
-    issuesAuthored: { type: 'integer' }, solutionsAuthored: { type: 'integer' }, caseStudiesAuthored: { type: 'integer' },
+    id: { type: 'string' },
+    name: { type: ['string', 'null'] },
+    trustScore: { type: 'number' },
+    issuesAuthored: { type: 'integer' },
+    solutionsAuthored: { type: 'integer' },
+    caseStudiesAuthored: { type: 'integer' },
   },
 }
 
 const links = {
   type: 'array',
-  items: { type: 'object', properties: { url: { type: 'string' }, title: { type: 'string' } }, required: ['url'] },
+  items: {
+    type: 'object',
+    properties: { url: { type: 'string' }, title: { type: 'string' } },
+    required: ['url'],
+  },
 }
-const summaryDesc = 'Required short plaintext snippet of THIS node only — a real, standalone synopsis (≤280 chars), NOT the first 280 characters of `description`. Distill the description into a complete sentence or two that make sense on their own. Stay strictly in scope.'
+const summaryDesc =
+  'Required short plaintext snippet of THIS node only — a real, standalone synopsis (≤280 chars), NOT the first 280 characters of `description`. Distill the description into a complete sentence or two that make sense on their own. Stay strictly in scope.'
 
 const TOOLS = [
   {
     name: 'search_issues_solutions',
     title: 'Search issues & solutions',
-    description: 'Semantic search across CommunityFix issues and solutions using vector embeddings. Use this for natural-language queries — it understands intent, not just keywords. ALWAYS run this before creating a new issue or solution to avoid duplicates.',
+    description:
+      'Semantic search across CommunityFix issues and solutions using vector embeddings. Use this for natural-language queries — it understands intent, not just keywords. ALWAYS run this before creating a new issue or solution to avoid duplicates.',
     annotations: READ,
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Natural-language description of what to look for.' },
-        type: { type: 'string', enum: ['issue', 'solution', 'any'], default: 'any', description: 'Restrict to issues, to solutions, or search both.' },
+        type: {
+          type: 'string',
+          enum: ['issue', 'solution', 'any'],
+          default: 'any',
+          description: 'Restrict to issues, to solutions, or search both.',
+        },
         limit: { type: 'integer', minimum: 1, maximum: 25, default: 10 },
       },
       required: ['query'],
@@ -155,7 +196,8 @@ const TOOLS = [
   {
     name: 'get_tree',
     title: 'Get descendant tree',
-    description: 'Return the full descendant tree rooted at the given issue or solution id — sub-issues and solutions recursively, with approved case studies attached as leaves under their parent solutions. Each row carries a `type` of "issue", "solution", or "case-study"; case-study rows expose `parentId` = the solution id and an `outcome` field. Capped at depth 10, 20 children per parent, and 500 nodes total.',
+    description:
+      'Return the full descendant tree rooted at the given issue or solution id — sub-issues and solutions recursively, with approved case studies attached as leaves under their parent solutions. Each row carries a `type` of "issue", "solution", or "case-study"; case-study rows expose `parentId` = the solution id and an `outcome` field. Capped at depth 10, 20 children per parent, and 500 nodes total.',
     annotations: READ,
     inputSchema: {
       type: 'object',
@@ -167,15 +209,27 @@ const TOOLS = [
   {
     name: 'create_issue',
     title: 'Create issue',
-    description: 'Create an issue — either top-level (omit `parentId`) or a sub-issue of an existing node (set `parentId`). A sub-issue is a narrower facet of its parent problem. Goes through AI moderation before becoming visible. To propose a solution to an existing issue, use `create_solution`.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. If a similar issue already exists, update it instead of adding a near-duplicate.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this problem itself. Do not pack sub-problems, alternative framings, or surveys of related work — emit additional `create_issue` calls for sub-problems and `create_solution` calls for proposed approaches.',
+    description:
+      'Create an issue — either top-level (omit `parentId`) or a sub-issue of an existing node (set `parentId`). A sub-issue is a narrower facet of its parent problem. Goes through AI moderation before becoming visible. To propose a solution to an existing issue, use `create_solution`.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. If a similar issue already exists, update it instead of adding a near-duplicate.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this problem itself. Do not pack sub-problems, alternative framings, or surveys of related work — emit additional `create_issue` calls for sub-problems and `create_solution` calls for proposed approaches.',
     annotations: CREATE,
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'One-line statement of the problem.' },
-        summary: { type: 'string', description: summaryDesc + ' This is the card-level pitch of the problem. Trimmed to 280 chars.' },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS problem only: background, constraints, references, observed evidence. Do NOT enumerate sub-issues or proposed solutions here — emit additional `create_issue` or `create_solution` calls with `parentId` for those.' },
-        parentId: { type: 'integer', description: 'Parent node id to nest under. Omit for a top-level issue.' },
+        summary: {
+          type: 'string',
+          description:
+            summaryDesc + ' This is the card-level pitch of the problem. Trimmed to 280 chars.',
+        },
+        description: {
+          type: 'string',
+          description:
+            'Optional markdown long-form body for THIS problem only: background, constraints, references, observed evidence. Do NOT enumerate sub-issues or proposed solutions here — emit additional `create_issue` or `create_solution` calls with `parentId` for those.',
+        },
+        parentId: {
+          type: 'integer',
+          description: 'Parent node id to nest under. Omit for a top-level issue.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
@@ -188,20 +242,37 @@ const TOOLS = [
   {
     name: 'create_solution',
     title: 'Create solution',
-    description: 'Propose a solution to an existing issue. `parentId` is required and must point at an **issue** (not a solution — solutions cannot be nested). Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`. To document a concrete real-world implementation of a solution, attach a case study to it instead of creating a nested solution.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. If a similar solution already exists, update it instead of adding a near-duplicate.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
+    description:
+      'Propose a solution to an existing issue. `parentId` is required and must point at an **issue** (not a solution — solutions cannot be nested). Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`. To document a concrete real-world implementation of a solution, attach a case study to it instead of creating a nested solution.\n\nSEARCH FIRST: run `search_issues_solutions` before creating. If a similar solution already exists, update it instead of adding a near-duplicate.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
     annotations: CREATE,
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'One-line statement of the proposed approach.' },
-        summary: { type: 'string', description: summaryDesc + ' This is the card-level pitch of the approach. Trimmed to 280 chars.' },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS approach only: mechanism, where it fits, operating profile, evidence. Do NOT survey alternative approaches or list sub-problems — emit additional `create_solution` (siblings) or `create_issue` (sub-problems) calls for those.' },
-        parentId: { type: 'integer', description: 'Id of the issue this solution addresses. Required. Must be an issue, not a solution.' },
+        summary: {
+          type: 'string',
+          description:
+            summaryDesc + ' This is the card-level pitch of the approach. Trimmed to 280 chars.',
+        },
+        description: {
+          type: 'string',
+          description:
+            'Optional markdown long-form body for THIS approach only: mechanism, where it fits, operating profile, evidence. Do NOT survey alternative approaches or list sub-problems — emit additional `create_solution` (siblings) or `create_issue` (sub-problems) calls for those.',
+        },
+        parentId: {
+          type: 'integer',
+          description:
+            'Id of the issue this solution addresses. Required. Must be an issue, not a solution.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: [...LOCATION_SCALES] },
-        links: { ...links, description: 'External resources backing this solution (GitHub repos, design docs, demo videos, hosted PDFs). The platform does not store files itself.' },
+        links: {
+          ...links,
+          description:
+            'External resources backing this solution (GitHub repos, design docs, demo videos, hosted PDFs). The platform does not store files itself.',
+        },
       },
       required: ['title', 'summary', 'parentId'],
     },
@@ -210,7 +281,8 @@ const TOOLS = [
   {
     name: 'update_issue',
     title: 'Update issue',
-    description: 'Edit an existing issue. Only the author may update. Editing title/summary/description resends the node through moderation. To edit a solution, use `update_solution`; the call errors if `id` resolves to a solution.\n\nSCOPE RULE: same as `create_issue`. If an edit would introduce sub-problems or proposed approaches, do not append them here — create child nodes via `create_issue` / `create_solution` instead.',
+    description:
+      'Edit an existing issue. Only the author may update. Editing title/summary/description resends the node through moderation. To edit a solution, use `update_solution`; the call errors if `id` resolves to a solution.\n\nSCOPE RULE: same as `create_issue`. If an edit would introduce sub-problems or proposed approaches, do not append them here — create child nodes via `create_issue` / `create_solution` instead.',
     annotations: UPDATE,
     inputSchema: {
       type: 'object',
@@ -218,7 +290,10 @@ const TOOLS = [
         id: { type: 'integer' },
         title: { type: 'string', description: 'One-line statement of the problem.' },
         summary: { type: 'string', description: summaryDesc },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS problem only.' },
+        description: {
+          type: 'string',
+          description: 'Optional markdown long-form body for THIS problem only.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
@@ -231,7 +306,8 @@ const TOOLS = [
   {
     name: 'update_solution',
     title: 'Update solution',
-    description: 'Edit an existing solution. Only the author may update. Editing title/summary/description resends the node through moderation. To edit an issue, use `update_issue`; the call errors if `id` resolves to an issue.\n\nSCOPE RULE: same as `create_solution`. If an edit would introduce alternative approaches or sub-problems, do not append them here — create sibling/child nodes via `create_solution` / `create_issue` instead.',
+    description:
+      'Edit an existing solution. Only the author may update. Editing title/summary/description resends the node through moderation. To edit an issue, use `update_issue`; the call errors if `id` resolves to an issue.\n\nSCOPE RULE: same as `create_solution`. If an edit would introduce alternative approaches or sub-problems, do not append them here — create sibling/child nodes via `create_solution` / `create_issue` instead.',
     annotations: UPDATE,
     inputSchema: {
       type: 'object',
@@ -239,13 +315,23 @@ const TOOLS = [
         id: { type: 'integer' },
         title: { type: 'string', description: 'One-line statement of the proposed approach.' },
         summary: { type: 'string', description: summaryDesc },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS approach only.' },
-        solutionStatus: { type: 'string', enum: ['plan', 'in-progress', 'done'], description: 'Lifecycle stage of the proposed approach.' },
+        description: {
+          type: 'string',
+          description: 'Optional markdown long-form body for THIS approach only.',
+        },
+        solutionStatus: {
+          type: 'string',
+          enum: ['plan', 'in-progress', 'done'],
+          description: 'Lifecycle stage of the proposed approach.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: [...LOCATION_SCALES] },
-        links: { ...links, description: 'External resources backing this solution. Pass `[]` to clear.' },
+        links: {
+          ...links,
+          description: 'External resources backing this solution. Pass `[]` to clear.',
+        },
       },
       required: ['id'],
     },
@@ -254,7 +340,8 @@ const TOOLS = [
   {
     name: 'suggest_more',
     title: 'Suggest related nodes',
-    description: 'Suggest related issues/solutions semantically similar to a seed issue or solution. Uses the stored embedding of the seed for nearest-neighbor lookup.',
+    description:
+      'Suggest related issues/solutions semantically similar to a seed issue or solution. Uses the stored embedding of the seed for nearest-neighbor lookup.',
     annotations: READ,
     inputSchema: {
       type: 'object',
@@ -269,7 +356,8 @@ const TOOLS = [
   {
     name: 'whoami',
     title: 'Get my profile',
-    description: 'Return the authenticated user\'s public profile plus private fields (email, provider, ban state) and authored issue/solution counts. Use this when the user asks about "my" profile, credentials, or activity.',
+    description:
+      'Return the authenticated user\'s public profile plus private fields (email, provider, ban state) and authored issue/solution counts. Use this when the user asks about "my" profile, credentials, or activity.',
     annotations: READ,
     inputSchema: { type: 'object', properties: {} },
     outputSchema: OUT_PROFILE,
@@ -277,7 +365,8 @@ const TOOLS = [
   {
     name: 'get_user',
     title: 'Get user profile',
-    description: 'Public profile of any user by UUID: name, headline, bio, trust score, qualifications with endorsement counts, and counts of issues/solutions they\'ve authored.',
+    description:
+      "Public profile of any user by UUID: name, headline, bio, trust score, qualifications with endorsement counts, and counts of issues/solutions they've authored.",
     annotations: READ,
     inputSchema: {
       type: 'object',
@@ -291,7 +380,8 @@ const TOOLS = [
   {
     name: 'get_case_study',
     title: 'Get case study',
-    description: 'Fetch a single case study by numeric id. Case studies document one real-world implementation of a solution (outcome, location, implementer, metrics, sources, lessons learned).',
+    description:
+      'Fetch a single case study by numeric id. Case studies document one real-world implementation of a solution (outcome, location, implementer, metrics, sources, lessons learned).',
     annotations: READ,
     inputSchema: {
       type: 'object',
@@ -303,7 +393,8 @@ const TOOLS = [
   {
     name: 'list_case_studies',
     title: 'List case studies',
-    description: 'List case studies under a node. Pass a solution id to get that solution\'s own case studies, or an issue id to aggregate case studies across all approved solution children of that issue. Returns rows ordered by verified (admin-marked) then most-recent first.',
+    description:
+      "List case studies under a node. Pass a solution id to get that solution's own case studies, or an issue id to aggregate case studies across all approved solution children of that issue. Returns rows ordered by verified (admin-marked) then most-recent first.",
     annotations: READ,
     inputSchema: {
       type: 'object',
@@ -316,21 +407,50 @@ const TOOLS = [
   {
     name: 'create_case_study',
     title: 'Create case study',
-    description: 'Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSEARCH FIRST: check `list_case_studies` for the solution before adding one, and update an existing study instead of adding a near-duplicate of the same deployment.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that\'s three separate `create_case_study` calls — do not combine them.',
+    description:
+      "Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSEARCH FIRST: check `list_case_studies` for the solution before adding one, and update an existing study instead of adding a near-duplicate of the same deployment.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that's three separate `create_case_study` calls — do not combine them.",
     annotations: CREATE,
     inputSchema: {
       type: 'object',
       properties: {
-        solutionId: { type: 'integer', description: 'Id of the solution this case study implements. Required. Must be a solution, not an issue.' },
-        outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES], description: 'What happened: success, partial, failed, inconclusive, or ongoing.' },
-        locationName: { type: 'string', description: 'Human-readable location label (e.g. "Bogotá, Colombia"). Required.' },
+        solutionId: {
+          type: 'integer',
+          description:
+            'Id of the solution this case study implements. Required. Must be a solution, not an issue.',
+        },
+        outcome: {
+          type: 'string',
+          enum: [...CASE_STUDY_OUTCOMES],
+          description: 'What happened: success, partial, failed, inconclusive, or ongoing.',
+        },
+        locationName: {
+          type: 'string',
+          description: 'Human-readable location label (e.g. "Bogotá, Colombia"). Required.',
+        },
         latitude: { type: 'number', description: 'Decimal latitude of the deployment. Required.' },
-        longitude: { type: 'number', description: 'Decimal longitude of the deployment. Required.' },
-        scale: { type: 'string', enum: [...LOCATION_SCALES], description: 'Geographic scope of the deployment.' },
-        description: { type: 'string', description: 'Optional markdown narrative — what was done, context, anything not captured by the structured fields.' },
-        implementer: { type: 'string', description: 'Organization, agency, or person that ran the deployment.' },
+        longitude: {
+          type: 'number',
+          description: 'Decimal longitude of the deployment. Required.',
+        },
+        scale: {
+          type: 'string',
+          enum: [...LOCATION_SCALES],
+          description: 'Geographic scope of the deployment.',
+        },
+        description: {
+          type: 'string',
+          description:
+            'Optional markdown narrative — what was done, context, anything not captured by the structured fields.',
+        },
+        implementer: {
+          type: 'string',
+          description: 'Organization, agency, or person that ran the deployment.',
+        },
         startDate: { type: 'string', description: 'ISO date (YYYY-MM-DD) the deployment started.' },
-        endDate: { type: 'string', description: 'ISO date (YYYY-MM-DD) the deployment ended. Omit if ongoing.' },
+        endDate: {
+          type: 'string',
+          description: 'ISO date (YYYY-MM-DD) the deployment ended. Omit if ongoing.',
+        },
         metrics: {
           type: 'array',
           description: 'Quantitative outcomes — one row per measurement.',
@@ -345,7 +465,10 @@ const TOOLS = [
             required: ['label'],
           },
         },
-        cost: { type: ['number', 'string'], description: 'Total cost as a number or numeric string.' },
+        cost: {
+          type: ['number', 'string'],
+          description: 'Total cost as a number or numeric string.',
+        },
         currency: { type: 'string', description: 'ISO currency code (e.g. "USD", "EUR").' },
         fundingSource: { type: 'string', description: 'Who paid for it.' },
         sources: {
@@ -364,7 +487,8 @@ const TOOLS = [
         },
         links: {
           type: 'array',
-          description: 'External resources documenting the deployment (GitHub repo, hosted PDF report, demo video, photo album). Use `sources` for citations backing claims; use `links` for supplementary artifacts.',
+          description:
+            'External resources documenting the deployment (GitHub repo, hosted PDF report, demo video, photo album). Use `sources` for citations backing claims; use `links` for supplementary artifacts.',
           items: {
             type: 'object',
             properties: { url: { type: 'string' }, title: { type: 'string' } },
@@ -379,7 +503,8 @@ const TOOLS = [
   {
     name: 'update_case_study',
     title: 'Update case study',
-    description: 'Edit an existing case study. Only the author or an admin may update. The `verified` flag is admin-only — non-admin callers cannot change it. Pass only the fields you want to change.',
+    description:
+      'Edit an existing case study. Only the author or an admin may update. The `verified` flag is admin-only — non-admin callers cannot change it. Pass only the fields you want to change.',
     annotations: UPDATE,
     inputSchema: {
       type: 'object',
@@ -437,12 +562,16 @@ const TOOLS = [
   {
     name: 'search_tags',
     title: 'Search tags',
-    description: 'Semantic tag search via embeddings — finds tags by meaning, not just substring. A query like "transportation" will surface "transit". Omit `query` to list all tags alphabetically. Falls back to case-insensitive substring match if the embedding service is unavailable. Useful before create_issue so you can reference existing tags rather than inventing strings.',
+    description:
+      'Semantic tag search via embeddings — finds tags by meaning, not just substring. A query like "transportation" will surface "transit". Omit `query` to list all tags alphabetically. Falls back to case-insensitive substring match if the embedding service is unavailable. Useful before create_issue so you can reference existing tags rather than inventing strings.',
     annotations: READ,
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Natural-language description of the tag. Omit for the full list.' },
+        query: {
+          type: 'string',
+          description: 'Natural-language description of the tag. Omit for the full list.',
+        },
         limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
       },
     },
@@ -451,29 +580,41 @@ const TOOLS = [
   {
     name: 'get_whitepaper',
     title: 'Get CommunityFix whitepaper',
-    description: 'Return the CommunityFix whitepaper (markdown): mission, problem statement, core principles, platform overview, incubation/revenue model, governance, and impact metrics. Read this to understand what the platform is for and how issues, solutions, and case studies are meant to be used before contributing.',
+    description:
+      'Return the CommunityFix whitepaper (markdown): mission, problem statement, core principles, platform overview, incubation/revenue model, governance, and impact metrics. Read this to understand what the platform is for and how issues, solutions, and case studies are meant to be used before contributing.',
     annotations: READ,
     inputSchema: { type: 'object', properties: {} },
     outputSchema: {
       type: 'object',
-      properties: { title: { type: 'string' }, url: { type: 'string' }, markdown: { type: 'string' } },
+      properties: {
+        title: { type: 'string' },
+        url: { type: 'string' },
+        markdown: { type: 'string' },
+      },
     },
   },
   {
     name: 'get_guide',
     title: 'Get authoring guide',
-    description: 'Read the authoring guides for contributing high-quality content (how to write a good issue, solution, or case study; how to choose tags; how to scope nodes). Call with no `slug` to list available guides; pass a `slug` (e.g. "writing") to get the full markdown. CONSULT THE RELEVANT GUIDE BEFORE create_issue / create_solution / create_case_study.',
+    description:
+      'Read the authoring guides for contributing high-quality content (how to write a good issue, solution, or case study; how to choose tags; how to scope nodes). Call with no `slug` to list available guides; pass a `slug` (e.g. "writing") to get the full markdown. CONSULT THE RELEVANT GUIDE BEFORE create_issue / create_solution / create_case_study.',
     annotations: READ,
     inputSchema: {
       type: 'object',
       properties: {
-        slug: { type: 'string', description: 'Guide slug to fetch (e.g. "writing"). Omit to list all available guides.' },
+        slug: {
+          type: 'string',
+          description: 'Guide slug to fetch (e.g. "writing"). Omit to list all available guides.',
+        },
       },
     },
     outputSchema: {
       type: 'object',
       properties: {
-        guides: { type: 'array', description: 'Present when no slug is passed: the list of available guides.' },
+        guides: {
+          type: 'array',
+          description: 'Present when no slug is passed: the list of available guides.',
+        },
         slug: { type: 'string' },
         title: { type: 'string' },
         description: { type: 'string' },
@@ -484,31 +625,64 @@ const TOOLS = [
   },
 ] as const
 
-type ToolName = typeof TOOLS[number]['name']
+type ToolName = (typeof TOOLS)[number]['name']
 
-interface ToolCtx { userId: string, clientId: string, event: H3Event }
-
-function auditWrite(tool: string, ctx: ToolCtx, data: unknown) {
-  const d = data as { id?: number, status?: string }
-  console.log('[mcp.audit]', JSON.stringify({ tool, userId: ctx.userId, clientId: ctx.clientId, id: d?.id ?? null, status: d?.status ?? 'ok' }))
+interface ToolCtx {
+  userId: string
+  clientId: string
+  event: H3Event
 }
 
-async function overToolRate(bucket: string, userId: string, cfg: { limit: number, windowSec: number }): Promise<string | null> {
-  const r = await rateLimit({ bucket, identifier: userId, limit: cfg.limit, windowSec: cfg.windowSec })
+function auditWrite(tool: string, ctx: ToolCtx, data: unknown) {
+  const d = data as { id?: number; status?: string }
+  console.log(
+    '[mcp.audit]',
+    JSON.stringify({
+      tool,
+      userId: ctx.userId,
+      clientId: ctx.clientId,
+      id: d?.id ?? null,
+      status: d?.status ?? 'ok',
+    }),
+  )
+}
+
+async function overToolRate(
+  bucket: string,
+  userId: string,
+  cfg: { limit: number; windowSec: number },
+): Promise<string | null> {
+  const r = await rateLimit({
+    bucket,
+    identifier: userId,
+    limit: cfg.limit,
+    windowSec: cfg.windowSec,
+  })
   if (r.allowed) return null
   const retry = Math.max(1, Math.ceil((r.resetAt.getTime() - Date.now()) / 1000))
   return `Rate limit exceeded (${cfg.limit} per ${cfg.windowSec}s for ${bucket}). Retry in ${retry}s.`
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- args validated by Zod below; per-case narrowing guards each contract
-async function callTool(name: string, rawArgs: any, ctx: ToolCtx): Promise<{ content: Array<{ type: 'text', text: string }>, structuredContent?: Record<string, unknown>, isError?: boolean }> {
+async function callTool(
+  name: string,
+  rawArgs: any,
+  ctx: ToolCtx,
+): Promise<{
+  content: Array<{ type: 'text'; text: string }>
+  structuredContent?: Record<string, unknown>
+  isError?: boolean
+}> {
   const wrap = (data: unknown) => {
     const content = [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
-    return (data && typeof data === 'object' && !Array.isArray(data))
+    return data && typeof data === 'object' && !Array.isArray(data)
       ? { content, structuredContent: data as Record<string, unknown> }
       : { content }
   }
-  const wrapErr = (msg: string) => ({ content: [{ type: 'text' as const, text: msg }], isError: true })
+  const wrapErr = (msg: string) => ({
+    content: [{ type: 'text' as const, text: msg }],
+    isError: true,
+  })
 
   // Validate against the published schema before doing any work.
   const schema = mcpToolInputSchemas[name as ToolName]
@@ -607,24 +781,31 @@ async function callTool(name: string, rawArgs: any, ctx: ToolCtx): Promise<{ con
       case 'get_guide': {
         if (args.slug) {
           const guide = await getGuide(ctx.event, args.slug)
-          return guide ? wrap(guide) : wrapErr(`Guide "${args.slug}" not found. Call get_guide with no slug to list available guides.`)
+          return guide
+            ? wrap(guide)
+            : wrapErr(
+                `Guide "${args.slug}" not found. Call get_guide with no slug to list available guides.`,
+              )
         }
         return wrap({ guides: await listGuides(ctx.event) })
       }
       default:
         return wrapErr(`Unknown tool: ${name}`)
     }
-  }
-  catch (err) {
-    const message = (err as { statusMessage?: string, message?: string })?.statusMessage
-      ?? (err as { message?: string })?.message
-      ?? 'Tool execution failed'
+  } catch (err) {
+    const message =
+      (err as { statusMessage?: string; message?: string })?.statusMessage ??
+      (err as { message?: string })?.message ??
+      'Tool execution failed'
     console.error(`[mcp.tools/call ${name}]`, err)
     return wrapErr(message)
   }
 }
 
-async function dispatch(req: JsonRpcRequest, ctx: ToolCtx): Promise<JsonRpcSuccess | JsonRpcFailure | null> {
+async function dispatch(
+  req: JsonRpcRequest,
+  ctx: ToolCtx,
+): Promise<JsonRpcSuccess | JsonRpcFailure | null> {
   const id = req.id ?? null
   const isNotification = req.id === undefined
 
@@ -646,7 +827,7 @@ async function dispatch(req: JsonRpcRequest, ctx: ToolCtx): Promise<JsonRpcSucce
     case 'tools/list':
       return isNotification ? null : ok(id, { tools: TOOLS })
     case 'tools/call': {
-      const params = (req.params ?? {}) as { name?: unknown, arguments?: unknown }
+      const params = (req.params ?? {}) as { name?: unknown; arguments?: unknown }
       const toolName = params.name
       const args = (params.arguments ?? {}) as Record<string, unknown>
       if (typeof toolName !== 'string') {
@@ -660,18 +841,27 @@ async function dispatch(req: JsonRpcRequest, ctx: ToolCtx): Promise<JsonRpcSucce
     case 'prompts/list':
       return isNotification ? null : ok(id, { prompts: [] })
     default:
-      return isNotification ? null : fail(id, ERR.METHOD_NOT_FOUND, `Method ${req.method} not found`)
+      return isNotification
+        ? null
+        : fail(id, ERR.METHOD_NOT_FOUND, `Method ${req.method} not found`)
   }
 }
 
 export default defineEventHandler(async (event) => {
   const authed = await authenticateBearer(event)
   if (!authed) {
-    setHeader(event, 'www-authenticate', `Bearer realm="MCP", resource_metadata="${getOrigin(event)}/.well-known/oauth-protected-resource"`)
+    setHeader(
+      event,
+      'www-authenticate',
+      `Bearer realm="MCP", resource_metadata="${getOrigin(event)}/.well-known/oauth-protected-resource"`,
+    )
     throw createError({
       statusCode: 401,
       statusMessage: 'Unauthorized',
-      data: { error: 'invalid_token', error_description: 'A valid OAuth access token is required.' },
+      data: {
+        error: 'invalid_token',
+        error_description: 'A valid OAuth access token is required.',
+      },
     })
   }
 
@@ -684,8 +874,7 @@ export default defineEventHandler(async (event) => {
   let body: unknown
   try {
     body = await readBody(event)
-  }
-  catch {
+  } catch {
     return fail(null, ERR.PARSE, 'Invalid JSON body')
   }
 
@@ -695,8 +884,19 @@ export default defineEventHandler(async (event) => {
 
   const responses: Array<JsonRpcSuccess | JsonRpcFailure> = []
   for (const item of batch) {
-    if (!item || typeof item !== 'object' || (item as JsonRpcRequest).jsonrpc !== '2.0' || typeof (item as JsonRpcRequest).method !== 'string') {
-      responses.push(fail((item as JsonRpcRequest)?.id ?? null, ERR.INVALID_REQUEST, 'Malformed JSON-RPC request'))
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      (item as JsonRpcRequest).jsonrpc !== '2.0' ||
+      typeof (item as JsonRpcRequest).method !== 'string'
+    ) {
+      responses.push(
+        fail(
+          (item as JsonRpcRequest)?.id ?? null,
+          ERR.INVALID_REQUEST,
+          'Malformed JSON-RPC request',
+        ),
+      )
       continue
     }
     const out = await dispatch(item as JsonRpcRequest, ctx)

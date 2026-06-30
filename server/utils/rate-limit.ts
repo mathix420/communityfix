@@ -49,32 +49,44 @@ export async function rateLimit(opts: {
 
 /** Best-effort caller identity for unauthenticated endpoints. */
 export function clientIp(event: H3Event): string {
-  return getRequestHeader(event, 'cf-connecting-ip')
-    ?? getRequestIP(event, { xForwardedFor: true })
-    ?? 'unknown'
+  return (
+    getRequestHeader(event, 'cf-connecting-ip') ??
+    getRequestIP(event, { xForwardedFor: true }) ??
+    'unknown'
+  )
 }
 
 /**
  * Enforce a rate limit, setting standard `RateLimit-*` headers and throwing a
  * 429 with `Retry-After` when the window is exhausted. Returns on success.
  */
-export async function assertRateLimit(event: H3Event, opts: {
-  bucket: string
-  identifier: string
-  limit: number
-  windowSec: number
-}): Promise<void> {
+export async function assertRateLimit(
+  event: H3Event,
+  opts: {
+    bucket: string
+    identifier: string
+    limit: number
+    windowSec: number
+  },
+): Promise<void> {
   const result = await rateLimit(opts)
   setHeader(event, 'RateLimit-Limit', String(result.limit))
   setHeader(event, 'RateLimit-Remaining', String(result.remaining))
-  setHeader(event, 'RateLimit-Reset', String(Math.max(0, Math.ceil((result.resetAt.getTime() - Date.now()) / 1000))))
+  setHeader(
+    event,
+    'RateLimit-Reset',
+    String(Math.max(0, Math.ceil((result.resetAt.getTime() - Date.now()) / 1000))),
+  )
   if (!result.allowed) {
     const retryAfter = Math.max(1, Math.ceil((result.resetAt.getTime() - Date.now()) / 1000))
     setHeader(event, 'Retry-After', retryAfter)
     throw createError({
       statusCode: 429,
       statusMessage: 'Too Many Requests',
-      data: { error: 'rate_limited', error_description: `Rate limit exceeded. Retry in ${retryAfter}s.` },
+      data: {
+        error: 'rate_limited',
+        error_description: `Rate limit exceeded. Retry in ${retryAfter}s.`,
+      },
     })
   }
 }

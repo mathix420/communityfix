@@ -22,8 +22,12 @@ export interface GuideSummary {
 export async function listGuides(event: H3Event): Promise<GuideSummary[]> {
   const docs = await queryCollection(event, 'guides').all()
   return docs
-    .map(d => ({ slug: slugFromPath(d.path), title: d.title ?? null, description: d.description ?? null }))
-    .filter(g => g.slug.length > 0)
+    .map((d) => ({
+      slug: slugFromPath(d.path),
+      title: d.title ?? null,
+      description: d.description ?? null,
+    }))
+    .filter((g) => g.slug.length > 0)
 }
 
 /** Fetch a single guide's markdown by slug (e.g. "writing"). Null if missing. */

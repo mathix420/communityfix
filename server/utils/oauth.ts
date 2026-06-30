@@ -141,14 +141,19 @@ export async function rotateRefreshToken(refreshToken: string) {
       where: and(eq(oauthTokens.refreshHash, refreshHash), isNotNull(oauthTokens.revokedAt)),
     })
     if (reused) {
-      await db.update(oauthTokens)
+      await db
+        .update(oauthTokens)
         .set({ revokedAt: new Date() })
-        .where(and(
-          eq(oauthTokens.clientId, reused.clientId),
-          eq(oauthTokens.userId, reused.userId),
-          isNull(oauthTokens.revokedAt),
-        ))
-      console.warn(`[oauth] refresh-token reuse detected — revoked token family for client=${reused.clientId} user=${reused.userId}`)
+        .where(
+          and(
+            eq(oauthTokens.clientId, reused.clientId),
+            eq(oauthTokens.userId, reused.userId),
+            isNull(oauthTokens.revokedAt),
+          ),
+        )
+      console.warn(
+        `[oauth] refresh-token reuse detected — revoked token family for client=${reused.clientId} user=${reused.userId}`,
+      )
     }
     return null
   }
@@ -173,12 +178,14 @@ export async function revokeToken(raw: string): Promise<boolean> {
   const db = useDB()
   const hash = await sha256Hex(raw)
   const now = new Date()
-  const asAccess = await db.update(oauthTokens)
+  const asAccess = await db
+    .update(oauthTokens)
     .set({ revokedAt: now })
     .where(and(eq(oauthTokens.tokenHash, hash), isNull(oauthTokens.revokedAt)))
     .returning({ tokenHash: oauthTokens.tokenHash })
   if (asAccess.length) return true
-  const asRefresh = await db.update(oauthTokens)
+  const asRefresh = await db
+    .update(oauthTokens)
     .set({ revokedAt: now })
     .where(and(eq(oauthTokens.refreshHash, hash), isNull(oauthTokens.revokedAt)))
     .returning({ tokenHash: oauthTokens.tokenHash })
@@ -218,14 +225,18 @@ export async function purgeExpired() {
   const now = new Date()
   const refreshCutoff = new Date(now.getTime() - REFRESH_TOKEN_TTL_SEC * 1000)
 
-  const codes = await db.delete(oauthCodes)
+  const codes = await db
+    .delete(oauthCodes)
     .where(lte(oauthCodes.expiresAt, now))
     .returning({ code: oauthCodes.code })
-  const tokens = await db.delete(oauthTokens)
-    .where(or(
-      lte(oauthTokens.expiresAt, refreshCutoff),
-      and(isNotNull(oauthTokens.revokedAt), lte(oauthTokens.revokedAt, refreshCutoff)),
-    ))
+  const tokens = await db
+    .delete(oauthTokens)
+    .where(
+      or(
+        lte(oauthTokens.expiresAt, refreshCutoff),
+        and(isNotNull(oauthTokens.revokedAt), lte(oauthTokens.revokedAt, refreshCutoff)),
+      ),
+    )
     .returning({ tokenHash: oauthTokens.tokenHash })
 
   return { codes: codes.length, tokens: tokens.length }
@@ -237,9 +248,11 @@ export async function purgeExpired() {
 // against cross-site forgery beyond the session cookie's SameSite protection.
 
 function consentSecret(): string {
-  const secret = (useRuntimeConfig() as { session?: { password?: string } }).session?.password
-    ?? process.env.NUXT_SESSION_PASSWORD
-  if (!secret) throw createError({ statusCode: 500, statusMessage: 'Session secret is not configured' })
+  const secret =
+    (useRuntimeConfig() as { session?: { password?: string } }).session?.password ??
+    process.env.NUXT_SESSION_PASSWORD
+  if (!secret)
+    throw createError({ statusCode: 500, statusMessage: 'Session secret is not configured' })
   return secret
 }
 
@@ -252,7 +265,7 @@ async function hmacHex(secret: string, data: string): Promise<string> {
     ['sign'],
   )
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))
-  return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('')
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 export interface ConsentBinding {

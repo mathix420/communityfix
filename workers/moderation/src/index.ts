@@ -1,17 +1,34 @@
-import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep, type WorkflowStepConfig } from 'cloudflare:workers'
+import {
+  WorkflowEntrypoint,
+  type WorkflowEvent,
+  type WorkflowStep,
+  type WorkflowStepConfig,
+} from 'cloudflare:workers'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { createDb, type Ctx } from './lib'
 import { runStep } from './steps'
 import {
-  prepareIssue, finalizeIssue, applyIssueCurate,
-  prepareStructure, applyStructure,
-  prepareCaseStudy, rejectCaseStudy, finalizeCaseStudy,
-  resolveLocation, applyLocationFix,
+  prepareIssue,
+  finalizeIssue,
+  applyIssueCurate,
+  prepareStructure,
+  applyStructure,
+  prepareCaseStudy,
+  rejectCaseStudy,
+  finalizeCaseStudy,
+  resolveLocation,
+  applyLocationFix,
   CASE_STUDY_DUPLICATE_THRESHOLD,
-  type IssuePrep, type ModerationResult, type TagResult, type SdgResult,
-  type StructureVerdict, type CaseStudyModeration, type CurationResult,
-  type IssueCurationResult, type LocationTarget,
+  type IssuePrep,
+  type ModerationResult,
+  type TagResult,
+  type SdgResult,
+  type StructureVerdict,
+  type CaseStudyModeration,
+  type CurationResult,
+  type IssueCurationResult,
+  type LocationTarget,
 } from './pipelines'
 
 interface Env {
@@ -44,11 +61,9 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
 
     if (kind === 'issue') {
       await this.reviewIssue(ctx, step, id)
-    }
-    else if (kind === 'case-study') {
+    } else if (kind === 'case-study') {
       await this.reviewCaseStudy(ctx, step, id)
-    }
-    else if (kind === 'structure') {
+    } else if (kind === 'structure') {
       await this.reviewStructure(ctx, step, id)
     }
   }
@@ -58,12 +73,35 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     if (!prep) return
 
     const [moderation, tagResult, sdgResult] = await Promise.all([
-      step.do('moderate', STEP, () => runStep<ModerationResult>(ctx.anthropic, 'issue.moderate', { issueText: prep.issueText, duplicateContext: prep.duplicateContext }, `issue ${id}`)),
-      step.do('classify-tags', STEP, () => runStep<TagResult>(ctx.anthropic, 'issue.classify-tags', { issueText: prep.issueText, tagList: prep.tagList }, `issue ${id}`)),
-      step.do('map-sdgs', STEP, () => runStep<SdgResult>(ctx.anthropic, 'issue.map-sdgs', { issueText: prep.issueText, sdgList: prep.sdgList }, `issue ${id}`)),
+      step.do('moderate', STEP, () =>
+        runStep<ModerationResult>(
+          ctx.anthropic,
+          'issue.moderate',
+          { issueText: prep.issueText, duplicateContext: prep.duplicateContext },
+          `issue ${id}`,
+        ),
+      ),
+      step.do('classify-tags', STEP, () =>
+        runStep<TagResult>(
+          ctx.anthropic,
+          'issue.classify-tags',
+          { issueText: prep.issueText, tagList: prep.tagList },
+          `issue ${id}`,
+        ),
+      ),
+      step.do('map-sdgs', STEP, () =>
+        runStep<SdgResult>(
+          ctx.anthropic,
+          'issue.map-sdgs',
+          { issueText: prep.issueText, sdgList: prep.sdgList },
+          `issue ${id}`,
+        ),
+      ),
     ])
 
-    const { approved } = await step.do('finalize', STEP, () => finalizeIssue(ctx, prep, moderation, tagResult, sdgResult))
+    const { approved } = await step.do('finalize', STEP, () =>
+      finalizeIssue(ctx, prep, moderation, tagResult, sdgResult),
+    )
     if (!approved) return
 
     await this.enrichIssue(ctx, step, prep)
@@ -73,23 +111,43 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
   private async enrichIssue(ctx: Ctx, step: WorkflowStep, prep: IssuePrep) {
     const id = prep.issue.id
 
-    const curateArm = step.do('curate', STEP, () => runStep<IssueCurationResult>(ctx.anthropic, 'issue.curate', {
-      kind: prep.issue.type,
-      title: prep.title,
-      summary: prep.summary,
-      description: prep.description ?? 'none',
-    }, `issue ${id}`))
-      .then(curate => step.do('apply-curate', STEP, () => applyIssueCurate(ctx, prep, curate)))
-      .catch(err => console.error(`[review-issue] curation failed for issue ${id}:`, err))
+    const curateArm = step
+      .do('curate', STEP, () =>
+        runStep<IssueCurationResult>(
+          ctx.anthropic,
+          'issue.curate',
+          {
+            kind: prep.issue.type,
+            title: prep.title,
+            summary: prep.summary,
+            description: prep.description ?? 'none',
+          },
+          `issue ${id}`,
+        ),
+      )
+      .then((curate) => step.do('apply-curate', STEP, () => applyIssueCurate(ctx, prep, curate)))
+      .catch((err) => console.error(`[review-issue] curation failed for issue ${id}:`, err))
 
     let locationArm: Promise<unknown> = Promise.resolve()
     const loc = prep.location
     const locName = prep.locationName
     if (loc && locName) {
-      const target: LocationTarget = { kind: 'issue', id, locationName: locName, scale: prep.scale, location: loc, authorId: prep.issue.authorId }
-      locationArm = step.do('resolve-location', STEP, () => resolveLocation(ctx, target, prep.issueText))
-        .then(verdict => step.do('apply-location', STEP, () => applyLocationFix(ctx, target, verdict)))
-        .catch(err => console.error(`[review-issue] location resolve failed for issue ${id}:`, err))
+      const target: LocationTarget = {
+        kind: 'issue',
+        id,
+        locationName: locName,
+        scale: prep.scale,
+        location: loc,
+        authorId: prep.issue.authorId,
+      }
+      locationArm = step
+        .do('resolve-location', STEP, () => resolveLocation(ctx, target, prep.issueText))
+        .then((verdict) =>
+          step.do('apply-location', STEP, () => applyLocationFix(ctx, target, verdict)),
+        )
+        .catch((err) =>
+          console.error(`[review-issue] location resolve failed for issue ${id}:`, err),
+        )
     }
 
     await Promise.all([curateArm, locationArm])
@@ -98,13 +156,20 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
   private async reviewStructure(ctx: Ctx, step: WorkflowStep, id: number) {
     const prep = await step.do('structure-prepare', STEP, () => prepareStructure(ctx, id))
     if (!prep) return
-    const verdict = await step.do('structure-verdict', STEP, () => runStep<StructureVerdict>(ctx.anthropic, 'structure.verdict', {
-      issueId: String(prep.issue.id),
-      issueType: prep.issue.type,
-      parentId: prep.issue.parentId != null ? String(prep.issue.parentId) : 'none',
-      issueText: prep.issueText,
-      contextLines: prep.contextLines,
-    }, `structure ${id}`))
+    const verdict = await step.do('structure-verdict', STEP, () =>
+      runStep<StructureVerdict>(
+        ctx.anthropic,
+        'structure.verdict',
+        {
+          issueId: String(prep.issue.id),
+          issueType: prep.issue.type,
+          parentId: prep.issue.parentId != null ? String(prep.issue.parentId) : 'none',
+          issueText: prep.issueText,
+          contextLines: prep.contextLines,
+        },
+        `structure ${id}`,
+      ),
+    )
     await step.do('structure-apply', STEP, () => applyStructure(ctx, prep, verdict))
   }
 
@@ -115,37 +180,67 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     // Reject a near-duplicate before spending a moderation call: a case study that
     // re-records an approved deployment under the same solution is a duplicate, not
     // a fresh submission. Mirrors the issue/solution dedup hard-check.
-    const duplicate = prep.similar.find(s => s.similarity >= CASE_STUDY_DUPLICATE_THRESHOLD)
+    const duplicate = prep.similar.find((s) => s.similarity >= CASE_STUDY_DUPLICATE_THRESHOLD)
     if (duplicate) {
-      await step.do('reject', STEP, () => rejectCaseStudy(ctx, prep.cs, {
-        approved: false,
-        isSpam: false,
-        reason: `Near-duplicate of existing case study #${duplicate.id} (${(duplicate.similarity * 100).toFixed(0)}% similarity)`,
-        duplicateOfId: duplicate.id,
-      }))
+      await step.do('reject', STEP, () =>
+        rejectCaseStudy(ctx, prep.cs, {
+          approved: false,
+          isSpam: false,
+          reason: `Near-duplicate of existing case study #${duplicate.id} (${(duplicate.similarity * 100).toFixed(0)}% similarity)`,
+          duplicateOfId: duplicate.id,
+        }),
+      )
       return
     }
 
-    const moderation = await step.do('moderate', STEP, () => runStep<CaseStudyModeration>(ctx.anthropic, 'case-study.moderate', { caseStudyText: prep.caseStudyText }, `case-study ${id}`))
+    const moderation = await step.do('moderate', STEP, () =>
+      runStep<CaseStudyModeration>(
+        ctx.anthropic,
+        'case-study.moderate',
+        { caseStudyText: prep.caseStudyText },
+        `case-study ${id}`,
+      ),
+    )
     if (!moderation.approved) {
       await step.do('reject', STEP, () => rejectCaseStudy(ctx, prep.cs, moderation))
       return
     }
 
     let locationArm: Promise<unknown> = Promise.resolve()
-    const loc = prep.cs.location as { x: number, y: number } | null
+    const loc = prep.cs.location as { x: number; y: number } | null
     if (loc) {
-      const target: LocationTarget = { kind: 'case-study', id, locationName: prep.cs.locationName, scale: prep.cs.scale, location: loc, authorId: prep.cs.authorId }
-      locationArm = step.do('resolve-location', STEP, () => resolveLocation(ctx, target, prep.caseStudyText))
-        .then(verdict => step.do('apply-location', STEP, () => applyLocationFix(ctx, target, verdict)))
-        .catch(err => console.error(`[review-case-study] location resolve failed for case study ${id}:`, err))
+      const target: LocationTarget = {
+        kind: 'case-study',
+        id,
+        locationName: prep.cs.locationName,
+        scale: prep.cs.scale,
+        location: loc,
+        authorId: prep.cs.authorId,
+      }
+      locationArm = step
+        .do('resolve-location', STEP, () => resolveLocation(ctx, target, prep.caseStudyText))
+        .then((verdict) =>
+          step.do('apply-location', STEP, () => applyLocationFix(ctx, target, verdict)),
+        )
+        .catch((err) =>
+          console.error(`[review-case-study] location resolve failed for case study ${id}:`, err),
+        )
     }
 
     const [curated] = await Promise.all([
-      step.do('curate', STEP, () => runStep<CurationResult>(ctx.anthropic, 'case-study.curate', { parentContext: prep.parentContext, originalJson: prep.originalJson }, `case-study ${id}`)),
+      step.do('curate', STEP, () =>
+        runStep<CurationResult>(
+          ctx.anthropic,
+          'case-study.curate',
+          { parentContext: prep.parentContext, originalJson: prep.originalJson },
+          `case-study ${id}`,
+        ),
+      ),
       locationArm,
     ])
-    await step.do('finalize', STEP, () => finalizeCaseStudy(ctx, prep.cs, prep.solution, moderation, curated))
+    await step.do('finalize', STEP, () =>
+      finalizeCaseStudy(ctx, prep.cs, prep.solution, moderation, curated),
+    )
   }
 }
 

@@ -12,7 +12,12 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'cache-control', 'no-store')
   setHeader(event, 'pragma', 'no-cache')
 
-  await assertRateLimit(event, { bucket: 'oauth_revoke', identifier: clientIp(event), limit: 60, windowSec: 300 })
+  await assertRateLimit(event, {
+    bucket: 'oauth_revoke',
+    identifier: clientIp(event),
+    limit: 60,
+    windowSec: 300,
+  })
 
   const body = await readBody<RevokeBody>(event)
   // RFC 7009 §2.2: the endpoint responds 200 whether or not the token existed,

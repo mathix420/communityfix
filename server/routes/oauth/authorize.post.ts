@@ -1,4 +1,9 @@
-import { getClient, issueAuthorizationCode, mcpResource, verifyConsentToken } from '../../utils/oauth'
+import {
+  getClient,
+  issueAuthorizationCode,
+  mcpResource,
+  verifyConsentToken,
+} from '../../utils/oauth'
 
 function redirectBack(redirectUri: string, params: Record<string, string>) {
   const u = new URL(redirectUri)
@@ -31,7 +36,11 @@ export default defineEventHandler(async (event) => {
   // CSRF: the consent form carries a token bound to this exact
   // (user, client, redirect). A forged cross-site POST can't reproduce it.
   const csrfOk = await verifyConsentToken(csrf, { userId: session.user.id, clientId, redirectUri })
-  if (!csrfOk) throw createError({ statusCode: 400, statusMessage: 'Invalid or missing consent token. Restart the authorization flow.' })
+  if (!csrfOk)
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid or missing consent token. Restart the authorization flow.',
+    })
 
   if (decision !== 'approve') {
     return sendRedirect(
