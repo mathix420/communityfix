@@ -20,7 +20,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Can only request info on pending issues' })
   }
 
-  await db.update(issues)
+  await db
+    .update(issues)
     .set({
       infoRequest: body.question.trim(),
       infoRequestedAt: new Date(),

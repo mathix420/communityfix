@@ -24,7 +24,6 @@ try {
     }
   }
   console.log(`Sanitized ${changed} / ${rows.length} rows.`)
-}
-finally {
+} finally {
   await client.end({ timeout: 5 })
 }

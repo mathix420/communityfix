@@ -10,7 +10,9 @@ import { join } from 'node:path'
 //   3. Apply each .sql file in migrations/custom/ in alphabetical order
 // Reads NUXT_DATABASE_URL — for Neon use the *direct* (non-pooled) URL.
 
-const url = process.env.NUXT_DATABASE_URL || 'postgres://communityfix:communityfix@localhost:5432/communityfix'
+const url =
+  process.env.NUXT_DATABASE_URL ||
+  'postgres://communityfix:communityfix@localhost:5432/communityfix'
 const client = postgres(url, { max: 1 })
 const db = drizzle(client)
 
@@ -34,26 +36,23 @@ try {
   // 3. Run custom migrations (indexes, generated columns, CHECK constraints)
   const customDir = join(migrationsFolder, 'custom')
   try {
-    const files = (await readdir(customDir)).filter(f => f.endsWith('.sql')).sort()
+    const files = (await readdir(customDir)).filter((f) => f.endsWith('.sql')).sort()
     for (const file of files) {
       const sql = await readFile(join(customDir, file), 'utf-8')
       console.log(`Running custom migration: ${file}`)
       await client.unsafe(sql)
     }
     console.log('Custom migrations applied.')
-  }
-  catch (err: any) {
+  } catch (err: any) {
     if (err.code === 'ENOENT') {
       console.log('No custom migrations directory found, skipping.')
-    }
-    else {
+    } else {
       throw err
     }
   }
 
   console.log('Done.')
-}
-catch (err) {
+} catch (err) {
   console.error('Migration failed:', err)
   await client.end({ timeout: 5 })
   process.exit(1)

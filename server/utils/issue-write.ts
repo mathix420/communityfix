@@ -37,7 +37,7 @@ export function sanitizeSummary(input: string): string {
   return s
 }
 
-export type Link = { url: string, title?: string }
+export type Link = { url: string; title?: string }
 
 export function sanitizeLinks(input: unknown): Link[] | null {
   if (!Array.isArray(input)) return null
@@ -96,30 +96,36 @@ export async function createIssue(authorId: string, input: CreateIssueInput) {
   if (type === 'solution' && parentType === 'solution') {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Solutions cannot be nested under other solutions. Create a case study to document a concrete implementation.',
+      statusMessage:
+        'Solutions cannot be nested under other solutions. Create a case study to document a concrete implementation.',
     })
   }
 
-  const rows = await db.insert(issues).values({
-    title,
-    summary: sanitizeSummary(summary),
-    description: input.description?.toString().trim() || null,
-    parentId: input.parentId ?? null,
-    authorId,
-    type,
-    locationName: input.locationName?.toString().trim() || null,
-    location: (input.latitude != null && input.longitude != null)
-      ? { x: input.longitude, y: input.latitude }
-      : null,
-    scale: input.scale ?? null,
-    links: type === 'solution' ? sanitizeLinks(input.links) : null,
-  }).returning()
+  const rows = await db
+    .insert(issues)
+    .values({
+      title,
+      summary: sanitizeSummary(summary),
+      description: input.description?.toString().trim() || null,
+      parentId: input.parentId ?? null,
+      authorId,
+      type,
+      locationName: input.locationName?.toString().trim() || null,
+      location:
+        input.latitude != null && input.longitude != null
+          ? { x: input.longitude, y: input.latitude }
+          : null,
+      scale: input.scale ?? null,
+      links: type === 'solution' ? sanitizeLinks(input.links) : null,
+    })
+    .returning()
   const created = rows[0]!
 
   if (input.parentId) {
-    const counter = type === 'solution'
-      ? { solutionCount: sql`${issues.solutionCount} + 1` }
-      : { subIssueCount: sql`${issues.subIssueCount} + 1` }
+    const counter =
+      type === 'solution'
+        ? { solutionCount: sql`${issues.solutionCount} + 1` }
+        : { subIssueCount: sql`${issues.subIssueCount} + 1` }
     await db.update(issues).set(counter).where(eq(issues.id, input.parentId))
   }
 
@@ -140,10 +146,15 @@ export interface UpdateIssueInput {
   links?: Link[] | null
 }
 
-export async function updateIssue(userId: string, input: UpdateIssueInput, expectedType?: IssueType) {
+export async function updateIssue(
+  userId: string,
+  input: UpdateIssueInput,
+  expectedType?: IssueType,
+) {
   const db = useDB()
   const existing = await db.query.issues.findFirst({ where: eq(issues.id, input.id) })
-  if (!existing) throw createError({ statusCode: 404, statusMessage: `Issue ${input.id} not found` })
+  if (!existing)
+    throw createError({ statusCode: 404, statusMessage: `Issue ${input.id} not found` })
   if (expectedType && existing.type !== expectedType) {
     throw createError({
       statusCode: 400,
@@ -153,10 +164,16 @@ export async function updateIssue(userId: string, input: UpdateIssueInput, expec
 
   // Admins can edit anyone's content (moderation, fixups). The author's own
   // edit still goes through the ban check; admin edits skip it.
-  const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } })
+  const me = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { email: true },
+  })
   const isAdmin = isAdminEmail(me?.email)
   if (existing.authorId !== userId && !isAdmin) {
-    throw createError({ statusCode: 403, statusMessage: 'Only the author or an admin can update this issue' })
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Only the author or an admin can update this issue',
+    })
   }
   if (!isAdmin) await assertNotBanned(userId)
 
@@ -169,21 +186,23 @@ export async function updateIssue(userId: string, input: UpdateIssueInput, expec
   if (input.solutionStatus !== undefined && existing.type === 'solution') {
     patch.solutionStatus = input.solutionStatus
   }
-  if (input.locationName !== undefined) patch.locationName = input.locationName?.toString().trim() || null
+  if (input.locationName !== undefined)
+    patch.locationName = input.locationName?.toString().trim() || null
   if (input.scale !== undefined) patch.scale = input.scale
   if (input.latitude !== undefined || input.longitude !== undefined) {
     const lat = input.latitude ?? (existing.location as { y: number } | null)?.y
     const lng = input.longitude ?? (existing.location as { x: number } | null)?.x
-    patch.location = (lat != null && lng != null) ? { x: lng, y: lat } : null
+    patch.location = lat != null && lng != null ? { x: lng, y: lat } : null
   }
   if (input.links !== undefined && existing.type === 'solution') {
     patch.links = sanitizeLinks(input.links)
   }
 
   // Content edits send the row back through moderation.
-  const contentChanged = (patch.title && patch.title !== existing.title)
-    || (patch.summary && patch.summary !== existing.summary)
-    || (patch.description !== undefined && patch.description !== existing.description)
+  const contentChanged =
+    (patch.title && patch.title !== existing.title) ||
+    (patch.summary && patch.summary !== existing.summary) ||
+    (patch.description !== undefined && patch.description !== existing.description)
   if (contentChanged) {
     patch.status = 'pending'
     patch.rejectionReason = null
@@ -194,9 +213,10 @@ export async function updateIssue(userId: string, input: UpdateIssueInput, expec
   const rejectedToPending = contentChanged && existing.status === 'rejected' && existing.parentId
   const rows = await db.update(issues).set(patch).where(eq(issues.id, input.id)).returning()
   if (rejectedToPending) {
-    const counter = existing.type === 'solution'
-      ? { solutionCount: sql`${issues.solutionCount} + 1` }
-      : { subIssueCount: sql`${issues.subIssueCount} + 1` }
+    const counter =
+      existing.type === 'solution'
+        ? { solutionCount: sql`${issues.solutionCount} + 1` }
+        : { subIssueCount: sql`${issues.subIssueCount} + 1` }
     await db.update(issues).set(counter).where(eq(issues.id, existing.parentId!))
   }
   return { issue: rows[0]!, contentChanged }

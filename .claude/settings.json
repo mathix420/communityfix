@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git ls-files -z -m -o --exclude-standard -- '*.vue' '*.ts' '*.mts' '*.cts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.jsx' | xargs -0 -r bunx vize fmt --write"
+          }
+        ]
+      }
+    ]
+  }
+}

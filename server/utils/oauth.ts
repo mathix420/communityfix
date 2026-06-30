@@ -19,7 +19,7 @@ export function getOrigin(event: H3Event): string {
 export async function sha256Hex(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input)
   const digest = await crypto.subtle.digest('SHA-256', buf)
-  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('')
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 export function randomToken(bytes = 32): string {
@@ -30,11 +30,17 @@ export function randomToken(bytes = 32): string {
   return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-export async function verifyPkce(verifier: string, challenge: string, method: string): Promise<boolean> {
+export async function verifyPkce(
+  verifier: string,
+  challenge: string,
+  method: string,
+): Promise<boolean> {
   if (method !== 'S256') return false
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))
   const computed = btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
   return computed === challenge
 }
 
@@ -69,13 +75,16 @@ export async function issueAuthorizationCode(params: {
 export async function consumeAuthorizationCode(code: string) {
   const db = useDB()
   // Single-use: marked consumed in the same UPDATE so a replay matches nothing.
-  const rows = await db.update(oauthCodes)
+  const rows = await db
+    .update(oauthCodes)
     .set({ consumedAt: new Date() })
-    .where(and(
-      eq(oauthCodes.code, code),
-      isNull(oauthCodes.consumedAt),
-      gt(oauthCodes.expiresAt, new Date()),
-    ))
+    .where(
+      and(
+        eq(oauthCodes.code, code),
+        isNull(oauthCodes.consumedAt),
+        gt(oauthCodes.expiresAt, new Date()),
+      ),
+    )
     .returning()
   return rows[0] ?? null
 }
@@ -85,7 +94,7 @@ export async function issueAccessToken(params: {
   userId: string
   scope: string
   withRefresh?: boolean
-}): Promise<{ accessToken: string, refreshToken: string | null, expiresIn: number }> {
+}): Promise<{ accessToken: string; refreshToken: string | null; expiresIn: number }> {
   const db = useDB()
   const accessToken = randomToken(32)
   const refreshToken = params.withRefresh ? randomToken(32) : null
@@ -112,7 +121,8 @@ export async function rotateRefreshToken(refreshToken: string) {
   })
   if (!row) return null
 
-  await db.update(oauthTokens)
+  await db
+    .update(oauthTokens)
     .set({ revokedAt: new Date() })
     .where(eq(oauthTokens.tokenHash, row.tokenHash))
 

@@ -2,7 +2,9 @@
 const route = useRoute()
 const slug = route.params.slug as string
 
-const { data: page } = await useAsyncData(`guides-${slug}`, () => queryCollection('guides').path(`/guide/${slug}`).first())
+const { data: page } = await useAsyncData(`guides-${slug}`, () =>
+  queryCollection('guides').path(`/guide/${slug}`).first(),
+)
 
 useSeoMeta({
   title: page.value?.title || 'Guides - CommunityFix',
@@ -12,7 +14,8 @@ useSeoMeta({
   ogType: 'article',
   twitterCard: 'summary',
   twitterTitle: page.value?.title || 'Guides - CommunityFix',
-  twitterDescription: page.value?.description || 'Guides and best practices for using CommunityFix.',
+  twitterDescription:
+    page.value?.description || 'Guides and best practices for using CommunityFix.',
 })
 
 defineOgImage('Editorial', {
@@ -21,9 +24,15 @@ defineOgImage('Editorial', {
 })
 
 // Optional frontmatter; flows into Article schema only when declared.
-const guideMeta = computed(() => page.value as
-  | { datePublished?: string, dateModified?: string, date?: string, author?: string }
-  | null)
+const guideMeta = computed(
+  () =>
+    page.value as {
+      datePublished?: string
+      dateModified?: string
+      date?: string
+      author?: string
+    } | null,
+)
 
 const guideUrl = computed(() => `${SITE_URL}/guide/${slug}`)
 
@@ -47,11 +56,7 @@ useJsonLd([
 <template>
   <AppContainer>
     <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
-    <ContentRenderer
-      v-if="page"
-      :value="page"
-      class="prose"
-    />
+    <ContentRenderer v-if="page" class="prose" :value="page" />
     <div v-else>
       Not found
     </div>

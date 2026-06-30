@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   // Split counts by kind: peer 'endorsement' rows are tallied into the
   // endorsementCount; presence of a 'verification' row flips isVerified.
   // Mirrors the same shape returned by /api/user/[id].
-  const ids = rows.map(r => r.id)
+  const ids = rows.map((r) => r.id)
   const counts = ids.length
     ? await db
         .select({
@@ -30,8 +30,7 @@ export default defineEventHandler(async (event) => {
   for (const c of counts) {
     if (c.kind === 'verification') {
       if (Number(c.n) > 0) verifiedSet.add(c.qualificationId)
-    }
-    else {
+    } else {
       countMap.set(c.qualificationId, (countMap.get(c.qualificationId) ?? 0) + Number(c.n))
     }
   }
@@ -39,7 +38,7 @@ export default defineEventHandler(async (event) => {
   // Admins' own credentials are auto-verified (matches /api/user/[id]).
   const ownerIsAdmin = isAdminEmail(session.user.email)
 
-  return rows.map(r => ({
+  return rows.map((r) => ({
     id: r.id,
     title: r.title,
     area: r.area,

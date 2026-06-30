@@ -1,9 +1,12 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'error'
-}>(), {
-  variant: 'default',
-})
+withDefaults(
+  defineProps<{
+    variant?: 'default' | 'primary' | 'success' | 'warning' | 'error'
+  }>(),
+  {
+    variant: 'default',
+  },
+)
 
 const variantClasses = {
   default: 'bg-gray-100 text-gray-600',
@@ -15,12 +18,7 @@ const variantClasses = {
 </script>
 
 <template>
-  <span
-    :class="[
-      'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono',
-      variantClasses[variant],
-    ]"
-  >
+  <span :class="['inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono', variantClasses[variant]]">
     <slot />
   </span>
 </template>

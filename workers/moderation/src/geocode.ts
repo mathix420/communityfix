@@ -23,11 +23,16 @@ export function createGeocodeTool(userAgent: string): GeocodeTool {
     byPlaceId,
     definition: {
       name: 'geocode',
-      description: 'Search OpenStreetMap (Nominatim) for places matching a free-text query. Returns up to 5 candidates, each with a place_id, display_name, type, and centroid lat/lon. Call this multiple times with different phrasings (add the country, use the region/biome/landmark name, drop qualifiers) to surface the candidate whose real-world area best matches the document. Then submit the place_id of that candidate.',
+      description:
+        'Search OpenStreetMap (Nominatim) for places matching a free-text query. Returns up to 5 candidates, each with a place_id, display_name, type, and centroid lat/lon. Call this multiple times with different phrasings (add the country, use the region/biome/landmark name, drop qualifiers) to surface the candidate whose real-world area best matches the document. Then submit the place_id of that candidate.',
       input_schema: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Place to search for, e.g. "Amazon rainforest, Brazil" or "Kibera, Nairobi".' },
+          query: {
+            type: 'string',
+            description:
+              'Place to search for, e.g. "Amazon rainforest, Brazil" or "Kibera, Nairobi".',
+          },
         },
         required: ['query'],
       },
@@ -36,7 +41,7 @@ export function createGeocodeTool(userAgent: string): GeocodeTool {
       const candidates = await nominatimSearch(input.query, userAgent)
       for (const c of candidates) byPlaceId.set(c.placeId, c)
       return {
-        results: candidates.map(c => ({
+        results: candidates.map((c) => ({
           place_id: c.placeId,
           display_name: c.displayName,
           type: c.type,
@@ -72,9 +77,9 @@ async function nominatimSearch(query: string, userAgent: string): Promise<GeoCan
 
   const res = await fetch(url, { headers: { 'User-Agent': userAgent, Accept: 'application/json' } })
   if (!res.ok) throw new Error(`Nominatim search failed (${res.status})`)
-  const rows = await res.json() as NominatimRow[]
+  const rows = (await res.json()) as NominatimRow[]
 
-  return rows.map(r => ({
+  return rows.map((r) => ({
     placeId: r.place_id,
     displayName: r.display_name,
     type: r.type,
@@ -82,7 +87,12 @@ async function nominatimSearch(query: string, userAgent: string): Promise<GeoCan
     lat: Number.parseFloat(r.lat),
     lon: Number.parseFloat(r.lon),
     boundingbox: r.boundingbox
-      ? [Number.parseFloat(r.boundingbox[0]), Number.parseFloat(r.boundingbox[1]), Number.parseFloat(r.boundingbox[2]), Number.parseFloat(r.boundingbox[3])]
+      ? [
+          Number.parseFloat(r.boundingbox[0]),
+          Number.parseFloat(r.boundingbox[1]),
+          Number.parseFloat(r.boundingbox[2]),
+          Number.parseFloat(r.boundingbox[3]),
+        ]
       : undefined,
     geojson: r.geojson,
   }))
@@ -94,6 +104,14 @@ export function bboxToPolygon(bbox: [number, number, number, number]): GeoJsonGe
   const [south, north, west, east] = bbox
   return {
     type: 'Polygon',
-    coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]],
+    coordinates: [
+      [
+        [west, south],
+        [east, south],
+        [east, north],
+        [west, north],
+        [west, south],
+      ],
+    ],
   }
 }

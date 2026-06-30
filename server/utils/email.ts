@@ -6,7 +6,7 @@ import type { H3Event } from 'h3'
 interface SendEmailBinding {
   send(input: {
     to: string | string[]
-    from: { email: string, name?: string }
+    from: { email: string; name?: string }
     subject: string
     html: string
     text: string
@@ -15,7 +15,7 @@ interface SendEmailBinding {
 }
 
 // Accepts "user@example.com" or "Display Name <user@example.com>".
-function parseFromAddress(input: string): { email: string, name?: string } {
+function parseFromAddress(input: string): { email: string; name?: string } {
   const m = /^([^<]*)<([^>]+)>\s*$/.exec(input.trim())
   if (m) {
     const name = (m[1] ?? '').trim()
@@ -24,12 +24,15 @@ function parseFromAddress(input: string): { email: string, name?: string } {
   return { email: input.trim() }
 }
 
-export async function sendEmail(event: H3Event, opts: {
-  to: string
-  subject: string
-  html: string
-  text?: string
-}): Promise<void> {
+export async function sendEmail(
+  event: H3Event,
+  opts: {
+    to: string
+    subject: string
+    html: string
+    text?: string
+  },
+): Promise<void> {
   const from = useRuntimeConfig().emailFrom
   if (!from) {
     throw createError({
@@ -51,7 +54,8 @@ export async function sendEmail(event: H3Event, opts: {
     }
     throw createError({
       statusCode: 500,
-      message: 'EMAIL binding not available — Cloudflare Email Sending must be enabled and bound as EMAIL.',
+      message:
+        'EMAIL binding not available — Cloudflare Email Sending must be enabled and bound as EMAIL.',
     })
   }
 

@@ -22,7 +22,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Appeal reason is required' })
   }
 
-  await db.update(users)
+  await db
+    .update(users)
     .set({
       banAppealedAt: new Date(),
       banAppealStatus: 'pending',

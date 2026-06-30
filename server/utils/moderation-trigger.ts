@@ -1,7 +1,7 @@
 export type ModerationKind = 'issue' | 'case-study' | 'structure'
 
 interface WorkflowBinding {
-  create(options: { params: { kind: ModerationKind, id: number } }): Promise<{ id: string }>
+  create(options: { params: { kind: ModerationKind; id: number } }): Promise<{ id: string }>
 }
 
 function getWorkflowBinding(): WorkflowBinding | undefined {
@@ -17,8 +17,7 @@ export async function triggerModeration(kind: ModerationKind, id: number): Promi
   }
   try {
     await workflow.create({ params: { kind, id } })
-  }
-  catch (err) {
+  } catch (err) {
     console.error(`[moderation] failed to start workflow for ${kind} #${id}:`, err)
   }
 }

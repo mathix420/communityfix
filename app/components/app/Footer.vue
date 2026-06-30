@@ -26,52 +26,49 @@ function scrollToTop() {
 <template>
   <div class="flex mt-16 select-none gap-1 w-full items-center">
     <hr class="w-full text-gray-200 mt-1">
-    <NuxtLink
-      class="font-mono"
-      to="/"
-      @click="scrollToTop"
-    >
+    <NuxtLink class="font-mono" to="/" @click="scrollToTop">
       communityfix.org
     </NuxtLink>
     <hr class="w-full text-gray-200 mt-1">
   </div>
   <footer class="flex w-full sm:flex-row flex-col-reverse justify-between gap-3 items-center p-6 *:w-full">
     <UButton
+      class="sm:justify-start justify-center"
+      color="neutral"
       target="_blank"
       to="https://github.com/mathix420/communityfix"
       variant="link"
-      color="neutral"
-      class="sm:justify-start justify-center"
       @click="track('Footer license link')"
     >
-      Published under <span class="font-bold">MIT License</span>
+      Published under
+      <span class="font-bold">
+        MIT License
+      </span>
     </UButton>
-
     <nav class="flex flex-wrap gap-x-3 gap-y-1 justify-center">
       <UButton
         v-for="link in links"
         :key="link.name"
-        :to="link.to"
+        color="neutral"
+        variant="link"
         :external="link.external"
         :target="link.external ? '_blank' : undefined"
-        variant="link"
-        color="neutral"
+        :to="link.to"
         @click="track('Footer nav', { page: link.name })"
       >
         {{ link.name }}
       </UButton>
     </nav>
-
     <nav class="flex gap-4 sm:justify-end justify-center items-center">
       <UButton
         v-for="social in socials"
         :key="social.name"
-        :to="social.url"
-        :icon="social.icon"
+        color="neutral"
+        size="xl"
         target="_blank"
         variant="link"
-        size="xl"
-        color="neutral"
+        :icon="social.icon"
+        :to="social.url"
         @click="track('Footer social', { name: social.name })"
       />
     </nav>

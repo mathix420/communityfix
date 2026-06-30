@@ -15,8 +15,7 @@ export function useVote(issueId: number | Ref<number>, initialScore = 0) {
       const data = await $fetch<VoteResponse>(`/api/issue/${id.value}/votes`)
       score.value = data.score
       userVote.value = data.userVote
-    }
-    catch {
+    } catch {
       // Silently fail — score stays at initial value
     }
   }
@@ -43,13 +42,11 @@ export function useVote(issueId: number | Ref<number>, initialScore = 0) {
       })
       score.value = data.score
       userVote.value = data.userVote
-    }
-    catch {
+    } catch {
       // Revert on failure
       score.value = prevScore
       userVote.value = prevVote
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
@@ -69,12 +66,10 @@ export function useVote(issueId: number | Ref<number>, initialScore = 0) {
       })
       score.value = data.score
       userVote.value = null
-    }
-    catch {
+    } catch {
       score.value = prevScore
       userVote.value = prevVote
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }

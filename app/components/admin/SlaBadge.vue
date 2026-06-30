@@ -26,7 +26,7 @@ const label = computed(() => {
     :class="slaBadgeClass(tier)"
     :title="`Open ${label}`"
   >
-    <UIcon name="lucide:clock" class="size-3" />
+    <UIcon class="size-3" name="lucide:clock" />
     {{ label }}
   </span>
 </template>

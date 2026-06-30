@@ -1,4 +1,9 @@
-import { consumeAuthorizationCode, issueAccessToken, rotateRefreshToken, verifyPkce } from '../../utils/oauth'
+import {
+  consumeAuthorizationCode,
+  issueAccessToken,
+  rotateRefreshToken,
+  verifyPkce,
+} from '../../utils/oauth'
 
 interface TokenBody {
   grant_type?: string
@@ -10,7 +15,11 @@ interface TokenBody {
 }
 
 function err(statusCode: number, error: string, description: string) {
-  return createError({ statusCode, data: { error, error_description: description }, statusMessage: error })
+  return createError({
+    statusCode,
+    data: { error, error_description: description },
+    statusMessage: error,
+  })
 }
 
 export default defineEventHandler(async (event) => {
@@ -27,8 +36,10 @@ export default defineEventHandler(async (event) => {
     }
     const row = await consumeAuthorizationCode(code)
     if (!row) throw err(400, 'invalid_grant', 'Authorization code is invalid or expired')
-    if (row.clientId !== client_id) throw err(400, 'invalid_grant', 'client_id does not match the code')
-    if (row.redirectUri !== redirect_uri) throw err(400, 'invalid_grant', 'redirect_uri does not match the code')
+    if (row.clientId !== client_id)
+      throw err(400, 'invalid_grant', 'client_id does not match the code')
+    if (row.redirectUri !== redirect_uri)
+      throw err(400, 'invalid_grant', 'redirect_uri does not match the code')
 
     const ok = await verifyPkce(code_verifier, row.codeChallenge, row.codeChallengeMethod)
     if (!ok) throw err(400, 'invalid_grant', 'PKCE verification failed')

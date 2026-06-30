@@ -3,7 +3,6 @@
     <p class="text-gray-700">
       Coming soon...
     </p>
-
     <p class="text-gray-500 text-sm">
       We aim to provide a platform where you can support issues through funding.
       <br>

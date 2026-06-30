@@ -66,34 +66,21 @@ const outcomeLabel: Record<string, string> = {
     <div class="flex items-center gap-2 py-1.5 min-w-0">
       <button
         v-if="hasChildren"
-        type="button"
         class="shrink-0 size-5 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500"
+        type="button"
         :aria-label="expanded ? 'Collapse' : 'Expand'"
         @click="expanded = !expanded"
       >
-        <UIcon
-          :name="expanded ? 'lucide:chevron-down' : 'lucide:chevron-right'"
-          class="size-4"
-        />
+        <UIcon class="size-4" :name="expanded ? 'lucide:chevron-down' : 'lucide:chevron-right'" />
       </button>
       <div v-else class="shrink-0 size-5" />
-
-      <UIcon
-        :name="nodeIcon"
-        class="shrink-0 size-4"
-        :class="nodeIconClass"
-      />
-
-      <NuxtLink
-        :to="linkTo"
-        class="interactive-underline truncate font-title"
-      >
+      <UIcon class="shrink-0 size-4" :class="nodeIconClass" :name="nodeIcon" />
+      <NuxtLink class="interactive-underline truncate font-title" :to="linkTo">
         <span class="text-gray-400 select-none text-xs font-mono mr-1.5">
           {{ formatNumber(node.id) }}
         </span>
         {{ node.title }}
       </NuxtLink>
-
       <UiBadge v-if="node.solutionStatus === 'plan'" variant="default">
         Plan
       </UiBadge>
@@ -109,16 +96,12 @@ const outcomeLabel: Record<string, string> = {
       >
         {{ outcomeLabel[node.outcome] ?? node.outcome }}
       </UiBadge>
-
       <div
         v-if="!isCaseStudy"
         class="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-mono text-gray-600"
       >
-        <span
-          class="px-1.5 py-0.5 bg-gray-100 rounded"
-          :title="`${node.voteScore} votes`"
-        >
-          <UIcon name="lucide:arrow-up" class="size-3 -mt-0.5" />
+        <span class="px-1.5 py-0.5 bg-gray-100 rounded" :title="`${node.voteScore} votes`">
+          <UIcon class="size-3 -mt-0.5" name="lucide:arrow-up" />
           {{ node.voteScore }}
         </span>
         <span
@@ -137,17 +120,13 @@ const outcomeLabel: Record<string, string> = {
         </span>
       </div>
     </div>
-
-    <div
-      v-if="expanded && hasChildren"
-      class="ml-2.5 border-l border-gray-200 pl-3"
-    >
+    <div v-if="expanded && hasChildren" class="ml-2.5 border-l border-gray-200 pl-3">
       <IssueTreeNode
         v-for="child in node.children"
         :key="child.id"
-        :node="child"
-        :depth="depth + 1"
         :default-expanded-depth="defaultExpandedDepth"
+        :depth="depth + 1"
+        :node="child"
       />
     </div>
   </div>

@@ -42,6 +42,10 @@ export default defineEventHandler((event) => {
   }
   const md = markdownAlternateFor(path)
   if (md) {
-    appendHeader(event, 'Link', `<${md}>; rel="alternate"; type="text/markdown"; title="Markdown source"`)
+    appendHeader(
+      event,
+      'Link',
+      `<${md}>; rel="alternate"; type="text/markdown"; title="Markdown source"`,
+    )
   }
 })

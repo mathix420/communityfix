@@ -20,17 +20,19 @@ async function submitAppeal() {
   try {
     await $fetch('/api/user/ban-appeal', { method: 'POST' })
     umami.track('Ban appeal submitted')
-    toast.add({ title: 'Appeal submitted', description: 'Your appeal is under review.', color: 'success' })
+    toast.add({
+      title: 'Appeal submitted',
+      description: 'Your appeal is under review.',
+      color: 'success',
+    })
     emit('appealed')
-  }
-  catch (error: any) {
+  } catch (error: any) {
     toast.add({
       title: 'Failed to submit appeal',
       description: error?.data?.message || error?.message || 'Please try again.',
       color: 'error',
     })
-  }
-  finally {
+  } finally {
     submitting.value = false
   }
 }
@@ -60,9 +62,9 @@ async function submitAppeal() {
     <div v-else-if="!banStatus.appealStatus">
       <UButton
         color="primary"
+        data-umami-event="Appeal ban"
         size="sm"
         :loading="submitting"
-        data-umami-event="Appeal ban"
         @click="submitAppeal"
       >
         Appeal this ban

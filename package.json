@@ -18,7 +18,12 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "test": "doppler run -- vitest run",
-    "test:watch": "doppler run -- vitest"
+    "test:watch": "doppler run -- vitest",
+    "lint": "vize lint app server shared",
+    "lint:fix": "vize lint --fix app server shared",
+    "format": "vize fmt --write app server shared scripts workers",
+    "format:check": "vize fmt --check app server shared scripts workers",
+    "fallow": "fallow"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
@@ -41,6 +46,7 @@
     "nuxt-og-image": "6.5.1",
     "openai": "^6.22.0",
     "postgres": "^3.4.8",
+    "reflect-metadata": "^0.2.2",
     "typescript": "^5.9.3",
     "unstorage": "^1.17.4",
     "vue": "^3.5.28",
@@ -56,11 +62,12 @@
     "@tailwindcss/typography": "^0.5.19",
     "@takumi-rs/wasm": "^1.6.0",
     "@types/leaflet": "^1.9.21",
-    "@vue/test-utils": "^2.4.6",
     "drizzle-kit": "^0.31.9",
-    "get-tsconfig": "^4.13.6",
+    "fallow": "^2.103.0",
     "happy-dom": "^20.8.9",
+    "tailwindcss": "^4.1.18",
     "vitest": "^4.1.2",
+    "vize": "^0.267.0",
     "wrangler": "^4.93.1"
   }
 }

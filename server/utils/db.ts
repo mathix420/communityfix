@@ -28,7 +28,9 @@ const scopedDbStore = new AsyncLocalStorage<DB>()
 export function withScopedDB<T>(fn: () => Promise<T>): Promise<T> {
   const url = process.env.NUXT_DATABASE_URL
   if (!url) {
-    throw new Error('NUXT_DATABASE_URL is not set. withScopedDB requires the hyperdrive plugin to have hydrated it first.')
+    throw new Error(
+      'NUXT_DATABASE_URL is not set. withScopedDB requires the hyperdrive plugin to have hydrated it first.',
+    )
   }
   return scopedDbStore.run(createClient(url), fn)
 }
@@ -36,8 +38,9 @@ export function withScopedDB<T>(fn: () => Promise<T>): Promise<T> {
 // Off-Workers singleton (dev server, vitest, db:migrate / db:seed scripts).
 let _nodeDb: DB | null = null
 
-const isWorker = typeof navigator !== 'undefined'
-  && (navigator as { userAgent?: string }).userAgent === 'Cloudflare-Workers'
+const isWorker =
+  typeof navigator !== 'undefined' &&
+  (navigator as { userAgent?: string }).userAgent === 'Cloudflare-Workers'
 
 // Symbol so we don't collide with other middleware on event.context and
 // don't need a string-keyed cast.
@@ -46,11 +49,13 @@ const EVENT_DB_KEY: unique symbol = Symbol('cf.db')
 export function useDB(): DB {
   const url = process.env.NUXT_DATABASE_URL
   if (!url) {
-    throw new Error('NUXT_DATABASE_URL is not set. On Cloudflare Workers, ensure the HYPERDRIVE binding is configured and the hyperdrive plugin has run.')
+    throw new Error(
+      'NUXT_DATABASE_URL is not set. On Cloudflare Workers, ensure the HYPERDRIVE binding is configured and the hyperdrive plugin has run.',
+    )
   }
 
   if (!isWorker) {
-    return _nodeDb ??= createClient(url)
+    return (_nodeDb ??= createClient(url))
   }
 
   const scoped = scopedDbStore.getStore()
@@ -61,14 +66,13 @@ export function useDB(): DB {
   let event
   try {
     event = useEvent()
-  }
-  catch {
+  } catch {
     event = undefined
   }
 
   if (event) {
     const ctx = event.context as { [EVENT_DB_KEY]?: DB }
-    return ctx[EVENT_DB_KEY] ??= createClient(url)
+    return (ctx[EVENT_DB_KEY] ??= createClient(url))
   }
 
   return createClient(url)

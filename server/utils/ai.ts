@@ -8,7 +8,9 @@ export function getOpenAIClient(): OpenAI {
   if (!openaiClient) {
     const { openaiApiKey } = useRuntimeConfig()
     if (!openaiApiKey) {
-      throw new Error('[openai] NUXT_OPENAI_API_KEY is not set. Embeddings require an OpenAI API key.')
+      throw new Error(
+        '[openai] NUXT_OPENAI_API_KEY is not set. Embeddings require an OpenAI API key.',
+      )
     }
     openaiClient = new OpenAI({ apiKey: openaiApiKey })
   }
@@ -19,7 +21,9 @@ function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
     const { anthropicApiKey } = useRuntimeConfig()
     if (!anthropicApiKey) {
-      throw new Error('[anthropic] NUXT_ANTHROPIC_API_KEY is not set. Content moderation requires an Anthropic API key.')
+      throw new Error(
+        '[anthropic] NUXT_ANTHROPIC_API_KEY is not set. Content moderation requires an Anthropic API key.',
+      )
     }
     anthropicClient = new Anthropic({ apiKey: anthropicApiKey })
   }
@@ -31,10 +35,20 @@ function getAnthropicClient(): Anthropic {
 // so callers can author specs in plain JSON Schema without tripping the
 // API's stricter subset.
 const UNSUPPORTED_SCHEMA_KEYS = new Set([
-  'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
-  'minLength', 'maxLength', 'pattern', 'format',
-  'minItems', 'maxItems', 'uniqueItems',
-  'minProperties', 'maxProperties',
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'multipleOf',
+  'minLength',
+  'maxLength',
+  'pattern',
+  'format',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  'minProperties',
+  'maxProperties',
 ])
 
 function sanitizeSchema(node: unknown): unknown {
@@ -71,7 +85,9 @@ export async function chatJson<T>(opts: {
 
   const text = res.content[0]?.type === 'text' ? res.content[0].text : ''
   if (!text) {
-    throw new Error(`[chatJson] Empty response from Anthropic${opts.context ? ` (${opts.context})` : ''}`)
+    throw new Error(
+      `[chatJson] Empty response from Anthropic${opts.context ? ` (${opts.context})` : ''}`,
+    )
   }
 
   return JSON.parse(text) as T

@@ -20,23 +20,32 @@ export default defineEventHandler(async (event) => {
   const client = await getClient(clientId)
   if (!client) throw createError({ statusCode: 400, statusMessage: 'Unknown client_id' })
   if (!client.redirectUris.includes(redirectUri)) {
-    throw createError({ statusCode: 400, statusMessage: 'redirect_uri does not match a registered URI' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'redirect_uri does not match a registered URI',
+    })
   }
 
   if (decision !== 'approve') {
-    return sendRedirect(event, redirectBack(redirectUri, {
-      error: 'access_denied',
-      error_description: 'User denied the authorization request',
-      ...(state ? { state } : {}),
-    }))
+    return sendRedirect(
+      event,
+      redirectBack(redirectUri, {
+        error: 'access_denied',
+        error_description: 'User denied the authorization request',
+        ...(state ? { state } : {}),
+      }),
+    )
   }
 
   if (!codeChallenge || codeChallengeMethod !== 'S256') {
-    return sendRedirect(event, redirectBack(redirectUri, {
-      error: 'invalid_request',
-      error_description: 'Missing or unsupported PKCE parameters',
-      ...(state ? { state } : {}),
-    }))
+    return sendRedirect(
+      event,
+      redirectBack(redirectUri, {
+        error: 'invalid_request',
+        error_description: 'Missing or unsupported PKCE parameters',
+        ...(state ? { state } : {}),
+      }),
+    )
   }
 
   const code = await issueAuthorizationCode({
@@ -48,8 +57,11 @@ export default defineEventHandler(async (event) => {
     scope,
   })
 
-  return sendRedirect(event, redirectBack(redirectUri, {
-    code,
-    ...(state ? { state } : {}),
-  }))
+  return sendRedirect(
+    event,
+    redirectBack(redirectUri, {
+      code,
+      ...(state ? { state } : {}),
+    }),
+  )
 })
