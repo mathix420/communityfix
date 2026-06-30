@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
   const db = useDB()
   const id = getRouterParam(event, 'id')!
-  const body = await readBody<{ reason: string, days?: number }>(event)
+  const body = await readBody<{ reason: string; days?: number }>(event)
 
   if (!body.reason?.trim()) {
     throw createError({ statusCode: 400, message: 'Ban reason is required' })
@@ -21,7 +21,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
-  await db.update(users)
+  await db
+    .update(users)
     .set({
       bannedUntil,
       banReason: body.reason.trim(),

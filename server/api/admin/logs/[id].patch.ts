@@ -9,12 +9,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid log ID' })
   }
 
-  const body = await readBody<{ status: 'reviewed' | 'overridden', reviewNote?: string }>(event)
+  const body = await readBody<{ status: 'reviewed' | 'overridden'; reviewNote?: string }>(event)
   if (!['reviewed', 'overridden'].includes(body.status)) {
-    throw createError({ statusCode: 400, statusMessage: 'Status must be "reviewed" or "overridden"' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Status must be "reviewed" or "overridden"',
+    })
   }
 
-  const rows = await db.update(auditLogs)
+  const rows = await db
+    .update(auditLogs)
     .set({
       status: body.status,
       reviewedBy: session.user.id,

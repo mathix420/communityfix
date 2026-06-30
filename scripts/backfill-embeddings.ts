@@ -31,19 +31,26 @@ function toVectorLiteral(values: number[]): string {
   return `[${values.join(',')}]`
 }
 
-async function backfillIssue(row: { id: number, title: string, summary: string, description: string | null }) {
+async function backfillIssue(row: {
+  id: number
+  title: string
+  summary: string
+  description: string | null
+}) {
   const input = [row.title, row.summary, row.description].filter(Boolean).join('\n')
   const vec = await embed(input)
-  await db.update(issues)
+  await db
+    .update(issues)
     .set({ embedding: sql`${toVectorLiteral(vec)}::vector` })
     .where(eq(issues.id, row.id))
   return row.id
 }
 
-async function backfillTag(row: { id: number, slug: string, name: string }) {
+async function backfillTag(row: { id: number; slug: string; name: string }) {
   // Slug carries shorthand the name doesn't (e.g. "ev" vs "Electric vehicles").
   const vec = await embed(`${row.name}\n${row.slug}`)
-  await db.update(tags)
+  await db
+    .update(tags)
     .set({ embedding: sql`${toVectorLiteral(vec)}::vector` })
     .where(eq(tags.id, row.id))
   return row.id
@@ -54,7 +61,9 @@ async function runBatch<T>(label: string, items: T[], fn: (item: T) => Promise<u
     console.log(`No ${label} to backfill.`)
     return
   }
-  console.log(`Backfilling ${items.length} ${label} with text-embedding-3-small (${CONCURRENCY} in parallel)...`)
+  console.log(
+    `Backfilling ${items.length} ${label} with text-embedding-3-small (${CONCURRENCY} in parallel)...`,
+  )
   let done = 0
   let failed = 0
   for (let i = 0; i < items.length; i += CONCURRENCY) {
@@ -63,8 +72,7 @@ async function runBatch<T>(label: string, items: T[], fn: (item: T) => Promise<u
     for (const r of results) {
       if (r.status === 'fulfilled') {
         done++
-      }
-      else {
+      } else {
         failed++
         console.error('  fail:', r.reason?.message ?? r.reason)
       }
@@ -86,11 +94,9 @@ try {
     columns: { id: true, slug: true, name: true },
   })
   await runBatch('tags', pendingTags, backfillTag)
-}
-catch (err) {
+} catch (err) {
   console.error('Backfill aborted:', err)
   process.exitCode = 1
-}
-finally {
+} finally {
   await client.end({ timeout: 5 })
 }

@@ -15,14 +15,17 @@ export default defineEventHandler(async (event) => {
     const isUuidLike = /^[0-9a-f-]{8,}$/i.test(search)
     conditions.push(
       isUuidLike
-        ? or(ilike(users.email, `%${search}%`), ilike(users.name, `%${search}%`), sql`${users.id}::text ILIKE ${`%${search}%`}`)!
+        ? or(
+            ilike(users.email, `%${search}%`),
+            ilike(users.name, `%${search}%`),
+            sql`${users.id}::text ILIKE ${`%${search}%`}`,
+          )!
         : or(ilike(users.email, `%${search}%`), ilike(users.name, `%${search}%`))!,
     )
   }
   if (filter === 'banned') {
     conditions.push(sql`${users.bannedUntil} IS NOT NULL AND ${users.bannedUntil} > NOW()`)
-  }
-  else if (filter === 'ban_appeal') {
+  } else if (filter === 'ban_appeal') {
     conditions.push(eq(users.banAppealStatus, 'pending'))
   }
 
@@ -33,18 +36,20 @@ export default defineEventHandler(async (event) => {
   // which Postgres bound to issues.id (integer) and blew up against
   // users.id (uuid).
   const issueCounts = db.$with('issue_counts').as(
-    db.select({
-      authorId: issues.authorId,
-      total: sql<number>`COUNT(*)`.as('total'),
-      rejected: sql<number>`COUNT(*) FILTER (WHERE ${issues.status} = 'rejected')`.as('rejected'),
-    })
+    db
+      .select({
+        authorId: issues.authorId,
+        total: sql<number>`COUNT(*)`.as('total'),
+        rejected: sql<number>`COUNT(*) FILTER (WHERE ${issues.status} = 'rejected')`.as('rejected'),
+      })
       .from(issues)
       .where(isNotNull(issues.authorId))
       .groupBy(issues.authorId),
   )
 
   const [rows, countResult] = await Promise.all([
-    db.with(issueCounts)
+    db
+      .with(issueCounts)
       .select({
         id: users.id,
         email: users.email,
@@ -64,13 +69,14 @@ export default defineEventHandler(async (event) => {
       .limit(limit)
       .offset((page - 1) * limit),
 
-    db.select({ count: sql<number>`COUNT(*)` })
+    db
+      .select({ count: sql<number>`COUNT(*)` })
       .from(users)
       .where(where),
   ])
 
   return {
-    users: rows.map(r => ({
+    users: rows.map((r) => ({
       ...r,
       issueCount: Number(r.issueCount),
       rejectedCount: Number(r.rejectedCount),

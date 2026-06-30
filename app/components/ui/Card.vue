@@ -1,11 +1,14 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
-  variant?: 'default' | 'interactive' | 'solid'
-  padding?: 'none' | 'sm' | 'md' | 'lg'
-}>(), {
-  variant: 'default',
-  padding: 'md',
-})
+withDefaults(
+  defineProps<{
+    variant?: 'default' | 'interactive' | 'solid'
+    padding?: 'none' | 'sm' | 'md' | 'lg'
+  }>(),
+  {
+    variant: 'default',
+    padding: 'md',
+  },
+)
 
 const variantClasses = {
   default: 'rounded-2xl border border-gray-200/60 bg-white/80 backdrop-blur-sm',

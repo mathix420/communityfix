@@ -2,25 +2,28 @@
 // OG image for community nodes (issues, solutions, case studies, members,
 // tags): wordmark top-left, kind + id top-right, big title, and a full-width
 // blue bottom line flush to the canvas edge (matching the Home OG image).
-const props = withDefaults(defineProps<{
-  title?: string
-  kind?: string
-  id?: number | string
-  // Optional eyebrow above the title (e.g. a case study's parent solution):
-  // `subtitleLabel` is the small uppercase tag, `subtitle` the value.
-  // `subtitleColor` is a 6-digit hex WITHOUT `#` (a `#` doesn't round-trip
-  // through nuxt-og-image's prop encoding); the `#` is re-added in the template.
-  subtitle?: string
-  subtitleLabel?: string
-  subtitleColor?: string
-}>(), {
-  title: 'CommunityFix',
-  kind: 'Issue',
-  id: undefined,
-  subtitle: undefined,
-  subtitleLabel: undefined,
-  subtitleColor: '3b82f6',
-})
+const props = withDefaults(
+  defineProps<{
+    title?: string
+    kind?: string
+    id?: number | string
+    // Optional eyebrow above the title (e.g. a case study's parent solution):
+    // `subtitleLabel` is the small uppercase tag, `subtitle` the value.
+    // `subtitleColor` is a 6-digit hex WITHOUT `#` (a `#` doesn't round-trip
+    // through nuxt-og-image's prop encoding); the `#` is re-added in the template.
+    subtitle?: string
+    subtitleLabel?: string
+    subtitleColor?: string
+  }>(),
+  {
+    title: 'CommunityFix',
+    kind: 'Issue',
+    id: undefined,
+    subtitle: undefined,
+    subtitleLabel: undefined,
+    subtitleColor: '3b82f6',
+  },
+)
 
 // Pad numeric ids to the in-app "#00042" form; pass strings through.
 const idLabel = computed(() => {
@@ -33,8 +36,9 @@ const idLabel = computed(() => {
   <div style="display:flex;flex-direction:column;width:1200px;height:600px;background-color:#f9fafb;">
     <div style="display:flex;flex:1;flex-direction:column;padding:56px;">
       <div style="display:flex;flex-direction:row;width:1088px;align-items:flex-start;justify-content:space-between;gap:32px;">
-        <p class="block font-mono text-[34px] leading-none font-normal text-[#404040] underline decoration-primary decoration-[3px]">communityfix.org</p>
-
+        <p class="block font-mono text-[34px] leading-none font-normal text-[#404040] underline decoration-primary decoration-[3px]">
+          communityfix.org
+        </p>
         <div style="display:flex;flex-direction:column;align-items:flex-end;">
           <p style="display:block;margin:0;font-family:Oswald;font-size:26px;line-height:1;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#6b7280;">
             {{ kind }}
@@ -47,7 +51,6 @@ const idLabel = computed(() => {
           </p>
         </div>
       </div>
-
       <div style="display:flex;flex-direction:column;align-items:flex-start;width:1088px;margin-top:auto;">
         <div
           v-if="subtitle"
@@ -71,7 +74,6 @@ const idLabel = computed(() => {
         </h1>
       </div>
     </div>
-
     <div style="width:1200px;height:28px;background-color:#3b82f6;" />
   </div>
 </template>

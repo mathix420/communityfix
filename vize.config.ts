@@ -7,6 +7,12 @@ import { defineConfig } from 'vize'
 export default defineConfig({
   linter: {
     preset: 'nuxt',
+    rules: {
+      // Nuxt auto-imports components with directory-prefixed names
+      // (AppFooter, UiBadge, …), so single-word filenames don't clash
+      // with HTML elements — this rule is just noise here.
+      'vue/multi-word-component-names': 'off',
+    },
   },
   formatter: {
     semi: false,

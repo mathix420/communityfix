@@ -1,5 +1,12 @@
 import { and, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
-import { caseStudies, issues, qualificationEndorsements, qualifications, tags, users } from '../database/schema'
+import {
+  caseStudies,
+  issues,
+  qualificationEndorsements,
+  qualifications,
+  tags,
+  users,
+} from '../database/schema'
 import type { IssueType } from '../database/schema'
 import { generateEmbedding, findSimilar } from './embeddings'
 import { isAdminEmail } from './admin'
@@ -26,15 +33,14 @@ export async function searchByQuery(input: {
   let embedding: number[]
   try {
     embedding = await generateEmbedding(trimmed)
-  }
-  catch (err) {
+  } catch (err) {
     console.error('[mcp.search] embedding failed:', err)
     return { status: 'embeddings_unavailable' as const, results: [] }
   }
 
-  const typeFilter = (input.type && input.type !== 'any') ? sql` AND type = ${input.type}` : sql``
+  const typeFilter = input.type && input.type !== 'any' ? sql` AND type = ${input.type}` : sql``
   const db = useDB()
-  const above = await findSimilar<{ id: number, similarity: number }>({
+  const above = await findSimilar<{ id: number; similarity: number }>({
     table: 'issues',
     columns: 'id',
     embedding,
@@ -44,12 +50,12 @@ export async function searchByQuery(input: {
   })
   if (above.length === 0) return { status: 'ok' as const, results: [] }
 
-  const ids = above.map(r => r.id)
+  const ids = above.map((r) => r.id)
   const rows = await db.query.issues.findMany({
     where: inArray(issues.id, ids),
     with: issueWithRelations,
   })
-  const byId = new Map(rows.map(r => [r.id, r]))
+  const byId = new Map(rows.map((r) => [r.id, r]))
   return {
     status: 'ok' as const,
     results: above
@@ -107,7 +113,10 @@ async function updateNode(userId: string, input: UpdateIssueInput, expectedType:
   return transformIssue(hydrated!)
 }
 
-export async function updateIssueAs(userId: string, input: Omit<UpdateIssueInput, 'solutionStatus'>) {
+export async function updateIssueAs(
+  userId: string,
+  input: Omit<UpdateIssueInput, 'solutionStatus'>,
+) {
   return updateNode(userId, input, 'issue')
 }
 
@@ -148,13 +157,16 @@ export async function listCaseStudiesFor(nodeId: number) {
   let solutionIds: number[]
   if (root.type === 'solution') {
     solutionIds = [root.id]
-  }
-  else {
+  } else {
     const solutionRows = await db.query.issues.findMany({
-      where: and(eq(issues.parentId, root.id), eq(issues.type, 'solution'), eq(issues.status, 'approved')),
+      where: and(
+        eq(issues.parentId, root.id),
+        eq(issues.type, 'solution'),
+        eq(issues.status, 'approved'),
+      ),
       columns: { id: true },
     })
-    solutionIds = solutionRows.map(r => r.id)
+    solutionIds = solutionRows.map((r) => r.id)
   }
   if (solutionIds.length === 0) return []
 
@@ -175,7 +187,7 @@ export async function suggestMore(seedId: number, limit = SUGGEST_LIMIT) {
   if (!seed) return { status: 'not_found' as const, results: [] }
   if (!seed.embedding) return { status: 'no_embedding' as const, results: [] }
 
-  const rankedList = await findSimilar<{ id: number, similarity: number }>({
+  const rankedList = await findSimilar<{ id: number; similarity: number }>({
     table: 'issues',
     columns: 'id',
     embedding: seed.embedding as number[],
@@ -186,12 +198,12 @@ export async function suggestMore(seedId: number, limit = SUGGEST_LIMIT) {
     return { status: 'ok' as const, seed: transformIssue(seed), results: [] }
   }
 
-  const ids = rankedList.map(r => r.id)
+  const ids = rankedList.map((r) => r.id)
   const rows = await db.query.issues.findMany({
     where: inArray(issues.id, ids),
     with: issueWithRelations,
   })
-  const byId = new Map(rows.map(r => [r.id, r]))
+  const byId = new Map(rows.map((r) => [r.id, r]))
   return {
     status: 'ok' as const,
     seed: transformIssue(seed),
@@ -222,7 +234,7 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     where: eq(qualifications.userId, user.id),
     orderBy: [desc(qualifications.createdAt)],
   })
-  const qIds = ownQualifications.map(q => q.id)
+  const qIds = ownQualifications.map((q) => q.id)
 
   const rawCounts = qIds.length
     ? await db
@@ -240,26 +252,29 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
   for (const c of rawCounts) {
     if (c.kind === 'verification') {
       if (Number(c.n) > 0) verifiedQualifications.add(c.qualificationId)
-    }
-    else {
+    } else {
       endorseCount.set(c.qualificationId, (endorseCount.get(c.qualificationId) ?? 0) + Number(c.n))
     }
   }
   const isAdmin = isAdminEmail(user.email)
 
   const visibility = opts.isSelf ? undefined : ne(issues.status, 'rejected')
-  const [{ issuesCount }] = await db
+  const [{ issuesCount }] = (await db
     .select({ issuesCount: count(issues.id).as('issuesCount') })
     .from(issues)
-    .where(and(eq(issues.authorId, user.id), isNull(issues.parentId), visibility ?? sql`true`)) as [{ issuesCount: number }]
-  const [{ solutionsCount }] = await db
+    .where(
+      and(eq(issues.authorId, user.id), isNull(issues.parentId), visibility ?? sql`true`),
+    )) as [{ issuesCount: number }]
+  const [{ solutionsCount }] = (await db
     .select({ solutionsCount: count(issues.id).as('solutionsCount') })
     .from(issues)
-    .where(and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), visibility ?? sql`true`)) as [{ solutionsCount: number }]
-  const [{ caseStudiesCount }] = await db
+    .where(
+      and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), visibility ?? sql`true`),
+    )) as [{ solutionsCount: number }]
+  const [{ caseStudiesCount }] = (await db
     .select({ caseStudiesCount: count(caseStudies.id).as('caseStudiesCount') })
     .from(caseStudies)
-    .where(eq(caseStudies.authorId, user.id)) as [{ caseStudiesCount: number }]
+    .where(eq(caseStudies.authorId, user.id))) as [{ caseStudiesCount: number }]
 
   return {
     id: user.id,
@@ -273,7 +288,7 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     issuesAuthored: Number(issuesCount),
     solutionsAuthored: Number(solutionsCount),
     caseStudiesAuthored: Number(caseStudiesCount),
-    qualifications: ownQualifications.map(q => ({
+    qualifications: ownQualifications.map((q) => ({
       id: q.id,
       title: q.title,
       area: q.area,
@@ -302,7 +317,7 @@ export async function getMe(userId: string) {
 
 const TAG_SIMILARITY_THRESHOLD = 0.2
 
-export async function searchTags(input: { query?: string, limit?: number }) {
+export async function searchTags(input: { query?: string; limit?: number }) {
   const db = useDB()
   const limit = Math.min(Math.max(input.limit ?? 20, 1), 100)
   const trimmed = input.query?.trim() ?? ''
@@ -312,15 +327,14 @@ export async function searchTags(input: { query?: string, limit?: number }) {
     return {
       status: 'ok' as const,
       query: trimmed,
-      results: rows.map(t => ({ id: t.id, slug: t.slug, name: t.name })),
+      results: rows.map((t) => ({ id: t.id, slug: t.slug, name: t.name })),
     }
   }
 
   let embedding: number[]
   try {
     embedding = await generateEmbedding(trimmed)
-  }
-  catch (err) {
+  } catch (err) {
     console.error('[mcp.search_tags] embedding failed, falling back to ILIKE:', err)
     const rows = await db.query.tags.findMany({
       where: or(ilike(tags.slug, `%${trimmed}%`), ilike(tags.name, `%${trimmed}%`)),
@@ -330,11 +344,11 @@ export async function searchTags(input: { query?: string, limit?: number }) {
     return {
       status: 'fallback_ilike' as const,
       query: trimmed,
-      results: rows.map(t => ({ id: t.id, slug: t.slug, name: t.name })),
+      results: rows.map((t) => ({ id: t.id, slug: t.slug, name: t.name })),
     }
   }
 
-  const above = await findSimilar<{ id: number, similarity: number }>({
+  const above = await findSimilar<{ id: number; similarity: number }>({
     table: 'tags',
     columns: 'id',
     embedding,
@@ -343,16 +357,18 @@ export async function searchTags(input: { query?: string, limit?: number }) {
   })
   if (above.length === 0) return { status: 'ok' as const, query: trimmed, results: [] }
 
-  const ids = above.map(r => r.id)
+  const ids = above.map((r) => r.id)
   const rows = await db.query.tags.findMany({ where: inArray(tags.id, ids) })
-  const byId = new Map(rows.map(t => [t.id, t]))
+  const byId = new Map(rows.map((t) => [t.id, t]))
   return {
     status: 'ok' as const,
     query: trimmed,
     results: above
       .map((r) => {
         const t = byId.get(r.id)
-        return t ? { id: t.id, slug: t.slug, name: t.name, similarity: Math.round(r.similarity * 100) } : null
+        return t
+          ? { id: t.id, slug: t.slug, name: t.name, similarity: Math.round(r.similarity * 100) }
+          : null
       })
       .filter((r): r is NonNullable<typeof r> => r !== null),
   }

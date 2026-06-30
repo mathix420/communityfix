@@ -1,16 +1,23 @@
 <script setup lang="ts">
-const { data: terms } = await useAsyncData('/terms', () => queryCollection('content').path('/terms').first())
+const { data: terms } = await useAsyncData('/terms', () =>
+  queryCollection('content').path('/terms').first(),
+)
 
 useSeoMeta({
   title: terms.value?.title || 'Terms of Service - CommunityFix',
-  description: terms.value?.description || 'Understand your rights and responsibilities when using CommunityFix to collaborate on community-driven solutions.',
-  keywords: 'terms of service, user agreement, community guidelines, CommunityFix, platform rules, legal terms',
+  description:
+    terms.value?.description ||
+    'Understand your rights and responsibilities when using CommunityFix to collaborate on community-driven solutions.',
+  keywords:
+    'terms of service, user agreement, community guidelines, CommunityFix, platform rules, legal terms',
   ogTitle: terms.value?.title || 'Terms of Service - CommunityFix',
-  ogDescription: terms.value?.description || 'Terms and conditions for using the CommunityFix platform.',
+  ogDescription:
+    terms.value?.description || 'Terms and conditions for using the CommunityFix platform.',
   ogType: 'website',
   twitterCard: 'summary',
   twitterTitle: terms.value?.title || 'Terms of Service - CommunityFix',
-  twitterDescription: terms.value?.description || 'Review our terms for collaborating on CommunityFix.',
+  twitterDescription:
+    terms.value?.description || 'Review our terms for collaborating on CommunityFix.',
 })
 
 defineOgImage('Editorial', {
@@ -22,11 +29,7 @@ defineOgImage('Editorial', {
 <template>
   <AppContainer>
     <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
-    <ContentRenderer
-      v-if="terms"
-      :value="terms"
-      class="prose"
-    />
+    <ContentRenderer v-if="terms" class="prose" :value="terms" />
     <div v-else>
       Not found
     </div>

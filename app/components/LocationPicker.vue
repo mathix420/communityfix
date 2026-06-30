@@ -60,18 +60,17 @@ watch(locationName, (q) => {
   searchTimer = setTimeout(async () => {
     searching.value = true
     try {
-      const data = await $fetch<NominatimResult[]>(
-        'https://nominatim.openstreetmap.org/search',
-        {
-          query: { q, format: 'json', limit: '5', polygon_geojson: '1', polygon_threshold: '0.005' },
-          headers: { 'Accept-Language': 'en' },
-        },
-      )
+      const data = await $fetch<NominatimResult[]>('https://nominatim.openstreetmap.org/search', {
+        query: { q, format: 'json', limit: '5', polygon_geojson: '1', polygon_threshold: '0.005' },
+        headers: { 'Accept-Language': 'en' },
+      })
       searchResults.value = data
       showResults.value = data.length > 0
+    } catch {
+      searchResults.value = []
+    } finally {
+      searching.value = false
     }
-    catch { searchResults.value = [] }
-    finally { searching.value = false }
   }, 350)
 })
 
@@ -100,7 +99,9 @@ function onInputFocus() {
 
 function onInputBlur() {
   inputFocused.value = false
-  setTimeout(() => { showResults.value = false }, 200)
+  setTimeout(() => {
+    showResults.value = false
+  }, 200)
 }
 
 // Leaflet map
@@ -119,9 +120,7 @@ async function initMap() {
   const leaflet = await import('leaflet')
   L = leaflet.default || leaflet
 
-  const center: [number, number] = hasLocation.value
-    ? [latitude.value!, longitude.value!]
-    : [30, 0]
+  const center: [number, number] = hasLocation.value ? [latitude.value!, longitude.value!] : [30, 0]
   const zoom = hasLocation.value ? 12 : 2
 
   map = L.map(mapEl.value, {
@@ -166,8 +165,7 @@ function placeMarker(lat: number, lng: number) {
   if (!L || !map) return
   if (marker) {
     marker.setLatLng([lat, lng])
-  }
-  else {
+  } else {
     marker = L.marker([lat, lng], { icon: createPinIcon(), draggable: true }).addTo(map)
     marker.on('dragend', (e: any) => {
       const p = e.target.getLatLng()
@@ -198,11 +196,13 @@ function showArea(r: NominatimResult) {
       },
     }).addTo(map)
     map.flyToBounds(areaLayer.getBounds(), { padding: [30, 30], duration: 0.8 })
-  }
-  else if (r.boundingbox) {
+  } else if (r.boundingbox) {
     // Fall back to bounding box rectangle
     const [south, north, west, east] = r.boundingbox.map(Number)
-    const bounds = L.latLngBounds([[south, west], [north, east]])
+    const bounds = L.latLngBounds([
+      [south, west],
+      [north, east],
+    ])
     areaLayer = L.rectangle(bounds, {
       color: 'var(--color-primary-500, #2563eb)',
       weight: 2,
@@ -211,8 +211,7 @@ function showArea(r: NominatimResult) {
       dashArray: '6 4',
     }).addTo(map)
     map.flyToBounds(bounds, { padding: [30, 30], duration: 0.8 })
-  }
-  else {
+  } else {
     map.flyTo([lat, lng], 13, { duration: 0.8 })
   }
 }
@@ -228,13 +227,15 @@ async function reverseGeocode(lat: number, lng: number) {
   try {
     const data = await $fetch<{ display_name: string }>(
       'https://nominatim.openstreetmap.org/reverse',
-      { query: { lat: String(lat), lon: String(lng), format: 'json' }, headers: { 'Accept-Language': 'en' } },
+      {
+        query: { lat: String(lat), lon: String(lng), format: 'json' },
+        headers: { 'Accept-Language': 'en' },
+      },
     )
     if (data.display_name) {
       locationName.value = data.display_name.split(',').slice(0, 3).join(',').trim()
     }
-  }
-  catch {}
+  } catch {}
 }
 
 function clearLocation() {
@@ -251,28 +252,32 @@ function clearLocation() {
 }
 
 onMounted(initMap)
-onBeforeUnmount(() => { map?.remove(); map = null; marker = null; areaLayer = null })
+onBeforeUnmount(() => {
+  map?.remove()
+  map = null
+  marker = null
+  areaLayer = null
+})
 </script>
 
 <template>
   <div class="space-y-3">
     <!-- Location input + scale row -->
     <div class="flex gap-2 items-end">
-      <UFormField label="Location" name="locationName" class="relative flex-1 min-w-0">
+      <UFormField class="relative flex-1 min-w-0" label="Location" name="locationName">
         <UInput
-          :model-value="locationName"
-          type="text"
+          class="w-full"
+          icon="lucide:map-pin"
           placeholder="Search or type a location..."
           size="lg"
-          icon="lucide:map-pin"
+          type="text"
           :loading="searching"
-          class="w-full"
-          @update:model-value="locationName = $event"
-          @focus="onInputFocus"
+          :model-value="locationName"
           @blur="onInputBlur"
+          @focus="onInputFocus"
           @keydown.enter.prevent
+          @update:model-value="locationName = $event"
         />
-
         <!-- Results dropdown -->
         <Transition
           enter-active-class="transition duration-150 ease-out"
@@ -289,33 +294,32 @@ onBeforeUnmount(() => { map?.remove(); map = null; marker = null; areaLayer = nu
             <button
               v-for="(r, i) in searchResults"
               :key="i"
-              type="button"
               class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 flex items-start gap-2.5"
+              type="button"
               @mousedown.prevent="selectResult(r)"
             >
-              <UIcon name="lucide:map-pin" class="size-4 text-gray-400 mt-0.5 shrink-0" />
-              <span class="text-gray-700 line-clamp-2 leading-snug">{{ r.display_name }}</span>
+              <UIcon class="size-4 text-gray-400 mt-0.5 shrink-0" name="lucide:map-pin" />
+              <span class="text-gray-700 line-clamp-2 leading-snug">
+                {{ r.display_name }}
+              </span>
             </button>
           </div>
         </Transition>
       </UFormField>
-
-      <UFormField label="Scale" name="scale" class="shrink-0 w-40">
+      <UFormField class="shrink-0 w-40" label="Scale" name="scale">
         <USelectMenu
           v-model="scale"
-          :items="scaleOptions"
-          value-key="value"
+          class="w-full"
           placeholder="Scale..."
           size="lg"
-          class="w-full"
+          value-key="value"
+          :items="scaleOptions"
         />
       </UFormField>
     </div>
-
     <!-- Map -->
     <div class="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-100 map-container">
       <div ref="mapEl" class="absolute inset-0" />
-
       <!-- Hint overlay -->
       <Transition
         enter-active-class="transition duration-300"
@@ -328,12 +332,11 @@ onBeforeUnmount(() => { map?.remove(); map = null; marker = null; areaLayer = nu
           class="absolute inset-0 flex items-end justify-center pb-4 pointer-events-none"
         >
           <div class="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-gray-500 flex items-center gap-1.5 shadow-sm border border-gray-100">
-            <UIcon name="lucide:mouse-pointer-click" class="size-3.5" />
+            <UIcon class="size-3.5" name="lucide:mouse-pointer-click" />
             Click the map or search above
           </div>
         </div>
       </Transition>
-
       <!-- Clear button -->
       <Transition
         enter-active-class="transition duration-200"
@@ -343,22 +346,18 @@ onBeforeUnmount(() => { map?.remove(); map = null; marker = null; areaLayer = nu
       >
         <button
           v-if="hasLocation"
-          type="button"
           class="absolute top-2.5 left-2.5 z-[400] bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 text-xs font-mono text-gray-500 hover:text-red-600 hover:bg-red-50/90 transition-colors border border-gray-200/80 flex items-center gap-1 shadow-sm"
+          type="button"
           @click="clearLocation"
         >
-          <UIcon name="lucide:x" class="size-3" />
+          <UIcon class="size-3" name="lucide:x" />
           Clear
         </button>
       </Transition>
     </div>
-
     <!-- Coordinates -->
-    <div
-      v-if="hasLocation"
-      class="flex items-center gap-2 text-xs text-gray-400 font-mono pl-1"
-    >
-      <UIcon name="lucide:crosshair" class="size-3 shrink-0" />
+    <div v-if="hasLocation" class="flex items-center gap-2 text-xs text-gray-400 font-mono pl-1">
+      <UIcon class="size-3 shrink-0" name="lucide:crosshair" />
       {{ latitude!.toFixed(6) }}, {{ longitude!.toFixed(6) }}
     </div>
   </div>
@@ -368,27 +367,26 @@ onBeforeUnmount(() => { map?.remove(); map = null; marker = null; areaLayer = nu
 .map-container {
   height: 220px;
 }
-
 /* Custom map pin marker */
 .location-pin {
   width: 24px;
   height: 24px;
   background: var(--color-primary-500, #2563eb);
-  border: 3px solid white;
+  border: 3px solid #fff;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 3px 10px #00000040;
 }
-
 /* Leaflet zoom control overrides */
 :deep(.leaflet-control-zoom) {
   border: none !important;
-  border-radius: 0.5rem !important;
+  border-radius: .5rem !important;
   overflow: hidden !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 2px 8px #0000001f !important;
 }
+
 :deep(.leaflet-control-zoom a) {
-  background: white !important;
+  background: #fff !important;
   color: #6b7280 !important;
   border: none !important;
   border-bottom: 1px solid #f3f4f6 !important;
@@ -396,11 +394,13 @@ onBeforeUnmount(() => { map?.remove(); map = null; marker = null; areaLayer = nu
   height: 32px !important;
   line-height: 32px !important;
   font-size: 16px !important;
-  transition: background 0.15s ease !important;
+  transition: background .15s !important;
 }
+
 :deep(.leaflet-control-zoom a:last-child) {
   border-bottom: none !important;
 }
+
 :deep(.leaflet-control-zoom a:hover) {
   background: #f9fafb !important;
   color: #374151 !important;

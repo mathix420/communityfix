@@ -15,7 +15,8 @@ export default defineEventHandler(async (event) => {
 
   const previousStatus = cs.status
 
-  await db.update(caseStudies)
+  await db
+    .update(caseStudies)
     .set({
       status: 'pending',
       rejectionReason: null,
@@ -31,7 +32,12 @@ export default defineEventHandler(async (event) => {
     status: 'auto_resolved',
     userId: cs.authorId,
     reason: `Admin triggered re-moderation on case study (was ${previousStatus})`,
-    details: { adminId: session.user.id, caseStudyId: id, solutionId: cs.solutionId, previousStatus },
+    details: {
+      adminId: session.user.id,
+      caseStudyId: id,
+      solutionId: cs.solutionId,
+      previousStatus,
+    },
   })
 
   await triggerModeration('case-study', id)

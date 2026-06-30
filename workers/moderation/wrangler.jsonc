@@ -3,11 +3,24 @@
   "name": "communityfix-moderation",
   "main": "src/index.ts",
   "compatibility_date": "2025-12-22",
-  "compatibility_flags": ["nodejs_compat"],
-  "rules": [{ "type": "Text", "globs": ["**/*.yaml"], "fallthrough": true }],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "rules": [
+    {
+      "type": "Text",
+      "globs": [
+        "**/*.yaml"
+      ],
+      "fallthrough": true
+    }
+  ],
   "observability": {
     "enabled": true,
-    "logs": { "enabled": true, "invocation_logs": true }
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
   },
   "workflows": [
     {

@@ -4,7 +4,7 @@ import { getOrigin } from '../utils/oauth'
 
 const MAX_URLS = 45_000
 
-const STATIC_ROUTES: Array<{ loc: string, changefreq: string, priority: string }> = [
+const STATIC_ROUTES: Array<{ loc: string; changefreq: string; priority: string }> = [
   { loc: '/', changefreq: 'daily', priority: '1.0' },
   { loc: '/whitepaper', changefreq: 'monthly', priority: '0.8' },
   { loc: '/guides', changefreq: 'weekly', priority: '0.7' },
@@ -14,10 +14,18 @@ const STATIC_ROUTES: Array<{ loc: string, changefreq: string, priority: string }
 ]
 
 function escapeXml(s: string): string {
-  return s.replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', '\'': '&apos;' }[c]!))
+  return s.replace(
+    /[<>&"']/g,
+    (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]!,
+  )
 }
 
-function urlEntry(loc: string, lastmod?: Date | null, changefreq?: string, priority?: string): string {
+function urlEntry(
+  loc: string,
+  lastmod?: Date | null,
+  changefreq?: string,
+  priority?: string,
+): string {
   const parts = [`    <loc>${escapeXml(loc)}</loc>`]
   if (lastmod) parts.push(`    <lastmod>${lastmod.toISOString()}</lastmod>`)
   if (changefreq) parts.push(`    <changefreq>${changefreq}</changefreq>`)

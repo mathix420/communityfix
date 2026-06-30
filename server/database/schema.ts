@@ -1,22 +1,36 @@
-import { pgTable, text, integer, serial, boolean, timestamp, uuid, jsonb, primaryKey, unique, index, numeric, date } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  text,
+  integer,
+  serial,
+  boolean,
+  timestamp,
+  uuid,
+  jsonb,
+  primaryKey,
+  unique,
+  index,
+  numeric,
+  date,
+} from 'drizzle-orm/pg-core'
 import { vector } from 'drizzle-orm/pg-core'
 import { geometry } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 export const PROVIDERS = ['google', 'apple', 'passkey'] as const
-export type Provider = typeof PROVIDERS[number]
+export type Provider = (typeof PROVIDERS)[number]
 
 export const ISSUE_STATUSES = ['pending', 'approved', 'rejected'] as const
-export type IssueStatus = typeof ISSUE_STATUSES[number]
+export type IssueStatus = (typeof ISSUE_STATUSES)[number]
 
 export const ISSUE_TYPES = ['issue', 'solution'] as const
-export type IssueType = typeof ISSUE_TYPES[number]
+export type IssueType = (typeof ISSUE_TYPES)[number]
 
 export const APPEAL_STATUSES = ['pending', 'approved', 'denied'] as const
-export type AppealStatus = typeof APPEAL_STATUSES[number]
+export type AppealStatus = (typeof APPEAL_STATUSES)[number]
 
 export const LOCATION_SCALES = ['neighborhood', 'city', 'region', 'national', 'global'] as const
-export type LocationScale = typeof LOCATION_SCALES[number]
+export type LocationScale = (typeof LOCATION_SCALES)[number]
 
 // GeoJSON area geometry for a location's `area` column. coordinates is kept
 // concrete (not unknown) so it satisfies the Workers Serializable bound.
@@ -26,29 +40,57 @@ export interface GeoJsonGeometry {
 }
 
 export const SOLUTION_STATUSES = ['plan', 'in-progress', 'done'] as const
-export type SolutionStatus = typeof SOLUTION_STATUSES[number]
+export type SolutionStatus = (typeof SOLUTION_STATUSES)[number]
 
-export const CASE_STUDY_OUTCOMES = ['success', 'partial', 'failed', 'inconclusive', 'ongoing'] as const
-export type CaseStudyOutcome = typeof CASE_STUDY_OUTCOMES[number]
+export const CASE_STUDY_OUTCOMES = [
+  'success',
+  'partial',
+  'failed',
+  'inconclusive',
+  'ongoing',
+] as const
+export type CaseStudyOutcome = (typeof CASE_STUDY_OUTCOMES)[number]
 
-export const AUDIT_LOG_TYPES = ['moderation', 'structure', 'trust_score', 'auto_ban', 'appeal', 'admin_override'] as const
-export type AuditLogType = typeof AUDIT_LOG_TYPES[number]
+export const AUDIT_LOG_TYPES = [
+  'moderation',
+  'structure',
+  'trust_score',
+  'auto_ban',
+  'appeal',
+  'admin_override',
+] as const
+export type AuditLogType = (typeof AUDIT_LOG_TYPES)[number]
 
 export const AUDIT_LOG_ACTIONS = [
-  'approve', 'reject', 'flag_spam', 'flag_duplicate',
-  'reparent', 'convert_to_case_study',
-  'ban', 'unban',
+  'approve',
+  'reject',
+  'flag_spam',
+  'flag_duplicate',
+  'reparent',
+  'convert_to_case_study',
+  'ban',
+  'unban',
   'score_update',
-  'appeal_submitted', 'appeal_approved', 'appeal_denied',
-  'override_approve', 'override_reject',
-  'request_info', 'flag_uncertain',
+  'appeal_submitted',
+  'appeal_approved',
+  'appeal_denied',
+  'override_approve',
+  'override_reject',
+  'request_info',
+  'flag_uncertain',
   'remod',
-  'relocate', 'curate',
+  'relocate',
+  'curate',
 ] as const
-export type AuditLogAction = typeof AUDIT_LOG_ACTIONS[number]
+export type AuditLogAction = (typeof AUDIT_LOG_ACTIONS)[number]
 
-export const AUDIT_LOG_STATUSES = ['auto_resolved', 'needs_review', 'reviewed', 'overridden'] as const
-export type AuditLogStatus = typeof AUDIT_LOG_STATUSES[number]
+export const AUDIT_LOG_STATUSES = [
+  'auto_resolved',
+  'needs_review',
+  'reviewed',
+  'overridden',
+] as const
+export type AuditLogStatus = (typeof AUDIT_LOG_STATUSES)[number]
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -82,7 +124,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const credentials = pgTable('credentials', {
   id: text('id').primaryKey(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   publicKey: text('public_key').notNull(),
   counter: integer('counter').notNull().default(0),
   backedUp: boolean('backed_up').notNull().default(false),
@@ -139,7 +183,7 @@ export const issues = pgTable('issues', {
   // Only meaningful when type='solution'.
   solutionStatus: text('solution_status').$type<SolutionStatus>(),
   // External resources — only surfaced for solutions.
-  links: jsonb('links').$type<Array<{ url: string, title?: string }>>(),
+  links: jsonb('links').$type<Array<{ url: string; title?: string }>>(),
   infoRequest: text('info_request'),
   infoRequestedAt: timestamp('info_requested_at', { withTimezone: true }),
   infoResponse: text('info_response'),
@@ -151,7 +195,11 @@ export const issues = pgTable('issues', {
 
 export const issuesRelations = relations(issues, ({ one, many }) => ({
   author: one(users, { fields: [issues.authorId], references: [users.id] }),
-  parent: one(issues, { fields: [issues.parentId], references: [issues.id], relationName: 'parentChild' }),
+  parent: one(issues, {
+    fields: [issues.parentId],
+    references: [issues.id],
+    relationName: 'parentChild',
+  }),
   children: many(issues, { relationName: 'parentChild' }),
   issueTags: many(issueTags),
   issueSdgs: many(issueSdgs),
@@ -159,43 +207,61 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
   caseStudies: many(caseStudies),
 }))
 
-export const votes = pgTable('votes', {
-  id: serial('id').primaryKey(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
-  value: integer('value').notNull(), // +1 or -1
-  weight: integer('weight').notNull().default(1), // derived from voter's trust score
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  unique().on(t.userId, t.issueId),
-])
+export const votes = pgTable(
+  'votes',
+  {
+    id: serial('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    issueId: integer('issue_id')
+      .notNull()
+      .references(() => issues.id, { onDelete: 'cascade' }),
+    value: integer('value').notNull(), // +1 or -1
+    weight: integer('weight').notNull().default(1), // derived from voter's trust score
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.issueId)],
+)
 
 export const votesRelations = relations(votes, ({ one }) => ({
   user: one(users, { fields: [votes.userId], references: [users.id] }),
   issue: one(issues, { fields: [votes.issueId], references: [issues.id] }),
 }))
 
-export const issueTags = pgTable('issue_tags', {
-  issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
-  tagId: integer('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  primaryKey({ columns: [t.issueId, t.tagId] }),
-])
+export const issueTags = pgTable(
+  'issue_tags',
+  {
+    issueId: integer('issue_id')
+      .notNull()
+      .references(() => issues.id, { onDelete: 'cascade' }),
+    tagId: integer('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.issueId, t.tagId] })],
+)
 
 export const issueTagsRelations = relations(issueTags, ({ one }) => ({
   issue: one(issues, { fields: [issueTags.issueId], references: [issues.id] }),
   tag: one(tags, { fields: [issueTags.tagId], references: [tags.id] }),
 }))
 
-export const issueSdgs = pgTable('issue_sdgs', {
-  issueId: integer('issue_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
-  sdgId: integer('sdg_id').notNull().references(() => sdgs.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  primaryKey({ columns: [t.issueId, t.sdgId] }),
-])
+export const issueSdgs = pgTable(
+  'issue_sdgs',
+  {
+    issueId: integer('issue_id')
+      .notNull()
+      .references(() => issues.id, { onDelete: 'cascade' }),
+    sdgId: integer('sdg_id')
+      .notNull()
+      .references(() => sdgs.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.issueId, t.sdgId] })],
+)
 
 export const issueSdgsRelations = relations(issueSdgs, ({ one }) => ({
   issue: one(issues, { fields: [issueSdgs.issueId], references: [issues.id] }),
@@ -204,20 +270,24 @@ export const issueSdgsRelations = relations(issueSdgs, ({ one }) => ({
 
 // Named `qualifications` to avoid collision with the WebAuthn `credentials`
 // table above. Surfaced to users as "Credentials" in the UI.
-export const qualifications = pgTable('qualifications', {
-  id: serial('id').primaryKey(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  // Short headline of the qualification, e.g. "10 years as structural engineer".
-  title: text('title').notNull(),
-  // Area/domain tag, e.g. "civil engineering", "urban planning", "nursing".
-  area: text('area').notNull(),
-  // Optional longer context — how, where, when, proof links.
-  detail: text('detail'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  index('qualifications_user_id_idx').on(t.userId),
-])
+export const qualifications = pgTable(
+  'qualifications',
+  {
+    id: serial('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // Short headline of the qualification, e.g. "10 years as structural engineer".
+    title: text('title').notNull(),
+    // Area/domain tag, e.g. "civil engineering", "urban planning", "nursing".
+    area: text('area').notNull(),
+    // Optional longer context — how, where, when, proof links.
+    detail: text('detail'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('qualifications_user_id_idx').on(t.userId)],
+)
 
 export const qualificationsRelations = relations(qualifications, ({ one, many }) => ({
   user: one(users, { fields: [qualifications.userId], references: [users.id] }),
@@ -225,7 +295,7 @@ export const qualificationsRelations = relations(qualifications, ({ one, many })
 }))
 
 export const ENDORSEMENT_KINDS = ['endorsement', 'verification'] as const
-export type EndorsementKind = typeof ENDORSEMENT_KINDS[number]
+export type EndorsementKind = (typeof ENDORSEMENT_KINDS)[number]
 
 // A community acknowledgement that a user's qualification is legitimate.
 // Rule: only users who themselves have received at least one endorsement
@@ -237,21 +307,38 @@ export type EndorsementKind = typeof ENDORSEMENT_KINDS[number]
 //   - 'endorsement'  : a peer vouching (counts toward endorsementCount)
 //   - 'verification' : an admin/team vouching (shows a verified badge,
 //                      does NOT increment endorsementCount)
-export const qualificationEndorsements = pgTable('qualification_endorsements', {
-  id: serial('id').primaryKey(),
-  qualificationId: integer('qualification_id').notNull().references(() => qualifications.id, { onDelete: 'cascade' }),
-  endorserId: uuid('endorser_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  kind: text('kind').$type<EndorsementKind>().notNull().default('endorsement'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  unique('qualification_endorsements_unique').on(t.qualificationId, t.endorserId),
-  index('qualification_endorsements_endorser_idx').on(t.endorserId),
-])
+export const qualificationEndorsements = pgTable(
+  'qualification_endorsements',
+  {
+    id: serial('id').primaryKey(),
+    qualificationId: integer('qualification_id')
+      .notNull()
+      .references(() => qualifications.id, { onDelete: 'cascade' }),
+    endorserId: uuid('endorser_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<EndorsementKind>().notNull().default('endorsement'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('qualification_endorsements_unique').on(t.qualificationId, t.endorserId),
+    index('qualification_endorsements_endorser_idx').on(t.endorserId),
+  ],
+)
 
-export const qualificationEndorsementsRelations = relations(qualificationEndorsements, ({ one }) => ({
-  qualification: one(qualifications, { fields: [qualificationEndorsements.qualificationId], references: [qualifications.id] }),
-  endorser: one(users, { fields: [qualificationEndorsements.endorserId], references: [users.id] }),
-}))
+export const qualificationEndorsementsRelations = relations(
+  qualificationEndorsements,
+  ({ one }) => ({
+    qualification: one(qualifications, {
+      fields: [qualificationEndorsements.qualificationId],
+      references: [qualifications.id],
+    }),
+    endorser: one(users, {
+      fields: [qualificationEndorsements.endorserId],
+      references: [users.id],
+    }),
+  }),
+)
 
 export const oauthClients = pgTable('oauth_clients', {
   id: text('id').primaryKey(),
@@ -264,8 +351,12 @@ export const oauthClients = pgTable('oauth_clients', {
 
 export const oauthCodes = pgTable('oauth_codes', {
   code: text('code').primaryKey(),
-  clientId: text('client_id').notNull().references(() => oauthClients.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  clientId: text('client_id')
+    .notNull()
+    .references(() => oauthClients.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   redirectUri: text('redirect_uri').notNull(),
   codeChallenge: text('code_challenge').notNull(),
   codeChallengeMethod: text('code_challenge_method').notNull().default('S256'),
@@ -278,90 +369,113 @@ export const oauthCodes = pgTable('oauth_codes', {
 // A case study documents one real-world implementation of a solution. The
 // solution row itself stays abstract; case studies capture where it was
 // actually run, what happened, and what to learn from it.
-export const caseStudies = pgTable('case_studies', {
-  id: serial('id').primaryKey(),
-  solutionId: integer('solution_id').notNull().references(() => issues.id, { onDelete: 'cascade' }),
-  authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
-  // Moderation state mirrors issues — pending until AI/admin review approves
-  // or rejects. Rejected studies stay hidden from public listings; isSpam
-  // additionally suppresses them from the author's own profile.
-  status: text('status').notNull().default('pending').$type<IssueStatus>(),
-  rejectionReason: text('rejection_reason'),
-  rejectedAt: timestamp('rejected_at', { withTimezone: true }),
-  isSpam: boolean('is_spam').notNull().default(false),
-  description: text('description'),
-  outcome: text('outcome').notNull().$type<CaseStudyOutcome>(),
-  scale: text('scale').$type<LocationScale>(),
-  locationName: text('location_name').notNull(),
-  location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }).notNull(),
-  // GeoJSON area for the location (see issues.area). The point above is the centroid.
-  area: jsonb('area').$type<GeoJsonGeometry>(),
-  // Admin-set: lets us mark a case study as independently verified.
-  verified: boolean('verified').notNull().default(false),
-  implementer: text('implementer'),
-  startDate: date('start_date', { mode: 'string' }),
-  endDate: date('end_date', { mode: 'string' }),
-  metrics: jsonb('metrics').$type<Array<{ label: string, baseline?: string, result?: string, unit?: string }>>(),
-  cost: numeric('cost'),
-  currency: text('currency'),
-  fundingSource: text('funding_source'),
-  sources: jsonb('sources').$type<Array<{ url: string, title?: string }>>(),
-  // Each entry is one stand-alone lesson — matches the row shape of metrics
-  // and sources so the form/card render the same way.
-  lessonsLearned: jsonb('lessons_learned').$type<string[]>(),
-  // External resources documenting the deployment. Separate from `sources`,
-  // which is reserved for citations backing the claims.
-  links: jsonb('links').$type<Array<{ url: string, title?: string }>>(),
-  embedding: vector('embedding', { dimensions: 1536 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  index('case_studies_solution_idx').on(t.solutionId),
-])
+export const caseStudies = pgTable(
+  'case_studies',
+  {
+    id: serial('id').primaryKey(),
+    solutionId: integer('solution_id')
+      .notNull()
+      .references(() => issues.id, { onDelete: 'cascade' }),
+    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    // Moderation state mirrors issues — pending until AI/admin review approves
+    // or rejects. Rejected studies stay hidden from public listings; isSpam
+    // additionally suppresses them from the author's own profile.
+    status: text('status').notNull().default('pending').$type<IssueStatus>(),
+    rejectionReason: text('rejection_reason'),
+    rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+    isSpam: boolean('is_spam').notNull().default(false),
+    description: text('description'),
+    outcome: text('outcome').notNull().$type<CaseStudyOutcome>(),
+    scale: text('scale').$type<LocationScale>(),
+    locationName: text('location_name').notNull(),
+    location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }).notNull(),
+    // GeoJSON area for the location (see issues.area). The point above is the centroid.
+    area: jsonb('area').$type<GeoJsonGeometry>(),
+    // Admin-set: lets us mark a case study as independently verified.
+    verified: boolean('verified').notNull().default(false),
+    implementer: text('implementer'),
+    startDate: date('start_date', { mode: 'string' }),
+    endDate: date('end_date', { mode: 'string' }),
+    metrics:
+      jsonb('metrics').$type<
+        Array<{ label: string; baseline?: string; result?: string; unit?: string }>
+      >(),
+    cost: numeric('cost'),
+    currency: text('currency'),
+    fundingSource: text('funding_source'),
+    sources: jsonb('sources').$type<Array<{ url: string; title?: string }>>(),
+    // Each entry is one stand-alone lesson — matches the row shape of metrics
+    // and sources so the form/card render the same way.
+    lessonsLearned: jsonb('lessons_learned').$type<string[]>(),
+    // External resources documenting the deployment. Separate from `sources`,
+    // which is reserved for citations backing the claims.
+    links: jsonb('links').$type<Array<{ url: string; title?: string }>>(),
+    embedding: vector('embedding', { dimensions: 1536 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('case_studies_solution_idx').on(t.solutionId)],
+)
 
 export const caseStudiesRelations = relations(caseStudies, ({ one }) => ({
   solution: one(issues, { fields: [caseStudies.solutionId], references: [issues.id] }),
   author: one(users, { fields: [caseStudies.authorId], references: [users.id] }),
 }))
 
-export const auditLogs = pgTable('audit_logs', {
-  id: serial('id').primaryKey(),
-  type: text('type').notNull().$type<AuditLogType>(),
-  action: text('action').notNull().$type<AuditLogAction>(),
-  status: text('status').notNull().default('auto_resolved').$type<AuditLogStatus>(),
-  issueId: integer('issue_id').references(() => issues.id, { onDelete: 'set null' }),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
-  reason: text('reason'),
-  details: jsonb('details').$type<Record<string, unknown>>(),
-  reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
-  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
-  reviewNote: text('review_note'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  index('audit_logs_type_idx').on(t.type),
-  index('audit_logs_status_idx').on(t.status),
-  index('audit_logs_issue_id_idx').on(t.issueId),
-  index('audit_logs_user_id_idx').on(t.userId),
-  index('audit_logs_created_at_idx').on(t.createdAt),
-])
+export const auditLogs = pgTable(
+  'audit_logs',
+  {
+    id: serial('id').primaryKey(),
+    type: text('type').notNull().$type<AuditLogType>(),
+    action: text('action').notNull().$type<AuditLogAction>(),
+    status: text('status').notNull().default('auto_resolved').$type<AuditLogStatus>(),
+    issueId: integer('issue_id').references(() => issues.id, { onDelete: 'set null' }),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    reason: text('reason'),
+    details: jsonb('details').$type<Record<string, unknown>>(),
+    reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewNote: text('review_note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('audit_logs_type_idx').on(t.type),
+    index('audit_logs_status_idx').on(t.status),
+    index('audit_logs_issue_id_idx').on(t.issueId),
+    index('audit_logs_user_id_idx').on(t.userId),
+    index('audit_logs_created_at_idx').on(t.createdAt),
+  ],
+)
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   issue: one(issues, { fields: [auditLogs.issueId], references: [issues.id] }),
   user: one(users, { fields: [auditLogs.userId], references: [users.id] }),
-  reviewer: one(users, { fields: [auditLogs.reviewedBy], references: [users.id], relationName: 'auditReviewer' }),
+  reviewer: one(users, {
+    fields: [auditLogs.reviewedBy],
+    references: [users.id],
+    relationName: 'auditReviewer',
+  }),
 }))
 
-export const oauthTokens = pgTable('oauth_tokens', {
-  // sha256 of the raw token — raw value never persisted.
-  tokenHash: text('token_hash').primaryKey(),
-  clientId: text('client_id').notNull().references(() => oauthClients.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  scope: text('scope').notNull().default(''),
-  refreshHash: text('refresh_hash'),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  revokedAt: timestamp('revoked_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [
-  index('oauth_tokens_user_idx').on(t.userId),
-  index('oauth_tokens_refresh_idx').on(t.refreshHash),
-])
+export const oauthTokens = pgTable(
+  'oauth_tokens',
+  {
+    // sha256 of the raw token — raw value never persisted.
+    tokenHash: text('token_hash').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClients.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    scope: text('scope').notNull().default(''),
+    refreshHash: text('refresh_hash'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('oauth_tokens_user_idx').on(t.userId),
+    index('oauth_tokens_refresh_idx').on(t.refreshHash),
+  ],
+)

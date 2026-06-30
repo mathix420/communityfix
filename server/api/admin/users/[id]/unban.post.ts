@@ -13,7 +13,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
-  await db.update(users)
+  await db
+    .update(users)
     .set({
       bannedUntil: null,
       banReason: null,
@@ -28,7 +29,10 @@ export default defineEventHandler(async (event) => {
     action: 'unban',
     userId: id,
     reason: body.reason || 'Admin lifted ban',
-    details: { adminId: session.user.id, previousBannedUntil: user.bannedUntil?.toISOString() ?? null },
+    details: {
+      adminId: session.user.id,
+      previousBannedUntil: user.bannedUntil?.toISOString() ?? null,
+    },
   })
 
   return { success: true }

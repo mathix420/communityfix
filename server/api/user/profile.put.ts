@@ -20,7 +20,10 @@ export default defineEventHandler(async (event) => {
     const t = v.trim()
     if (!t) return null
     if (t.length > max) {
-      throw createError({ statusCode: 400, statusMessage: `Field too long (max ${max} characters)` })
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Field too long (max ${max} characters)`,
+      })
     }
     return t
   }
@@ -34,9 +37,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = useDB()
-  await db.update(users)
-    .set(patch)
-    .where(eq(users.id, session.user.id))
+  await db.update(users).set(patch).where(eq(users.id, session.user.id))
 
   // Session only tracks `name` today — keep it in sync so the nav label updates
   // immediately. Other fields are re-fetched from /api/user/:id when viewed.
