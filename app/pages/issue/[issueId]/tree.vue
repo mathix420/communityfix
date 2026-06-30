@@ -35,9 +35,11 @@ const rootChildren = computed<NestedNode[]>(() => {
   const roots: NestedNode[] = []
   const rootParentId = Number(issueId.value)
   for (const node of byKey.values()) {
-    // Case studies never sit at the root of the children panel — they
-    // belong under a solution row.
-    if (node.type !== 'case-study' && node.parentId === rootParentId) {
+    // Direct children of the page's node sit at the root of the panel: for an
+    // issue these are sub-issues/solutions, for a solution they're its own
+    // case studies. Their parentId points at the (excluded) root, so there's
+    // no parent row to attach to.
+    if (node.parentId === rootParentId) {
       roots.push(node)
       continue
     }
