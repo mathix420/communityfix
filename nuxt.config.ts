@@ -2,7 +2,6 @@ import type { Nitro } from 'nitropack'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-
   modules: [
     '@nuxt/content',
     '@nuxt/eslint',
@@ -52,9 +51,7 @@ export default defineNuxtConfig({
     },
   },
 
-  css: [
-    '@/assets/css/main.css',
-  ],
+  css: ['@/assets/css/main.css'],
 
   ui: {
     colorMode: false,
@@ -96,6 +93,10 @@ export default defineNuxtConfig({
       tasks: true,
     },
     scheduledTasks: {
+      // Re-submit nodes stuck in `pending` (review workflow never completed) to
+      // the moderation Workflow — safety net for swallowed/failed triggers.
+      // Hourly; only nodes pending > 30 min are considered stuck.
+      '0 * * * *': ['review:reconcile-pending'],
       // Recompute all trust scores daily at 3am UTC
       '0 3 * * *': ['compute:trust-scores'],
       // Reap expired OAuth codes/tokens + stale rate-limit windows at 3:15am UTC
@@ -140,43 +141,47 @@ export default defineNuxtConfig({
         d1_databases: [
           {
             binding: 'DB',
-            database_name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
-              ? 'communityfix_nuxt_content_staging'
-              : 'communityfix_nuxt_content',
-            database_id: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
-              ? 'bfd9a625-c402-4713-b887-7b545e5688ae' // communityfix_nuxt_content_staging
-              : '9c5ab51d-ec5e-4aed-9883-85d79bea6b85', // communityfix_nuxt_content (prod)
+            database_name:
+              process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+                ? 'communityfix_nuxt_content_staging'
+                : 'communityfix_nuxt_content',
+            database_id:
+              process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+                ? 'bfd9a625-c402-4713-b887-7b545e5688ae' // communityfix_nuxt_content_staging
+                : '9c5ab51d-ec5e-4aed-9883-85d79bea6b85', // communityfix_nuxt_content (prod)
           },
         ],
         hyperdrive: [
           {
             binding: 'HYPERDRIVE',
-            id: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
-              ? 'd9a5e6878b9342b4ac96844524a59d05' // communityfix-staging → Neon staging branch
-              : '9cfe49d0e805462086e8365bd604a062', // communityfix-prod → Neon production branch
+            id:
+              process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+                ? 'd9a5e6878b9342b4ac96844524a59d05' // communityfix-staging → Neon staging branch
+                : '9cfe49d0e805462086e8365bd604a062', // communityfix-prod → Neon production branch
           },
         ],
         kv_namespaces: [
           {
             binding: 'KV_AUTH',
-            id: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
-              ? 'b0d3e44f92ae4be0a0c57903404f62fb' // communityfix-auth-staging
-              : '10ae9211092f42d4a90cd17a938c360a', // communityfix-auth (prod)
+            id:
+              process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+                ? 'b0d3e44f92ae4be0a0c57903404f62fb' // communityfix-auth-staging
+                : '10ae9211092f42d4a90cd17a938c360a', // communityfix-auth (prod)
           },
         ],
-        send_email: [
-          { name: 'EMAIL' },
-        ],
+        send_email: [{ name: 'EMAIL' }],
         workflows: [
           {
             binding: 'MODERATION_WORKFLOW',
             class_name: 'ModerationWorkflow',
-            name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
-              ? 'moderation-staging'
-              : 'moderation',
-            script_name: process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
-              ? 'communityfix-moderation-staging'
-              : 'communityfix-moderation',
+            name:
+              process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+                ? 'moderation-staging'
+                : 'moderation',
+            script_name:
+              process.env.WORKERS_CI_BRANCH && process.env.WORKERS_CI_BRANCH !== 'master'
+                ? 'communityfix-moderation-staging'
+                : 'communityfix-moderation',
           },
         ],
       },

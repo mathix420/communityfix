@@ -857,14 +857,61 @@ function diffStripped(before: CaseStudyRow, after: CurationResult): string[] {
   return stripped
 }
 
+// Commit the approval. This must NOT depend on the curate step: a curation
+// failure used to abort the whole run *before* this write (curate + finalize ran
+// together under one Promise.all), stranding an already-approved case study back
+// at `pending`. Finalize now runs first and curation is a separate best-effort
+// enrichment pass (see `applyCaseStudyCurate`), mirroring the issue pipeline.
 export async function finalizeCaseStudy(
   ctx: Ctx,
-  cs: CaseStudyRow,
-  solution: SolutionRef,
+  prep: CaseStudyPrep,
   moderation: CaseStudyModeration,
+): Promise<void> {
+  const { db } = ctx
+  const { cs } = prep
+  const caseStudyId = cs.id
+
+  // Embed from the approved original text. If curation runs it re-embeds from the
+  // tightened version; if it fails we still have a usable embedding here.
+  let newEmbedding: number[] | null = null
+  try {
+    newEmbedding = await embed(ctx.openai, prep.caseStudyText)
+  } catch (err) {
+    console.error(
+      `[review-case-study] Embedding regeneration failed for case study ${caseStudyId}:`,
+      err,
+    )
+  }
+
+  await db
+    .update(caseStudies)
+    .set({ status: 'approved', ...(newEmbedding ? { embedding: newEmbedding } : {}) })
+    .where(eq(caseStudies.id, caseStudyId))
+
+  await createAuditLog(db, {
+    type: 'moderation',
+    action: 'approve',
+    userId: cs.authorId,
+    reason: moderation.reason,
+    details: {
+      caseStudyId,
+      solutionId: cs.solutionId,
+      promptVersion: STEPS['case-study.moderate'].version,
+    },
+  })
+  if (cs.authorId) await updateUserTrustScore(ctx, cs.authorId)
+}
+
+// Best-effort tightening of an already-approved case study (the issue-side
+// `applyIssueCurate` analogue). Runs after `finalizeCaseStudy`, so a failure here
+// only forfeits the cleanup — it can never revoke the approval.
+export async function applyCaseStudyCurate(
+  ctx: Ctx,
+  prep: CaseStudyPrep,
   curated: CurationResult,
 ): Promise<void> {
   const { db } = ctx
+  const { cs, solution } = prep
   const caseStudyId = cs.id
 
   const cleanedText = [
@@ -885,7 +932,7 @@ export async function finalizeCaseStudy(
     newEmbedding = await embed(ctx.openai, cleanedText)
   } catch (err) {
     console.error(
-      `[review-case-study] Embedding regeneration failed for case study ${caseStudyId}:`,
+      `[review-case-study] Re-embedding after curation failed for case study ${caseStudyId}:`,
       err,
     )
   }
@@ -907,7 +954,6 @@ export async function finalizeCaseStudy(
   await db
     .update(caseStudies)
     .set({
-      status: 'approved',
       description: curated.description,
       lessonsLearned: curated.lessonsLearned,
       implementer: curated.implementer,
@@ -926,17 +972,18 @@ export async function finalizeCaseStudy(
 
   await createAuditLog(db, {
     type: 'moderation',
-    action: 'approve',
+    action: 'curate',
     userId: cs.authorId,
-    reason: moderation.reason,
+    reason: curated.notes,
     details: {
       caseStudyId,
       solutionId: cs.solutionId,
-      curation: { notes: curated.notes, strippedFields: diffStripped(cs, curated) },
-      promptVersion: STEPS['case-study.moderate'].version,
+      strippedFields: diffStripped(cs, curated),
+      notes: curated.notes,
+      promptVersion: STEPS['case-study.curate'].version,
     },
   })
-  if (cs.authorId) await updateUserTrustScore(ctx, cs.authorId)
+  console.log(`[review-case-study] Case study ${caseStudyId} curated`)
 }
 
 // ── Revision pre-screen ────────────────────────────────────────────────────
