@@ -31,6 +31,8 @@ interface CaseStudy {
   fundingSource?: string | null
   sources?: Source[] | null
   lessonsLearned?: string[] | null
+  owners?: { id: string | null; name: string; changes: number }[]
+  collaborators?: { id: string | null; name: string; changes: number }[]
 }
 
 const props = defineProps<{ study: CaseStudy }>()
@@ -215,7 +217,10 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
             {{ sourceCount }} source{{ sourceCount === 1 ? '' : 's' }}
           </span>
         </div>
-        <UserButton :author-id="study.authorId" :name="study.author" />
+        <UserAvatarStack
+          :collaborators="study.collaborators"
+          :owners="study.owners ?? [{ id: study.authorId ?? null, name: study.author, changes: 0 }]"
+        />
       </div>
     </div>
   </UiCard>

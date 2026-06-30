@@ -2,12 +2,15 @@ import { describe, it, expect } from 'vitest'
 import { computeScore, trustScoreToVoteWeight, type TrustScoreFactors } from '../../server/utils/trust-score'
 
 const baseline: TrustScoreFactors = {
+  isAdmin: false,
   accountAgeDays: 0,
   approvedCount: 0,
   rejectedCount: 0,
   solutionCount: 0,
   totalVotesReceived: 0,
   votesCast: 0,
+  verifiedCredentials: 0,
+  proposalsApproved: 0,
   wasBanned: false,
 }
 
@@ -18,12 +21,15 @@ describe('computeScore', () => {
 
   it('clamps the final score to [0, 100]', () => {
     const fullyTrusted = computeScore({
+      ...baseline,
       accountAgeDays: 5000,
       approvedCount: 10000,
       rejectedCount: 0,
       solutionCount: 1000,
       totalVotesReceived: 100000,
       votesCast: 10000,
+      verifiedCredentials: 10,
+      proposalsApproved: 1000,
       wasBanned: false,
     })
     expect(fullyTrusted).toBeLessThanOrEqual(100)
@@ -73,6 +79,7 @@ describe('computeScore', () => {
   it('higher activity yields a higher score than baseline', () => {
     const baselineScore = computeScore(baseline)
     const activeScore = computeScore({
+      ...baseline,
       accountAgeDays: 200,
       approvedCount: 25,
       rejectedCount: 2,
@@ -82,6 +89,16 @@ describe('computeScore', () => {
       wasBanned: false,
     })
     expect(activeScore).toBeGreaterThan(baselineScore)
+  })
+
+  it('awards a small, capped bonus for genuinely accepted proposals', () => {
+    const none = computeScore(baseline)
+    const some = computeScore({ ...baseline, proposalsApproved: 3 })
+    const many = computeScore({ ...baseline, proposalsApproved: 1000 })
+    // A few accepted proposals nudge the score up...
+    expect(some).toBeGreaterThan(none)
+    // ...but the factor is capped at ~8 pts so it can't dominate.
+    expect(many - none).toBeLessThanOrEqual(8)
   })
 })
 

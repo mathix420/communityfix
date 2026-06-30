@@ -19,6 +19,9 @@ import {
   finalizeCaseStudy,
   resolveLocation,
   applyLocationFix,
+  prepareRevision,
+  prescreenRevision,
+  applyRevisionPrescreen,
   CASE_STUDY_DUPLICATE_THRESHOLD,
   type IssuePrep,
   type ModerationResult,
@@ -38,7 +41,7 @@ interface Env {
   NUXT_ADMIN_EMAILS: string
 }
 
-export type ModerationKind = 'issue' | 'case-study' | 'structure'
+export type ModerationKind = 'issue' | 'case-study' | 'structure' | 'revision'
 export interface ModerationParams {
   kind: ModerationKind
   id: number
@@ -65,7 +68,16 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
       await this.reviewCaseStudy(ctx, step, id)
     } else if (kind === 'structure') {
       await this.reviewStructure(ctx, step, id)
+    } else if (kind === 'revision') {
+      await this.reviewRevision(ctx, step, id)
     }
+  }
+
+  private async reviewRevision(ctx: Ctx, step: WorkflowStep, id: number) {
+    const prep = await step.do('prepare', STEP, () => prepareRevision(ctx, id))
+    if (!prep) return
+    const result = await step.do('prescreen', STEP, () => prescreenRevision(ctx, prep))
+    await step.do('apply', STEP, () => applyRevisionPrescreen(ctx, prep, result))
   }
 
   private async reviewIssue(ctx: Ctx, step: WorkflowStep, id: number) {

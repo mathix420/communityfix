@@ -163,8 +163,7 @@ defineExpose({
     map.invalidateSize()
     if (areaBounds && areaBounds.isValid()) {
       map.fitBounds(areaBounds, FIT_OPTIONS)
-    }
-    else {
+    } else {
       map.setView([props.latitude, props.longitude], scaleToZoom(props.scale))
     }
   },

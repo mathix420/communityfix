@@ -81,8 +81,46 @@ export const AUDIT_LOG_ACTIONS = [
   'remod',
   'relocate',
   'curate',
+  // Collaborative revisions: a user proposes an edit, the owner/admin
+  // accepts/rejects, or the proposer withdraws it.
+  'propose',
+  'revise',
+  'withdraw',
 ] as const
 export type AuditLogAction = (typeof AUDIT_LOG_ACTIONS)[number]
+
+export const REVISION_STATUSES = [
+  'pending',
+  'approved',
+  'rejected',
+  'withdrawn',
+  'superseded',
+] as const
+export type RevisionStatus = (typeof REVISION_STATUSES)[number]
+
+// 'issue' covers solutions too (they live in the issues table).
+export const REVISION_TARGET_KINDS = ['issue', 'case_study'] as const
+export type RevisionTargetKind = (typeof REVISION_TARGET_KINDS)[number]
+
+// null verdict = not screened (e.g. dev with no Worker binding).
+export const REVISION_AI_VERDICTS = ['ok', 'spam', 'vandalism'] as const
+export type RevisionAiVerdict = (typeof REVISION_AI_VERDICTS)[number]
+
+// Who pressed accept/reject on a proposal.
+export const REVISION_DECIDED_BY_ROLES = ['owner', 'admin'] as const
+export type RevisionDecidedByRole = (typeof REVISION_DECIDED_BY_ROLES)[number]
+
+// Membership roles on a node (issue/solution or case study). No node has a
+// single hard "author" anymore — the community owns it. `owner`s can edit
+// without approval and accept/reject proposals; `collaborator`s are credited
+// (their suggestion landed) but hold no extra rights. See `node_members`.
+export const NODE_MEMBER_ROLES = ['owner', 'collaborator'] as const
+export type NodeMemberRole = (typeof NODE_MEMBER_ROLES)[number]
+
+// How a membership came to be: the node creator, an accepted proposal, or an
+// explicit grant by an owner/admin.
+export const NODE_MEMBER_SOURCES = ['creator', 'accepted', 'granted'] as const
+export type NodeMemberSource = (typeof NODE_MEMBER_SOURCES)[number]
 
 export const AUDIT_LOG_STATUSES = [
   'auto_resolved',
@@ -479,3 +517,100 @@ export const oauthTokens = pgTable(
     index('oauth_tokens_refresh_idx').on(t.refreshHash),
   ],
 )
+
+// Append-only ledger of every change to a node (issue/solution or case study).
+// Owner/admin edits land as born-approved rows (proposer = decider); anyone
+// else's edit lands as a `pending` proposal that leaves the live node untouched
+// until the owner or an admin decides. The ordered list of `approved` rows on a
+// node IS its public version history — each `appliedSnapshot` is a restorable
+// point and each `changes` is the diff. Exactly one of issueId/caseStudyId is
+// set (enforced by a CHECK in custom migration), keyed by `targetKind`.
+export const revisions = pgTable(
+  'revisions',
+  {
+    id: serial('id').primaryKey(),
+    targetKind: text('target_kind').notNull().$type<RevisionTargetKind>(),
+    issueId: integer('issue_id').references(() => issues.id, { onDelete: 'cascade' }),
+    caseStudyId: integer('case_study_id').references(() => caseStudies.id, { onDelete: 'cascade' }),
+    proposerId: uuid('proposer_id').references(() => users.id, { onDelete: 'set null' }),
+    status: text('status').notNull().default('pending').$type<RevisionStatus>(),
+    // Only the changed fields (diff of baseSnapshot → proposed).
+    changes: jsonb('changes').$type<Record<string, unknown>>().notNull(),
+    // Full editable-field snapshot of the node before the change.
+    baseSnapshot: jsonb('base_snapshot').$type<Record<string, unknown>>().notNull(),
+    // Full editable-field snapshot of the node after the change — filled on approve.
+    appliedSnapshot: jsonb('applied_snapshot').$type<Record<string, unknown>>(),
+    // Node `updatedAt` at proposal time → cheap "changed since proposed" check.
+    baseUpdatedAt: timestamp('base_updated_at', { withTimezone: true }),
+    // Proposer rationale / changelog note.
+    note: text('note'),
+    // AI pre-screen result (Worker). Null verdict = not screened.
+    aiVerdict: text('ai_verdict').$type<RevisionAiVerdict>(),
+    aiConfidence: numeric('ai_confidence'),
+    aiReason: text('ai_reason'),
+    decidedById: uuid('decided_by_id').references(() => users.id, { onDelete: 'set null' }),
+    decidedByRole: text('decided_by_role').$type<RevisionDecidedByRole>(),
+    decisionReason: text('decision_reason'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('revisions_issue_id_idx').on(t.issueId),
+    index('revisions_case_study_id_idx').on(t.caseStudyId),
+    index('revisions_status_idx').on(t.status),
+    index('revisions_proposer_id_idx').on(t.proposerId),
+    index('revisions_target_kind_status_idx').on(t.targetKind, t.status),
+  ],
+)
+
+export const revisionsRelations = relations(revisions, ({ one }) => ({
+  issue: one(issues, { fields: [revisions.issueId], references: [issues.id] }),
+  caseStudy: one(caseStudies, { fields: [revisions.caseStudyId], references: [caseStudies.id] }),
+  proposer: one(users, {
+    fields: [revisions.proposerId],
+    references: [users.id],
+    relationName: 'revisionProposer',
+  }),
+  decidedBy: one(users, {
+    fields: [revisions.decidedById],
+    references: [users.id],
+    relationName: 'revisionDecidedBy',
+  }),
+}))
+
+// Who is attached to a node and in what capacity. Replaces single-owner
+// `authorId` for permission purposes: a node can have many `owner`s (edit +
+// decide rights) and many `collaborator`s (credit only). `authorId` is retained
+// on issues/case_studies purely as creator provenance — every creator is also
+// seeded as an `owner` row here. Polymorphic like `revisions`: exactly one of
+// issueId/caseStudyId is set (CHECK + partial unique indexes in a custom
+// migration), keyed by `targetKind`. One row per (node, user).
+export const nodeMembers = pgTable(
+  'node_members',
+  {
+    id: serial('id').primaryKey(),
+    targetKind: text('target_kind').notNull().$type<RevisionTargetKind>(),
+    issueId: integer('issue_id').references(() => issues.id, { onDelete: 'cascade' }),
+    caseStudyId: integer('case_study_id').references(() => caseStudies.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().$type<NodeMemberRole>(),
+    source: text('source').$type<NodeMemberSource>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('node_members_issue_id_idx').on(t.issueId),
+    index('node_members_case_study_id_idx').on(t.caseStudyId),
+    index('node_members_user_id_idx').on(t.userId),
+    index('node_members_role_idx').on(t.role),
+  ],
+)
+
+export const nodeMembersRelations = relations(nodeMembers, ({ one }) => ({
+  issue: one(issues, { fields: [nodeMembers.issueId], references: [issues.id] }),
+  caseStudy: one(caseStudies, { fields: [nodeMembers.caseStudyId], references: [caseStudies.id] }),
+  user: one(users, { fields: [nodeMembers.userId], references: [users.id] }),
+}))

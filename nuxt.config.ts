@@ -67,6 +67,8 @@ export default defineNuxtConfig({
 
   routeRules: {
     '/umami/**': { proxy: 'https://cloud.umami.is/**' },
+    // The revision inbox folded into the broader dashboard.
+    '/inbox': { redirect: '/dashboard' },
   },
 
   future: {

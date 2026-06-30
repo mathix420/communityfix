@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   caseStudies,
   issues,
+  revisions,
   sdgs,
   tags,
   issueTags,
@@ -17,7 +18,7 @@ import {
   updateUserTrustScore,
   checkAndApplyBan,
 } from './lib'
-import { STEPS, runAgent } from './steps'
+import { STEPS, runAgent, runStep } from './steps'
 import { createGeocodeTool, bboxToPolygon } from './geocode'
 import { areaSimplifyTolerance, simplifyAreaGeometry } from '../../../server/utils/simplify-geo'
 
@@ -936,4 +937,174 @@ export async function finalizeCaseStudy(
     },
   })
   if (cs.authorId) await updateUserTrustScore(ctx, cs.authorId)
+}
+
+// ── Revision pre-screen ────────────────────────────────────────────────────
+// A lightweight, single-shot triage of a *proposed* collaborative edit (the
+// `revisions` table) before its node owner reviews it. It does NOT moderate the
+// resulting content — accepted edits re-enter the normal issue/case-study gate
+// via `updateIssue`/`updateCaseStudy`. It only filters obvious spam/vandalism so
+// owners aren't pestered. Auto-reject only on a high-confidence spam/vandalism
+// verdict; everything else stays `pending` for the human.
+
+type Snapshot = Record<string, unknown>
+
+// A serializable subset of the revision row — `RevisionPrep` crosses a Workflow
+// `step.do` boundary, so (like `IssueRef`) it must hold only plain primitives,
+// not the raw row with its jsonb `changes`/`baseSnapshot` columns.
+interface RevisionRef {
+  id: number
+  targetKind: 'issue' | 'case_study'
+  issueId: number | null
+  caseStudyId: number | null
+  proposerId: string | null
+}
+
+export interface RevisionPrep {
+  revision: RevisionRef
+  originalText: string
+  proposedText: string
+  note: string
+}
+
+export interface RevisionPrescreen {
+  classification: 'spam' | 'vandalism' | 'ok'
+  confidence: number
+  reason: string
+}
+
+const PRESCREEN_AUTO_REJECT_CONFIDENCE = 0.8
+
+// Render an editable-field snapshot (see `editableIssueSnapshot` /
+// `editableCaseStudySnapshot` in server/utils/revision-write.ts) into a stable,
+// human-readable block so the model compares like with like. Empty/null fields
+// are dropped; arrays/objects (links, metrics, location) are JSON-serialized.
+function snapshotToText(snapshot: Snapshot): string {
+  const lines: string[] = []
+  for (const [key, value] of Object.entries(snapshot)) {
+    if (value == null) continue
+    if (Array.isArray(value)) {
+      if (value.length === 0) continue
+      lines.push(`${key}: ${JSON.stringify(value)}`)
+    } else if (typeof value === 'object') {
+      lines.push(`${key}: ${JSON.stringify(value)}`)
+    } else {
+      const str = String(value)
+      if (str === '') continue
+      lines.push(`${key}: ${str}`)
+    }
+  }
+  return lines.join('\n') || '(empty)'
+}
+
+export async function prepareRevision(ctx: Ctx, revisionId: number): Promise<RevisionPrep | null> {
+  const { db } = ctx
+  const revision = await db.query.revisions.findFirst({ where: eq(revisions.id, revisionId) })
+  if (!revision) {
+    console.error(`[review-revision] Revision ${revisionId} not found`)
+    return null
+  }
+  if (revision.status !== 'pending') return null
+
+  const base = (revision.baseSnapshot ?? {}) as Snapshot
+  const changes = (revision.changes ?? {}) as Snapshot
+  const proposed: Snapshot = { ...base, ...changes }
+
+  return {
+    revision: {
+      id: revision.id,
+      targetKind: revision.targetKind,
+      issueId: revision.issueId,
+      caseStudyId: revision.caseStudyId,
+      proposerId: revision.proposerId,
+    },
+    originalText: snapshotToText(base),
+    proposedText: snapshotToText(proposed),
+    note: revision.note?.trim() || 'none',
+  }
+}
+
+export function prescreenRevision(ctx: Ctx, prep: RevisionPrep): Promise<RevisionPrescreen> {
+  return runStep<RevisionPrescreen>(
+    ctx.anthropic,
+    'revision.prescreen',
+    {
+      originalText: prep.originalText,
+      proposedText: prep.proposedText,
+      note: prep.note,
+    },
+    `revision ${prep.revision.id}`,
+  )
+}
+
+export async function applyRevisionPrescreen(
+  ctx: Ctx,
+  prep: RevisionPrep,
+  result: RevisionPrescreen,
+): Promise<void> {
+  const { db } = ctx
+  const { revision } = prep
+  const revisionId = revision.id
+  const promptVersion = STEPS['revision.prescreen'].version
+
+  const verdict = result.classification === 'ok' ? 'ok' : result.classification
+  const confidence = result.confidence ?? 0
+  const autoReject =
+    (result.classification === 'spam' || result.classification === 'vandalism') &&
+    confidence >= PRESCREEN_AUTO_REJECT_CONFIDENCE
+
+  // Re-read defensively: a human owner may already have decided in the gap.
+  const current = await db.query.revisions.findFirst({
+    where: eq(revisions.id, revisionId),
+    columns: { status: true },
+  })
+  if (!current || current.status !== 'pending') return
+
+  if (autoReject) {
+    await db
+      .update(revisions)
+      .set({
+        aiVerdict: verdict,
+        aiConfidence: String(confidence),
+        aiReason: result.reason,
+        status: 'rejected',
+        decisionReason: result.reason,
+        decidedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(revisions.id, revisionId))
+    await createAuditLog(db, {
+      type: 'moderation',
+      action: result.classification === 'spam' ? 'flag_spam' : 'reject',
+      issueId: revision.issueId,
+      userId: revision.proposerId,
+      reason: result.reason,
+      details: {
+        revisionId,
+        targetKind: revision.targetKind,
+        caseStudyId: revision.caseStudyId,
+        classification: result.classification,
+        confidence,
+        promptVersion,
+      },
+    })
+    console.log(
+      `[review-revision] Revision ${revisionId} auto-rejected (${result.classification}, confidence: ${confidence}).`,
+    )
+    return
+  }
+
+  // ok / low-confidence → leave pending; just record the AI verdict for the owner.
+  await db
+    .update(revisions)
+    .set({
+      aiVerdict: verdict,
+      aiConfidence: String(confidence),
+      aiReason: result.reason,
+      updatedAt: new Date(),
+    })
+    .where(eq(revisions.id, revisionId))
+  console.log(
+    `[review-revision] Revision ${revisionId} pre-screened (${result.classification}, confidence: ${confidence}). Awaiting owner review.`,
+  )
 }

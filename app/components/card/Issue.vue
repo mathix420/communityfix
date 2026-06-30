@@ -15,6 +15,8 @@ const props = defineProps<{
     solutionStatus?: string | null
     locationName?: string | null
     scale?: string | null
+    owners?: { id: string | null; name: string; changes: number }[]
+    collaborators?: { id: string | null; name: string; changes: number }[]
   }
 }>()
 
@@ -169,7 +171,10 @@ async function handleShare() {
             </span>
           </NuxtLink>
         </div>
-        <UserButton :author-id="issue.authorId" :name="issue.author" />
+        <UserAvatarStack
+          :collaborators="issue.collaborators"
+          :owners="issue.owners ?? [{ id: issue.authorId ?? null, name: issue.author, changes: 0 }]"
+        />
       </div>
     </div>
   </UiCard>
