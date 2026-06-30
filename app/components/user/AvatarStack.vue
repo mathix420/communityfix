@@ -9,15 +9,18 @@ interface Person {
   changes?: number
 }
 
-const props = withDefaults(defineProps<{
-  owners?: Person[]
-  collaborators?: Person[]
-  max?: number
-}>(), {
-  owners: () => [],
-  collaborators: () => [],
-  max: 5,
-})
+const props = withDefaults(
+  defineProps<{
+    owners?: Person[]
+    collaborators?: Person[]
+    max?: number
+  }>(),
+  {
+    owners: () => [],
+    collaborators: () => [],
+    max: 5,
+  },
+)
 
 const people = computed<Person[]>(() => [...props.owners, ...props.collaborators])
 const shown = computed(() => people.value.slice(0, props.max))
@@ -44,17 +47,12 @@ function tooltip(p: Person, index: number) {
       :is="p.id ? 'NuxtLink' : 'span'"
       v-for="(p, i) in shown"
       :key="p.id || p.name"
-      :to="p.id ? `/user/${p.id}` : undefined"
-      :title="tooltip(p, i)"
       class="relative -ml-2 first:ml-0 inline-flex rounded-full ring-2 ring-white bg-white transition-transform hover:-translate-y-0.5 hover:z-10"
       :style="{ zIndex: shown.length - i }"
+      :title="tooltip(p, i)"
+      :to="p.id ? `/user/${p.id}` : undefined"
     >
-      <img
-        :src="avatarUrl(p)"
-        :alt="p.name"
-        class="size-6 rounded-full bg-gray-100"
-        loading="lazy"
-      >
+      <img class="size-6 rounded-full bg-gray-100" loading="lazy" :alt="p.name" :src="avatarUrl(p)">
     </component>
     <span
       v-if="overflow"

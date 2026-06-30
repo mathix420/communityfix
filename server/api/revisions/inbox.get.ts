@@ -38,14 +38,16 @@ export default defineEventHandler(async (event) => {
   const [toReviewRows, mineRows] = await Promise.all([
     // Pending proposals on my nodes, excluding my own (born-approved edits are
     // never pending, but a self-proposal — should one exist — isn't "to review").
-    (ownedIssueIds.length || ownedCaseStudyIds.length)
+    ownedIssueIds.length || ownedCaseStudyIds.length
       ? db.query.revisions.findMany({
           where: and(
             eq(revisions.status, 'pending'),
             ne(revisions.proposerId, userId),
             or(
               ownedIssueIds.length ? inArray(revisions.issueId, ownedIssueIds) : undefined,
-              ownedCaseStudyIds.length ? inArray(revisions.caseStudyId, ownedCaseStudyIds) : undefined,
+              ownedCaseStudyIds.length
+                ? inArray(revisions.caseStudyId, ownedCaseStudyIds)
+                : undefined,
             ),
           ),
           with: peopleWith,
@@ -62,7 +64,7 @@ export default defineEventHandler(async (event) => {
   ])
 
   const labels = await buildNodeLabels([...toReviewRows, ...mineRows])
-  const decorate = (row: typeof toReviewRows[number]): InboxEntry => ({
+  const decorate = (row: (typeof toReviewRows)[number]): InboxEntry => ({
     ...serializeRevision(row),
     node: nodeRef(row, labels),
   })
@@ -75,14 +77,21 @@ export default defineEventHandler(async (event) => {
 })
 
 // Resolve a human label for every referenced node in two grouped queries.
-async function buildNodeLabels(rows: { issueId: number | null, caseStudyId: number | null }[]) {
+async function buildNodeLabels(rows: { issueId: number | null; caseStudyId: number | null }[]) {
   const db = useDB()
-  const issueIds = Array.from(new Set(rows.map(r => r.issueId).filter((v): v is number => v != null)))
-  const caseStudyIds = Array.from(new Set(rows.map(r => r.caseStudyId).filter((v): v is number => v != null)))
+  const issueIds = Array.from(
+    new Set(rows.map((r) => r.issueId).filter((v): v is number => v != null)),
+  )
+  const caseStudyIds = Array.from(
+    new Set(rows.map((r) => r.caseStudyId).filter((v): v is number => v != null)),
+  )
 
   const [issueRows, caseStudyRows] = await Promise.all([
     issueIds.length
-      ? db.query.issues.findMany({ where: inArray(issues.id, issueIds), columns: { id: true, title: true } })
+      ? db.query.issues.findMany({
+          where: inArray(issues.id, issueIds),
+          columns: { id: true, title: true },
+        })
       : Promise.resolve([]),
     caseStudyIds.length
       ? db.query.caseStudies.findMany({
@@ -93,29 +102,35 @@ async function buildNodeLabels(rows: { issueId: number | null, caseStudyId: numb
       : Promise.resolve([]),
   ])
 
-  const issueLabels = new Map(issueRows.map(r => [r.id, r.title]))
+  const issueLabels = new Map(issueRows.map((r) => [r.id, r.title]))
   const caseStudyLabels = new Map(
-    caseStudyRows.map(r => [r.id, r.solution?.title ? `Case study — ${r.solution.title}` : `Case study #${r.id}`]),
+    caseStudyRows.map((r) => [
+      r.id,
+      r.solution?.title ? `Case study — ${r.solution.title}` : `Case study #${r.id}`,
+    ]),
   )
   return { issueLabels, caseStudyLabels }
 }
 
 function nodeRef(
-  row: { targetKind: 'issue' | 'case_study', issueId: number | null, caseStudyId: number | null },
-  labels: { issueLabels: Map<number, string>, caseStudyLabels: Map<number, string> },
+  row: { targetKind: 'issue' | 'case_study'; issueId: number | null; caseStudyId: number | null },
+  labels: { issueLabels: Map<number, string>; caseStudyLabels: Map<number, string> },
 ): RevisionNodeRef {
   if (row.targetKind === 'issue') {
     return {
       targetKind: 'issue',
       issueId: row.issueId,
       caseStudyId: null,
-      label: (row.issueId != null && labels.issueLabels.get(row.issueId)) || `Issue #${row.issueId}`,
+      label:
+        (row.issueId != null && labels.issueLabels.get(row.issueId)) || `Issue #${row.issueId}`,
     }
   }
   return {
     targetKind: 'case_study',
     issueId: null,
     caseStudyId: row.caseStudyId,
-    label: (row.caseStudyId != null && labels.caseStudyLabels.get(row.caseStudyId)) || `Case study #${row.caseStudyId}`,
+    label:
+      (row.caseStudyId != null && labels.caseStudyLabels.get(row.caseStudyId)) ||
+      `Case study #${row.caseStudyId}`,
   }
 }

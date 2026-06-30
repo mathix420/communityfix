@@ -31,8 +31,7 @@ function loadStep(raw: string, expectedId: string): StepDef {
   let data: unknown
   try {
     data = parseYaml(raw)
-  }
-  catch (err) {
+  } catch (err) {
     throw new Error(`[steps] Failed to parse YAML for "${expectedId}": ${(err as Error).message}`)
   }
   const result = StepFileSchema.safeParse(data)
@@ -40,7 +39,9 @@ function loadStep(raw: string, expectedId: string): StepDef {
     throw new Error(`[steps] Invalid step file "${expectedId}": ${result.error.message}`)
   }
   if (result.data.id !== expectedId) {
-    throw new Error(`[steps] Step id mismatch: file imported as "${expectedId}" declares id "${result.data.id}"`)
+    throw new Error(
+      `[steps] Step id mismatch: file imported as "${expectedId}" declares id "${result.data.id}"`,
+    )
   }
   return result.data
 }
@@ -87,7 +88,7 @@ export async function runStep<T>(
 }
 
 export interface AgentTool {
-  definition: { name: string, description: string, input_schema: Record<string, unknown> }
+  definition: { name: string; description: string; input_schema: Record<string, unknown> }
   run: (input: any) => Promise<unknown>
 }
 
@@ -103,7 +104,10 @@ export async function runAgent<T>(
   const step = STEPS[id]
   const system = render(step.system, vars)
   const toolDefs: Anthropic.Tool[] = [
-    ...tools.map(t => ({ ...t.definition, input_schema: t.definition.input_schema as Anthropic.Tool.InputSchema })),
+    ...tools.map((t) => ({
+      ...t.definition,
+      input_schema: t.definition.input_schema as Anthropic.Tool.InputSchema,
+    })),
     {
       name: 'submit_result',
       description: 'Call this exactly once, with your final answer, when you are done.',
@@ -124,26 +128,31 @@ export async function runAgent<T>(
     messages.push({ role: 'assistant', content: res.content })
 
     const toolUses = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
-    const submitted = toolUses.find(u => u.name === 'submit_result')
+    const submitted = toolUses.find((u) => u.name === 'submit_result')
     if (submitted) return submitted.input as T
     if (toolUses.length === 0) {
       messages.push({ role: 'user', content: 'Call submit_result now with your final answer.' })
       continue
     }
 
-    const toolResults = await Promise.all(toolUses.map(async (u) => {
-      const tool = tools.find(t => t.definition.name === u.name)
-      let content: string
-      try {
-        content = JSON.stringify(tool ? await tool.run(u.input) : { error: `unknown tool: ${u.name}` })
-      }
-      catch (err) {
-        content = JSON.stringify({ error: (err as Error).message })
-      }
-      return { type: 'tool_result' as const, tool_use_id: u.id, content }
-    }))
+    const toolResults = await Promise.all(
+      toolUses.map(async (u) => {
+        const tool = tools.find((t) => t.definition.name === u.name)
+        let content: string
+        try {
+          content = JSON.stringify(
+            tool ? await tool.run(u.input) : { error: `unknown tool: ${u.name}` },
+          )
+        } catch (err) {
+          content = JSON.stringify({ error: (err as Error).message })
+        }
+        return { type: 'tool_result' as const, tool_use_id: u.id, content }
+      }),
+    )
     messages.push({ role: 'user', content: toolResults })
   }
 
-  throw new Error(`[runAgent] ${id} did not submit a result within ${AGENT_MAX_TURNS} turns${context ? ` (${context})` : ''}`)
+  throw new Error(
+    `[runAgent] ${id} did not submit a result within ${AGENT_MAX_TURNS} turns${context ? ` (${context})` : ''}`,
+  )
 }

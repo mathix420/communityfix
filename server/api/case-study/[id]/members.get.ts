@@ -12,8 +12,12 @@ export default defineEventHandler(async (event) => {
   }
   const caseStudyId = parseInt(id, 10)
 
-  const node = await useDB().query.caseStudies.findFirst({ where: eq(caseStudies.id, caseStudyId), columns: { id: true } })
-  if (!node) throw createError({ statusCode: 404, statusMessage: `Case study ${caseStudyId} not found` })
+  const node = await useDB().query.caseStudies.findFirst({
+    where: eq(caseStudies.id, caseStudyId),
+    columns: { id: true },
+  })
+  if (!node)
+    throw createError({ statusCode: 404, statusMessage: `Case study ${caseStudyId} not found` })
 
   const session = await getUserSession(event)
   const viewerId = session.user?.id ?? null

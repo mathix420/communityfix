@@ -16,48 +16,61 @@ export default defineEventHandler(async () => {
     oldestNeedsReview,
     oldestAppeal,
   ] = await Promise.all([
-    db.select({
-      needsReview: sql<number>`COUNT(*) FILTER (WHERE ${auditLogs.status} = 'needs_review')`,
-      total: sql<number>`COUNT(*)`,
-    }).from(auditLogs),
+    db
+      .select({
+        needsReview: sql<number>`COUNT(*) FILTER (WHERE ${auditLogs.status} = 'needs_review')`,
+        total: sql<number>`COUNT(*)`,
+      })
+      .from(auditLogs),
 
-    db.select({ count: sql<number>`COUNT(*)` })
+    db
+      .select({ count: sql<number>`COUNT(*)` })
       .from(issues)
       .where(eq(issues.appealStatus, 'pending')),
 
-    db.select({ count: sql<number>`COUNT(*)` })
+    db
+      .select({ count: sql<number>`COUNT(*)` })
       .from(users)
       .where(and(eq(users.banAppealStatus, 'pending'))),
 
-    db.select({ count: sql<number>`COUNT(*)` })
+    db
+      .select({ count: sql<number>`COUNT(*)` })
       .from(issues)
       .where(eq(issues.status, 'pending')),
 
-    db.select({ count: sql<number>`COUNT(*)` })
+    db
+      .select({ count: sql<number>`COUNT(*)` })
       .from(issues)
-      .where(and(
-        eq(issues.status, 'pending'),
-        isNotNull(issues.infoRequest),
-        isNull(issues.infoResponse),
-      )),
+      .where(
+        and(
+          eq(issues.status, 'pending'),
+          isNotNull(issues.infoRequest),
+          isNull(issues.infoResponse),
+        ),
+      ),
 
-    db.select({ count: sql<number>`COUNT(*)` })
+    db
+      .select({ count: sql<number>`COUNT(*)` })
       .from(caseStudies)
       .where(eq(caseStudies.status, 'pending')),
 
-    db.select({ at: sql<string | null>`MIN(${issues.createdAt})` })
+    db
+      .select({ at: sql<string | null>`MIN(${issues.createdAt})` })
       .from(issues)
       .where(eq(issues.status, 'pending')),
 
-    db.select({ at: sql<string | null>`MIN(${caseStudies.createdAt})` })
+    db
+      .select({ at: sql<string | null>`MIN(${caseStudies.createdAt})` })
       .from(caseStudies)
       .where(eq(caseStudies.status, 'pending')),
 
-    db.select({ at: sql<string | null>`MIN(${auditLogs.createdAt})` })
+    db
+      .select({ at: sql<string | null>`MIN(${auditLogs.createdAt})` })
       .from(auditLogs)
       .where(eq(auditLogs.status, 'needs_review')),
 
-    db.select({ at: sql<string | null>`MIN(${issues.appealedAt})` })
+    db
+      .select({ at: sql<string | null>`MIN(${issues.appealedAt})` })
       .from(issues)
       .where(eq(issues.appealStatus, 'pending')),
   ])

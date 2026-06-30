@@ -1,5 +1,13 @@
 import { and, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
-import { caseStudies, issues, qualificationEndorsements, qualifications, revisions, tags, users } from '../database/schema'
+import {
+  caseStudies,
+  issues,
+  qualificationEndorsements,
+  qualifications,
+  revisions,
+  tags,
+  users,
+} from '../database/schema'
 import type { IssueType, RevisionTargetKind } from '../database/schema'
 import { generateEmbedding, findSimilar } from './embeddings'
 import { isAdminEmail } from './admin'
@@ -40,15 +48,14 @@ export async function searchByQuery(input: {
   let embedding: number[]
   try {
     embedding = await generateEmbedding(trimmed)
-  }
-  catch (err) {
+  } catch (err) {
     console.error('[mcp.search] embedding failed:', err)
     return { status: 'embeddings_unavailable' as const, results: [] }
   }
 
-  const typeFilter = (input.type && input.type !== 'any') ? sql` AND type = ${input.type}` : sql``
+  const typeFilter = input.type && input.type !== 'any' ? sql` AND type = ${input.type}` : sql``
   const db = useDB()
-  const above = await findSimilar<{ id: number, similarity: number }>({
+  const above = await findSimilar<{ id: number; similarity: number }>({
     table: 'issues',
     columns: 'id',
     embedding,
@@ -58,12 +65,12 @@ export async function searchByQuery(input: {
   })
   if (above.length === 0) return { status: 'ok' as const, results: [] }
 
-  const ids = above.map(r => r.id)
+  const ids = above.map((r) => r.id)
   const rows = await db.query.issues.findMany({
     where: inArray(issues.id, ids),
     with: issueWithRelations,
   })
-  const byId = new Map(rows.map(r => [r.id, r]))
+  const byId = new Map(rows.map((r) => [r.id, r]))
   return {
     status: 'ok' as const,
     results: above
@@ -112,10 +119,13 @@ export async function createSolutionAs(userId: string, input: Omit<CreateIssueIn
 // The shape an MCP update / propose tool returns: either the owner/admin direct
 // edit (the live, re-hydrated node) or the pending proposal that was recorded
 // for a non-owner. `applied` lets the client tell the two apart.
-type AppliedNode = { applied: true, node: ReturnType<typeof transformIssue> }
-type ProposedNode = { applied: false, revision: ReturnType<typeof serializeRevision> }
-type AppliedCaseStudy = { applied: true, caseStudy: NonNullable<Awaited<ReturnType<typeof hydrateCaseStudy>>> }
-type ProposedRevision = { applied: false, revision: ReturnType<typeof serializeRevision> }
+type AppliedNode = { applied: true; node: ReturnType<typeof transformIssue> }
+type ProposedNode = { applied: false; revision: ReturnType<typeof serializeRevision> }
+type AppliedCaseStudy = {
+  applied: true
+  caseStudy: NonNullable<Awaited<ReturnType<typeof hydrateCaseStudy>>>
+}
+type ProposedRevision = { applied: false; revision: ReturnType<typeof serializeRevision> }
 
 async function updateNode(
   userId: string,
@@ -142,13 +152,23 @@ async function updateNode(
   if (!role) {
     const { id, ...fields } = patch
     const changes = issueChangesFromInput(fields, editableIssueSnapshot(node))
-    const revision = await proposeRevision(userId, { targetKind: 'issue', targetId: id, changes, note: note ?? null })
+    const revision = await proposeRevision(userId, {
+      targetKind: 'issue',
+      targetId: id,
+      changes,
+      note: note ?? null,
+    })
     return { applied: false, revision: serializeRevision(revision) }
   }
 
   // Owner/admin: apply immediately via the single write path, then record a
   // born-approved revision and fire re-moderation as needed.
-  const { issue: updated, before, contentChanged, parentChanged } = await updateIssue(userId, patch, expectedType)
+  const {
+    issue: updated,
+    before,
+    contentChanged,
+    parentChanged,
+  } = await updateIssue(userId, patch, expectedType)
   const after = editableIssueSnapshot(updated)
   const changes = diffSnapshots(before, after)
   if (Object.keys(changes).length > 0) {
@@ -176,11 +196,17 @@ async function updateNode(
   return { applied: true, node: transformIssue(hydrated!) }
 }
 
-export async function updateIssueAs(userId: string, input: Omit<UpdateIssueInput, 'solutionStatus'> & { note?: string | null }) {
+export async function updateIssueAs(
+  userId: string,
+  input: Omit<UpdateIssueInput, 'solutionStatus'> & { note?: string | null },
+) {
   return updateNode(userId, input, 'issue')
 }
 
-export async function updateSolutionAs(userId: string, input: UpdateIssueInput & { note?: string | null }) {
+export async function updateSolutionAs(
+  userId: string,
+  input: UpdateIssueInput & { note?: string | null },
+) {
   return updateNode(userId, input, 'solution')
 }
 
@@ -199,10 +225,10 @@ function issueChangesFromInput(fields: Omit<UpdateIssueInput, 'id'>, base: Snaps
   if (fields.links !== undefined) changes.links = fields.links ?? null
   if (fields.parentId !== undefined) changes.parentId = fields.parentId ?? null
   if (fields.latitude !== undefined || fields.longitude !== undefined) {
-    const baseLoc = base.location as { latitude: number, longitude: number } | null
+    const baseLoc = base.location as { latitude: number; longitude: number } | null
     const lat = fields.latitude ?? baseLoc?.latitude ?? null
     const lng = fields.longitude ?? baseLoc?.longitude ?? null
-    changes.location = (lat != null && lng != null) ? { latitude: lat, longitude: lng } : null
+    changes.location = lat != null && lng != null ? { latitude: lat, longitude: lng } : null
   }
   return changes
 }
@@ -220,11 +246,15 @@ export async function createCaseStudyAs(userId: string, input: CreateCaseStudyIn
   return (await hydrateCaseStudy(created.id))!
 }
 
-export async function updateCaseStudyAs(userId: string, input: UpdateCaseStudyInput & { note?: string | null }): Promise<AppliedCaseStudy | ProposedRevision> {
+export async function updateCaseStudyAs(
+  userId: string,
+  input: UpdateCaseStudyInput & { note?: string | null },
+): Promise<AppliedCaseStudy | ProposedRevision> {
   const db = useDB()
   const { note, ...patch } = input
   const node = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, patch.id) })
-  if (!node) throw createError({ statusCode: 404, statusMessage: `Case study ${patch.id} not found` })
+  if (!node)
+    throw createError({ statusCode: 404, statusMessage: `Case study ${patch.id} not found` })
 
   const isAdmin = await getIsAdmin(userId)
   const role = await resolveDecideRole(userId, 'case_study', node.id, isAdmin)
@@ -234,7 +264,12 @@ export async function updateCaseStudyAs(userId: string, input: UpdateCaseStudyIn
   if (!role) {
     const { id, verified: _verified, ...fields } = patch
     const changes = caseStudyChangesFromInput(fields, editableCaseStudySnapshot(node))
-    const revision = await proposeRevision(userId, { targetKind: 'case_study', targetId: id, changes, note: note ?? null })
+    const revision = await proposeRevision(userId, {
+      targetKind: 'case_study',
+      targetId: id,
+      changes,
+      note: note ?? null,
+    })
     return { applied: false, revision: serializeRevision(revision) }
   }
 
@@ -264,7 +299,10 @@ export async function updateCaseStudyAs(userId: string, input: UpdateCaseStudyIn
 // Map an UpdateCaseStudyInput onto the snapshot-keyed `changes` map. Every
 // editable field forwards as-is; latitude/longitude collapse to the snapshot's
 // `location: {latitude, longitude}` shape (merging with the current value).
-function caseStudyChangesFromInput(fields: Omit<UpdateCaseStudyInput, 'id' | 'verified'>, base: Snapshot): Snapshot {
+function caseStudyChangesFromInput(
+  fields: Omit<UpdateCaseStudyInput, 'id' | 'verified'>,
+  base: Snapshot,
+): Snapshot {
   const changes: Snapshot = {}
   const body = fields as Record<string, unknown>
   for (const key of Object.keys(base)) {
@@ -272,10 +310,10 @@ function caseStudyChangesFromInput(fields: Omit<UpdateCaseStudyInput, 'id' | 've
     if (key in body) changes[key] = body[key]
   }
   if ('latitude' in body || 'longitude' in body) {
-    const baseLoc = base.location as { latitude: number, longitude: number } | null
+    const baseLoc = base.location as { latitude: number; longitude: number } | null
     const lat = (body.latitude as number | null | undefined) ?? baseLoc?.latitude ?? null
     const lng = (body.longitude as number | null | undefined) ?? baseLoc?.longitude ?? null
-    changes.location = (lat != null && lng != null) ? { latitude: lat, longitude: lng } : null
+    changes.location = lat != null && lng != null ? { latitude: lat, longitude: lng } : null
   }
   return changes
 }
@@ -300,7 +338,7 @@ type ProposeEditKind = 'issue' | 'solution' | 'case_study'
  */
 export async function proposeEditAs(
   userId: string,
-  input: { kind: ProposeEditKind, id: number, note?: string | null } & Record<string, unknown>,
+  input: { kind: ProposeEditKind; id: number; note?: string | null } & Record<string, unknown>,
 ): Promise<AppliedNode | ProposedNode | AppliedCaseStudy | ProposedRevision> {
   const { kind, id, note, ...fields } = input
   if (kind === 'case_study') {
@@ -318,24 +356,34 @@ export async function proposeEditAs(
  */
 export async function listRevisionsFor(
   userId: string,
-  input: { kind: ProposeEditKind, id: number },
-): Promise<{ status: 'ok', revisions: ReturnType<typeof serializeRevision>[] } | { status: 'not_found' }> {
+  input: { kind: ProposeEditKind; id: number },
+): Promise<
+  { status: 'ok'; revisions: ReturnType<typeof serializeRevision>[] } | { status: 'not_found' }
+> {
   const db = useDB()
   const targetKind: RevisionTargetKind = input.kind === 'case_study' ? 'case_study' : 'issue'
 
   if (targetKind === 'issue') {
-    const node = await db.query.issues.findFirst({ where: eq(issues.id, input.id), columns: { id: true } })
+    const node = await db.query.issues.findFirst({
+      where: eq(issues.id, input.id),
+      columns: { id: true },
+    })
     if (!node) return { status: 'not_found' }
-  }
-  else {
-    const node = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, input.id), columns: { id: true } })
+  } else {
+    const node = await db.query.caseStudies.findFirst({
+      where: eq(caseStudies.id, input.id),
+      columns: { id: true },
+    })
     if (!node) return { status: 'not_found' }
   }
 
   const isAdmin = await getIsAdmin(userId)
   const viewerIsOwner = await isNodeOwner(userId, targetKind, input.id)
   const rows = await db.query.revisions.findMany({
-    where: targetKind === 'issue' ? eq(revisions.issueId, input.id) : eq(revisions.caseStudyId, input.id),
+    where:
+      targetKind === 'issue'
+        ? eq(revisions.issueId, input.id)
+        : eq(revisions.caseStudyId, input.id),
     with: {
       proposer: { columns: { id: true, name: true } },
       decidedBy: { columns: { id: true, name: true } },
@@ -346,7 +394,7 @@ export async function listRevisionsFor(
   return {
     status: 'ok',
     revisions: rows
-      .filter(r => canViewRevision(r, viewerIsOwner, userId, isAdmin))
+      .filter((r) => canViewRevision(r, viewerIsOwner, userId, isAdmin))
       .map(serializeRevision),
   }
 }
@@ -358,7 +406,7 @@ export async function listRevisionsFor(
  */
 export async function reviewRevisionAs(
   userId: string,
-  input: { revisionId: number, action: DecideAction, reason?: string | null },
+  input: { revisionId: number; action: DecideAction; reason?: string | null },
 ) {
   const updated = await decideRevision(userId, input.revisionId, input.action, input.reason ?? null)
   return updated ? serializeRevision(updated) : null
@@ -379,13 +427,16 @@ export async function listCaseStudiesFor(nodeId: number) {
   let solutionIds: number[]
   if (root.type === 'solution') {
     solutionIds = [root.id]
-  }
-  else {
+  } else {
     const solutionRows = await db.query.issues.findMany({
-      where: and(eq(issues.parentId, root.id), eq(issues.type, 'solution'), eq(issues.status, 'approved')),
+      where: and(
+        eq(issues.parentId, root.id),
+        eq(issues.type, 'solution'),
+        eq(issues.status, 'approved'),
+      ),
       columns: { id: true },
     })
-    solutionIds = solutionRows.map(r => r.id)
+    solutionIds = solutionRows.map((r) => r.id)
   }
   if (solutionIds.length === 0) return []
 
@@ -406,7 +457,7 @@ export async function suggestMore(seedId: number, limit = SUGGEST_LIMIT) {
   if (!seed) return { status: 'not_found' as const, results: [] }
   if (!seed.embedding) return { status: 'no_embedding' as const, results: [] }
 
-  const rankedList = await findSimilar<{ id: number, similarity: number }>({
+  const rankedList = await findSimilar<{ id: number; similarity: number }>({
     table: 'issues',
     columns: 'id',
     embedding: seed.embedding as number[],
@@ -417,12 +468,12 @@ export async function suggestMore(seedId: number, limit = SUGGEST_LIMIT) {
     return { status: 'ok' as const, seed: transformIssue(seed), results: [] }
   }
 
-  const ids = rankedList.map(r => r.id)
+  const ids = rankedList.map((r) => r.id)
   const rows = await db.query.issues.findMany({
     where: inArray(issues.id, ids),
     with: issueWithRelations,
   })
-  const byId = new Map(rows.map(r => [r.id, r]))
+  const byId = new Map(rows.map((r) => [r.id, r]))
   return {
     status: 'ok' as const,
     seed: transformIssue(seed),
@@ -453,7 +504,7 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     where: eq(qualifications.userId, user.id),
     orderBy: [desc(qualifications.createdAt)],
   })
-  const qIds = ownQualifications.map(q => q.id)
+  const qIds = ownQualifications.map((q) => q.id)
 
   const rawCounts = qIds.length
     ? await db
@@ -471,26 +522,29 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
   for (const c of rawCounts) {
     if (c.kind === 'verification') {
       if (Number(c.n) > 0) verifiedQualifications.add(c.qualificationId)
-    }
-    else {
+    } else {
       endorseCount.set(c.qualificationId, (endorseCount.get(c.qualificationId) ?? 0) + Number(c.n))
     }
   }
   const isAdmin = isAdminEmail(user.email)
 
   const visibility = opts.isSelf ? undefined : ne(issues.status, 'rejected')
-  const [{ issuesCount }] = await db
+  const [{ issuesCount }] = (await db
     .select({ issuesCount: count(issues.id).as('issuesCount') })
     .from(issues)
-    .where(and(eq(issues.authorId, user.id), isNull(issues.parentId), visibility ?? sql`true`)) as [{ issuesCount: number }]
-  const [{ solutionsCount }] = await db
+    .where(
+      and(eq(issues.authorId, user.id), isNull(issues.parentId), visibility ?? sql`true`),
+    )) as [{ issuesCount: number }]
+  const [{ solutionsCount }] = (await db
     .select({ solutionsCount: count(issues.id).as('solutionsCount') })
     .from(issues)
-    .where(and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), visibility ?? sql`true`)) as [{ solutionsCount: number }]
-  const [{ caseStudiesCount }] = await db
+    .where(
+      and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), visibility ?? sql`true`),
+    )) as [{ solutionsCount: number }]
+  const [{ caseStudiesCount }] = (await db
     .select({ caseStudiesCount: count(caseStudies.id).as('caseStudiesCount') })
     .from(caseStudies)
-    .where(eq(caseStudies.authorId, user.id)) as [{ caseStudiesCount: number }]
+    .where(eq(caseStudies.authorId, user.id))) as [{ caseStudiesCount: number }]
 
   return {
     id: user.id,
@@ -504,7 +558,7 @@ async function loadProfile(userId: string, opts: { isSelf: boolean }) {
     issuesAuthored: Number(issuesCount),
     solutionsAuthored: Number(solutionsCount),
     caseStudiesAuthored: Number(caseStudiesCount),
-    qualifications: ownQualifications.map(q => ({
+    qualifications: ownQualifications.map((q) => ({
       id: q.id,
       title: q.title,
       area: q.area,
@@ -533,7 +587,7 @@ export async function getMe(userId: string) {
 
 const TAG_SIMILARITY_THRESHOLD = 0.2
 
-export async function searchTags(input: { query?: string, limit?: number }) {
+export async function searchTags(input: { query?: string; limit?: number }) {
   const db = useDB()
   const limit = Math.min(Math.max(input.limit ?? 20, 1), 100)
   const trimmed = input.query?.trim() ?? ''
@@ -543,15 +597,14 @@ export async function searchTags(input: { query?: string, limit?: number }) {
     return {
       status: 'ok' as const,
       query: trimmed,
-      results: rows.map(t => ({ id: t.id, slug: t.slug, name: t.name })),
+      results: rows.map((t) => ({ id: t.id, slug: t.slug, name: t.name })),
     }
   }
 
   let embedding: number[]
   try {
     embedding = await generateEmbedding(trimmed)
-  }
-  catch (err) {
+  } catch (err) {
     console.error('[mcp.search_tags] embedding failed, falling back to ILIKE:', err)
     const rows = await db.query.tags.findMany({
       where: or(ilike(tags.slug, `%${trimmed}%`), ilike(tags.name, `%${trimmed}%`)),
@@ -561,11 +614,11 @@ export async function searchTags(input: { query?: string, limit?: number }) {
     return {
       status: 'fallback_ilike' as const,
       query: trimmed,
-      results: rows.map(t => ({ id: t.id, slug: t.slug, name: t.name })),
+      results: rows.map((t) => ({ id: t.id, slug: t.slug, name: t.name })),
     }
   }
 
-  const above = await findSimilar<{ id: number, similarity: number }>({
+  const above = await findSimilar<{ id: number; similarity: number }>({
     table: 'tags',
     columns: 'id',
     embedding,
@@ -574,16 +627,18 @@ export async function searchTags(input: { query?: string, limit?: number }) {
   })
   if (above.length === 0) return { status: 'ok' as const, query: trimmed, results: [] }
 
-  const ids = above.map(r => r.id)
+  const ids = above.map((r) => r.id)
   const rows = await db.query.tags.findMany({ where: inArray(tags.id, ids) })
-  const byId = new Map(rows.map(t => [t.id, t]))
+  const byId = new Map(rows.map((t) => [t.id, t]))
   return {
     status: 'ok' as const,
     query: trimmed,
     results: above
       .map((r) => {
         const t = byId.get(r.id)
-        return t ? { id: t.id, slug: t.slug, name: t.name, similarity: Math.round(r.similarity * 100) } : null
+        return t
+          ? { id: t.id, slug: t.slug, name: t.name, similarity: Math.round(r.similarity * 100) }
+          : null
       })
       .filter((r): r is NonNullable<typeof r> => r !== null),
   }

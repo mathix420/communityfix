@@ -65,10 +65,13 @@ async function approve(rev: SerializedRevision) {
   )
   if (res) {
     track('Approve revision', { revisionId: rev.id })
-    toast.add({ title: 'Suggestion approved', description: 'The change has been applied.', color: 'success' })
+    toast.add({
+      title: 'Suggestion approved',
+      description: 'The change has been applied.',
+      color: 'success',
+    })
     emit('changed')
-  }
-  else {
+  } else {
     toast.add({ title: 'Failed to approve', color: 'error' })
   }
 }
@@ -84,8 +87,7 @@ async function reject(reason: string) {
     track('Reject revision', { revisionId: rev.id })
     toast.add({ title: 'Suggestion rejected', color: 'success' })
     emit('changed')
-  }
-  else {
+  } else {
     toast.add({ title: 'Failed to reject', color: 'error' })
   }
 }
@@ -98,8 +100,7 @@ async function withdraw(rev: SerializedRevision) {
     track('Withdraw revision', { revisionId: rev.id })
     toast.add({ title: 'Suggestion withdrawn', color: 'success' })
     emit('changed')
-  }
-  else {
+  } else {
     toast.add({ title: 'Failed to withdraw', color: 'error' })
   }
 }
@@ -119,17 +120,20 @@ function decidedRoleLabel(rev: SerializedRevision) {
 <template>
   <div>
     <div v-if="revisions.length" class="space-y-2">
-      <AdminQueueCard
-        v-for="rev in revisions"
-        :key="rev.id"
-        :since="rev.createdAt"
-      >
+      <AdminQueueCard v-for="rev in revisions" :key="rev.id" :since="rev.createdAt">
         <template #header>
           <div class="flex items-center gap-2 flex-wrap">
             <span class="font-medium">
-              {{ rev.note || (rev.changes && Object.keys(rev.changes).length === 1 ? 'Edited 1 field' : `Edited ${Object.keys(rev.changes || {}).length} fields`) }}
+              {{
+                rev.note ||
+                  (rev.changes && Object.keys(rev.changes).length === 1
+                    ? 'Edited 1 field'
+                    : `Edited ${Object.keys(rev.changes || {}).length} fields`)
+              }}
             </span>
-            <UiBadge :variant="statusVariant[rev.status]">{{ rev.status }}</UiBadge>
+            <UiBadge :variant="statusVariant[rev.status]">
+              {{ rev.status }}
+            </UiBadge>
             <UiBadge
               v-if="rev.aiVerdict && rev.aiVerdict !== 'ok'"
               variant="error"
@@ -148,29 +152,27 @@ function decidedRoleLabel(rev: SerializedRevision) {
             “{{ rev.decisionReason }}”
           </p>
         </template>
-
         <template #preview>
           <RevisionDiff
-            :before="rev.baseSnapshot"
             :after="rev.appliedSnapshot ?? {}"
+            :before="rev.baseSnapshot"
             :changes="rev.changes"
           />
         </template>
-
         <template v-if="rev.status === 'pending' && (canDecide || canWithdraw(rev))" #actions>
           <template v-if="canDecide">
             <UButton
-              size="xs"
               color="primary"
+              size="xs"
               :loading="isPending(`approve-${rev.id}`)"
               @click="approve(rev)"
             >
               Approve
             </UButton>
             <UButton
+              color="error"
               size="xs"
               variant="ghost"
-              color="error"
               :disabled="isPending(`reject-${rev.id}`)"
               @click="openReject(rev)"
             >
@@ -179,9 +181,9 @@ function decidedRoleLabel(rev: SerializedRevision) {
           </template>
           <UButton
             v-if="canWithdraw(rev)"
+            color="neutral"
             size="xs"
             variant="ghost"
-            color="neutral"
             :loading="isPending(`withdraw-${rev.id}`)"
             @click="withdraw(rev)"
           >
@@ -190,14 +192,12 @@ function decidedRoleLabel(rev: SerializedRevision) {
         </template>
       </AdminQueueCard>
     </div>
-
     <UiEmptyState
       v-else
+      description="Edits and accepted suggestions will appear here as a diffable timeline."
       icon="lucide:history"
       title="No history yet"
-      description="Edits and accepted suggestions will appear here as a diffable timeline."
     />
-
     <AdminRejectModal
       v-model:open="rejectOpen"
       title="Reject suggestion"

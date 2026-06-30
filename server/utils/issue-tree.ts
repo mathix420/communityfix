@@ -90,7 +90,7 @@ export async function getIssueTree(rootId: number): Promise<TreeNode[]> {
     LIMIT ${MAX_NODES}
   `)
 
-  return (rows as unknown as TreeRow[]).map(r => ({
+  return (rows as unknown as TreeRow[]).map((r) => ({
     id: r.id,
     parentId: r.parent_id,
     title: r.title,

@@ -43,7 +43,11 @@ export async function getNodeRole(
 }
 
 /** True when the user is an owner of the node (edit-without-approval rights). */
-export async function isNodeOwner(userId: string, kind: RevisionTargetKind, nodeId: number): Promise<boolean> {
+export async function isNodeOwner(
+  userId: string,
+  kind: RevisionTargetKind,
+  nodeId: number,
+): Promise<boolean> {
   return (await getNodeRole(userId, kind, nodeId)) === 'owner'
 }
 
@@ -54,8 +58,14 @@ export async function ownedNodeIds(userId: string, kind: RevisionTargetKind): Pr
   const rows = await db
     .select({ nodeId: col })
     .from(nodeMembers)
-    .where(and(eq(nodeMembers.targetKind, kind), eq(nodeMembers.userId, userId), eq(nodeMembers.role, 'owner')))
-  return rows.map(r => r.nodeId).filter((v): v is number => v != null)
+    .where(
+      and(
+        eq(nodeMembers.targetKind, kind),
+        eq(nodeMembers.userId, userId),
+        eq(nodeMembers.role, 'owner'),
+      ),
+    )
+  return rows.map((r) => r.nodeId).filter((v): v is number => v != null)
 }
 
 /**
@@ -67,7 +77,7 @@ export async function ownedNodeIds(userId: string, kind: RevisionTargetKind): Pr
 export async function nodeOwnerContacts(
   kind: RevisionTargetKind,
   nodeId: number,
-): Promise<{ id: string, email: string | null, name: string | null }[]> {
+): Promise<{ id: string; email: string | null; name: string | null }[]> {
   const db = useDB()
   const col = nodeIdColumn(kind)
   return db
@@ -107,14 +117,17 @@ export async function addNodeMember(opts: {
 }): Promise<void> {
   if (await getNodeRole(opts.userId, opts.kind, opts.nodeId)) return
   const db = useDB()
-  await db.insert(nodeMembers).values({
-    targetKind: opts.kind,
-    issueId: opts.kind === 'issue' ? opts.nodeId : null,
-    caseStudyId: opts.kind === 'case_study' ? opts.nodeId : null,
-    userId: opts.userId,
-    role: opts.role,
-    source: opts.source ?? null,
-  }).onConflictDoNothing()
+  await db
+    .insert(nodeMembers)
+    .values({
+      targetKind: opts.kind,
+      issueId: opts.kind === 'issue' ? opts.nodeId : null,
+      caseStudyId: opts.kind === 'case_study' ? opts.nodeId : null,
+      userId: opts.userId,
+      role: opts.role,
+      source: opts.source ?? null,
+    })
+    .onConflictDoNothing()
 }
 
 /**
@@ -135,9 +148,20 @@ export async function setNodeMemberRole(opts: {
     await addNodeMember(opts)
     return
   }
-  await db.update(nodeMembers)
-    .set({ role: opts.role, ...(opts.source !== undefined ? { source: opts.source } : {}), updatedAt: new Date() })
-    .where(and(eq(nodeMembers.targetKind, opts.kind), eq(col, opts.nodeId), eq(nodeMembers.userId, opts.userId)))
+  await db
+    .update(nodeMembers)
+    .set({
+      role: opts.role,
+      ...(opts.source !== undefined ? { source: opts.source } : {}),
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(nodeMembers.targetKind, opts.kind),
+        eq(col, opts.nodeId),
+        eq(nodeMembers.userId, opts.userId),
+      ),
+    )
 }
 
 /** Count of owners on a node — lets callers refuse to remove the last one. */
@@ -159,8 +183,8 @@ export async function ownerCount(kind: RevisionTargetKind, nodeId: number): Prom
 export async function membersForNodes(
   kind: RevisionTargetKind,
   ids: number[],
-): Promise<Map<number, { owners: Member[], collaborators: Member[] }>> {
-  const out = new Map<number, { owners: Member[], collaborators: Member[] }>()
+): Promise<Map<number, { owners: Member[]; collaborators: Member[] }>> {
+  const out = new Map<number, { owners: Member[]; collaborators: Member[] }>()
   if (ids.length === 0) return out
 
   const db = useDB()
@@ -168,23 +192,27 @@ export async function membersForNodes(
   const revCol = kind === 'issue' ? revisions.issueId : revisions.caseStudyId
 
   const [memberRows, countRows] = await Promise.all([
-    db.select({
-      nodeId: memberCol,
-      userId: nodeMembers.userId,
-      name: users.name,
-      role: nodeMembers.role,
-      source: nodeMembers.source,
-    })
+    db
+      .select({
+        nodeId: memberCol,
+        userId: nodeMembers.userId,
+        name: users.name,
+        role: nodeMembers.role,
+        source: nodeMembers.source,
+      })
       .from(nodeMembers)
       .innerJoin(users, eq(users.id, nodeMembers.userId))
       .where(and(eq(nodeMembers.targetKind, kind), inArray(memberCol, ids))),
-    db.select({
-      nodeId: revCol,
-      userId: revisions.proposerId,
-      n: sql<number>`count(*)::int`,
-    })
+    db
+      .select({
+        nodeId: revCol,
+        userId: revisions.proposerId,
+        n: sql<number>`count(*)::int`,
+      })
       .from(revisions)
-      .where(and(eq(revisions.targetKind, kind), eq(revisions.status, 'approved'), inArray(revCol, ids)))
+      .where(
+        and(eq(revisions.targetKind, kind), eq(revisions.status, 'approved'), inArray(revCol, ids)),
+      )
       .groupBy(revCol, revisions.proposerId),
   ])
 
@@ -220,7 +248,7 @@ export async function membersForNodes(
 export async function nodeMembersList(
   kind: RevisionTargetKind,
   nodeId: number,
-): Promise<{ owners: Member[], collaborators: Member[] }> {
+): Promise<{ owners: Member[]; collaborators: Member[] }> {
   const byNode = await membersForNodes(kind, [nodeId])
   return byNode.get(nodeId) ?? { owners: [], collaborators: [] }
 }
@@ -233,8 +261,12 @@ export async function membersWithViewer(
   isAdmin: boolean,
 ) {
   const { owners, collaborators } = await nodeMembersList(kind, nodeId)
-  const viewerIsOwner = !!viewerId && owners.some(o => o.id === viewerId)
-  return { owners, collaborators, viewer: { canManage: isAdmin || viewerIsOwner, isOwner: viewerIsOwner, isAdmin } }
+  const viewerIsOwner = !!viewerId && owners.some((o) => o.id === viewerId)
+  return {
+    owners,
+    collaborators,
+    viewer: { canManage: isAdmin || viewerIsOwner, isOwner: viewerIsOwner, isAdmin },
+  }
 }
 
 /**
@@ -252,7 +284,10 @@ export async function changeMemberRole(opts: {
 }): Promise<void> {
   const canManage = opts.isAdmin || (await isNodeOwner(opts.actingUserId, opts.kind, opts.nodeId))
   if (!canManage) {
-    throw createError({ statusCode: 403, statusMessage: 'Only an owner or an admin can manage members' })
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Only an owner or an admin can manage members',
+    })
   }
 
   const existing = await getNodeRole(opts.targetUserId, opts.kind, opts.nodeId)
@@ -261,11 +296,21 @@ export async function changeMemberRole(opts: {
   }
   if (existing === opts.role) return
 
-  if (existing === 'owner' && opts.role === 'collaborator' && (await ownerCount(opts.kind, opts.nodeId)) <= 1) {
+  if (
+    existing === 'owner' &&
+    opts.role === 'collaborator' &&
+    (await ownerCount(opts.kind, opts.nodeId)) <= 1
+  ) {
     throw createError({ statusCode: 409, statusMessage: 'A node must keep at least one owner' })
   }
 
-  await setNodeMemberRole({ kind: opts.kind, nodeId: opts.nodeId, userId: opts.targetUserId, role: opts.role, source: 'granted' })
+  await setNodeMemberRole({
+    kind: opts.kind,
+    nodeId: opts.nodeId,
+    userId: opts.targetUserId,
+    role: opts.role,
+    source: 'granted',
+  })
 }
 
 /**
@@ -274,16 +319,29 @@ export async function changeMemberRole(opts: {
  * creator (`author`/`authorId`) so a card always shows at least one avatar, even
  * for legacy nodes with no membership rows yet.
  */
-export async function withMembers<T extends { id: number, authorId?: string | null, author?: string }>(
+export async function withMembers<
+  T extends { id: number; authorId?: string | null; author?: string },
+>(
   kind: RevisionTargetKind,
   nodes: T[],
-): Promise<(T & { owners: Member[], collaborators: Member[] })[]> {
-  const byNode = await membersForNodes(kind, nodes.map(n => n.id))
+): Promise<(T & { owners: Member[]; collaborators: Member[] })[]> {
+  const byNode = await membersForNodes(
+    kind,
+    nodes.map((n) => n.id),
+  )
   return nodes.map((n) => {
     const m = byNode.get(n.id)
     const owners = m?.owners.length
       ? m.owners
-      : [{ id: n.authorId ?? null, name: n.author ?? 'Anonymous', role: 'owner' as const, source: 'creator' as const, changes: 0 }]
+      : [
+          {
+            id: n.authorId ?? null,
+            name: n.author ?? 'Anonymous',
+            role: 'owner' as const,
+            source: 'creator' as const,
+            changes: 0,
+          },
+        ]
     return Object.assign(n, { owners, collaborators: m?.collaborators ?? [] })
   })
 }

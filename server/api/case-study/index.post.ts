@@ -16,20 +16,21 @@ export default defineEventHandler(async (event) => {
     implementer?: string
     startDate?: string
     endDate?: string
-    metrics?: Array<{ label: string, baseline?: string, result?: string, unit?: string }>
+    metrics?: Array<{ label: string; baseline?: string; result?: string; unit?: string }>
     cost?: number | string
     currency?: string
     fundingSource?: string
-    sources?: Array<{ url: string, title?: string }>
+    sources?: Array<{ url: string; title?: string }>
     lessonsLearned?: string[]
-    links?: Array<{ url: string, title?: string }>
+    links?: Array<{ url: string; title?: string }>
   }>(event)
 
   if (!body.solutionId || !Number.isInteger(body.solutionId)) {
     throw createError({ statusCode: 400, statusMessage: 'solutionId is required' })
   }
   if (!body.outcome) throw createError({ statusCode: 400, statusMessage: 'outcome is required' })
-  if (!body.locationName?.trim()) throw createError({ statusCode: 400, statusMessage: 'locationName is required' })
+  if (!body.locationName?.trim())
+    throw createError({ statusCode: 400, statusMessage: 'locationName is required' })
   if (body.latitude == null || body.longitude == null) {
     throw createError({ statusCode: 400, statusMessage: 'latitude and longitude are required' })
   }

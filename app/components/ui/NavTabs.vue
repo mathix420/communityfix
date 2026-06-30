@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const { track } = useUmami()
 const props = defineProps<{
-  tabs: { name: string, path: string }[]
+  tabs: { name: string; path: string }[]
 }>()
 
 const route = useRoute()
 const computedTabs = computed(() =>
-  props.tabs.map(tab => ({
+  props.tabs.map((tab) => ({
     ...tab,
     active: route.path === tab.path,
   })),
@@ -21,7 +21,7 @@ function updateHighlight() {
   nextTick(() => {
     const container = tabsContainer.value
     const items = container?.querySelectorAll('.tab-item') || []
-    const idx = props.tabs.findIndex(tab => route.path === tab.path)
+    const idx = props.tabs.findIndex((tab) => route.path === tab.path)
     const el = items[idx] as HTMLElement | undefined
     if (el) {
       const { offsetLeft: left, offsetTop: top, offsetWidth: width, offsetHeight: height } = el
@@ -56,10 +56,10 @@ watch(() => route.path, updateHighlight)
     <NuxtLink
       v-for="tab in computedTabs"
       :key="tab.path"
-      :to="tab.path"
-      replace
       class="tab-item select-none z-10 text-toned hover:text-black/80 transition-colors py-2 px-4 rounded-lg whitespace-nowrap"
+      replace
       :class="{ 'hover:bg-black/5': !tab.active }"
+      :to="tab.path"
       @click="track('Tab click', { tab: tab.name })"
     >
       {{ tab.name }}

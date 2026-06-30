@@ -15,12 +15,15 @@ export default defineEventHandler(async (event) => {
   }
   const issueId = parseInt(id, 10)
 
-  const body = await readBody<{ userId?: string, role?: string }>(event)
+  const body = await readBody<{ userId?: string; role?: string }>(event)
   if (!body?.userId || !body.role || !NODE_MEMBER_ROLES.includes(body.role as NodeMemberRole)) {
     throw createError({ statusCode: 400, statusMessage: 'userId and a valid role are required' })
   }
 
-  const node = await useDB().query.issues.findFirst({ where: eq(issues.id, issueId), columns: { id: true } })
+  const node = await useDB().query.issues.findFirst({
+    where: eq(issues.id, issueId),
+    columns: { id: true },
+  })
   if (!node) throw createError({ statusCode: 404, statusMessage: `Issue ${issueId} not found` })
 
   const isAdmin = await isSessionAdmin(event)

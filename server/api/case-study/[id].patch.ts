@@ -23,7 +23,9 @@ export default defineEventHandler(async (event) => {
   }
   const caseStudyId = parseInt(id, 10)
 
-  const { note, ...fields } = await readBody<Record<string, unknown> & { note?: string | null }>(event)
+  const { note, ...fields } = await readBody<Record<string, unknown> & { note?: string | null }>(
+    event,
+  )
 
   const db = useDB()
   const node = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, caseStudyId) })
@@ -47,7 +49,10 @@ export default defineEventHandler(async (event) => {
 
   // Owner/admin: apply immediately via the single write path, then record a
   // born-approved revision. updateCaseStudy self-triggers re-moderation.
-  const { caseStudy, before } = await updateCaseStudy(session.user.id, { id: caseStudyId, ...fields })
+  const { caseStudy, before } = await updateCaseStudy(session.user.id, {
+    id: caseStudyId,
+    ...fields,
+  })
 
   const after = editableCaseStudySnapshot(caseStudy)
   const changes = diffSnapshots(before, after)
@@ -88,10 +93,10 @@ function changesFromBody(body: Record<string, unknown>, base: Snapshot): Snapsho
     if (key in body) changes[key] = body[key]
   }
   if ('latitude' in body || 'longitude' in body) {
-    const baseLoc = base.location as { latitude: number, longitude: number } | null
+    const baseLoc = base.location as { latitude: number; longitude: number } | null
     const lat = (body.latitude as number | null | undefined) ?? baseLoc?.latitude ?? null
     const lng = (body.longitude as number | null | undefined) ?? baseLoc?.longitude ?? null
-    changes.location = (lat != null && lng != null) ? { latitude: lat, longitude: lng } : null
+    changes.location = lat != null && lng != null ? { latitude: lat, longitude: lng } : null
   }
   return changes
 }

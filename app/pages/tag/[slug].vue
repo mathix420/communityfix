@@ -36,10 +36,13 @@ function onSearchInput(val: string) {
 // SEO Meta tags
 useSeoMeta({
   title: () => `${tagSlug.value} - CommunityFix Tags`,
-  description: () => `Explore community issues tagged with #${tagSlug.value}. Find ${issues.value?.length || 0} issues related to ${tagSlug.value} and join the discussion.`,
-  keywords: () => `${tagSlug.value}, community issues, community fix, ${tagSlug.value} problems, local solutions, collaborative problem solving`,
+  description: () =>
+    `Explore community issues tagged with #${tagSlug.value}. Find ${issues.value?.length || 0} issues related to ${tagSlug.value} and join the discussion.`,
+  keywords: () =>
+    `${tagSlug.value}, community issues, community fix, ${tagSlug.value} problems, local solutions, collaborative problem solving`,
   ogTitle: () => `#${tagSlug.value} - Community Issues`,
-  ogDescription: () => `Browse ${issues.value?.length || 0} community issues tagged with #${tagSlug.value} on CommunityFix.`,
+  ogDescription: () =>
+    `Browse ${issues.value?.length || 0} community issues tagged with #${tagSlug.value} on CommunityFix.`,
   ogType: 'website',
   twitterCard: 'summary',
   twitterTitle: () => `#${tagSlug.value} - CommunityFix`,
@@ -61,9 +64,9 @@ useJsonLd([
   ]),
   {
     '@type': 'CollectionPage',
-    'name': tagName.value,
-    'url': tagUrl.value,
-    'isPartOf': { '@id': WEBSITE_ID },
+    name: tagName.value,
+    url: tagUrl.value,
+    isPartOf: { '@id': WEBSITE_ID },
   },
 ])
 
@@ -98,37 +101,31 @@ const allTags = computed(() => {
         Issues tagged with {{ tagSlug }}
       </p>
     </div>
-
     <p
       v-if="issues && issues.length > 0"
       class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8"
     >
       Found {{ issues.length }} issue{{ issues.length === 1 ? '' : 's' }} with this tag:
     </p>
-
     <!-- Filter bar -->
     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-3xl mx-auto mb-6">
       <UInput
-        :model-value="search"
-        placeholder="Search issues..."
-        icon="i-lucide-search"
-        size="md"
         class="flex-1"
+        icon="i-lucide-search"
+        placeholder="Search issues..."
+        size="md"
+        :model-value="search"
         @update:model-value="onSearchInput"
       />
       <USelectMenu
         v-model="sort"
-        :items="sortOptions"
-        value-key="value"
-        size="md"
         class="w-full sm:w-44"
+        size="md"
+        value-key="value"
+        :items="sortOptions"
       />
     </div>
-
-    <div
-      v-if="allTags.length > 0"
-      class="max-w-3xl mx-auto mb-12"
-    >
+    <div v-if="allTags.length > 0" class="max-w-3xl mx-auto mb-12">
       <h2 class="text-lg font-title text-primary-950 mb-4">
         Related tags:
       </h2>
@@ -136,37 +133,31 @@ const allTags = computed(() => {
         <NuxtLink
           v-for="{ tag, count } in allTags"
           :key="tag"
-          :to="`/tag/${tag}`"
-          @click="track('Related tag click', { tag })"
           class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-full transition-colors"
           :class="{
             'text-sm': count < 3,
             'text-base font-medium': count >= 3 && count < 5,
             'text-lg font-semibold': count >= 5,
           }"
+          :to="`/tag/${tag}`"
+          @click="track('Related tag click', { tag })"
         >
-          <span>#{{ tag }}</span>
-          <span class="text-xs text-primary-600">({{ count }})</span>
+          <span>
+            #{{ tag }}
+          </span>
+          <span class="text-xs text-primary-600">
+            ({{ count }})
+          </span>
         </NuxtLink>
       </div>
     </div>
-
-    <div
-      v-if="issues && issues.length > 0"
-      class="flex flex-col max-w-3xl mx-auto gap-6"
-    >
-      <CardIssue
-        v-for="issue in issues"
-        :key="issue.id"
-        :issue="issue"
-      />
+    <div v-if="issues && issues.length > 0" class="flex flex-col max-w-3xl mx-auto gap-6">
+      <CardIssue v-for="issue in issues" :key="issue.id" :issue="issue" />
     </div>
-
-    <div
-      v-else
-      class="text-center text-lg text-toned mt-12"
-    >
-      <p>No issues found with tag "{{ tagSlug }}"</p>
+    <div v-else class="text-center text-lg text-toned mt-12">
+      <p>
+        No issues found with tag "{{ tagSlug }}"
+      </p>
     </div>
   </AppContainer>
 </template>

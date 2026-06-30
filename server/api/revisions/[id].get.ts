@@ -33,17 +33,17 @@ export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
   const viewerId = session.user?.id ?? null
   const isAdmin = await getIsAdmin(viewerId)
-  const viewerIsOwner = viewerId && nodeId != null
-    ? await isNodeOwner(viewerId, row.targetKind, nodeId)
-    : false
+  const viewerIsOwner =
+    viewerId && nodeId != null ? await isNodeOwner(viewerId, row.targetKind, nodeId) : false
 
   if (!canViewRevision(row, viewerIsOwner, viewerId, isAdmin)) {
     throw createError({ statusCode: 404, statusMessage: `Revision ${revisionId} not found` })
   }
 
-  const role = viewerId && nodeId != null
-    ? await resolveDecideRole(viewerId, row.targetKind, nodeId, isAdmin)
-    : null
+  const role =
+    viewerId && nodeId != null
+      ? await resolveDecideRole(viewerId, row.targetKind, nodeId, isAdmin)
+      : null
   const isPending = row.status === 'pending'
 
   return {

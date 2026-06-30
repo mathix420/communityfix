@@ -12,10 +12,16 @@ import { sendEmail } from './email'
 // always emailed on an explicit human decision regardless of trust.
 export const PROPOSAL_NOTIFY_MIN_TRUST = 10
 
-function nodeUrl(event: H3Event, targetKind: 'issue' | 'case_study', issueId: number | null, caseStudyId: number | null): string {
+function nodeUrl(
+  event: H3Event,
+  targetKind: 'issue' | 'case_study',
+  issueId: number | null,
+  caseStudyId: number | null,
+): string {
   const origin = getRequestURL(event).origin
   if (targetKind === 'issue' && issueId != null) return `${origin}/issue/${issueId}`
-  if (targetKind === 'case_study' && caseStudyId != null) return `${origin}/case-study/${caseStudyId}`
+  if (targetKind === 'case_study' && caseStudyId != null)
+    return `${origin}/case-study/${caseStudyId}`
   return origin
 }
 
@@ -24,17 +30,20 @@ function nodeUrl(event: H3Event, targetKind: 'issue' | 'case_study', issueId: nu
  * the proposer's trust score is below `PROPOSAL_NOTIFY_MIN_TRUST` (the proposal
  * still lands in the owner's in-app inbox). Best-effort.
  */
-export async function sendProposalNotification(event: H3Event, opts: {
-  ownerEmail: string | null | undefined
-  ownerName?: string | null
-  proposerName?: string | null
-  proposerTrustScore: number
-  nodeLabel: string
-  targetKind: 'issue' | 'case_study'
-  issueId: number | null
-  caseStudyId: number | null
-  note?: string | null
-}): Promise<void> {
+export async function sendProposalNotification(
+  event: H3Event,
+  opts: {
+    ownerEmail: string | null | undefined
+    ownerName?: string | null
+    proposerName?: string | null
+    proposerTrustScore: number
+    nodeLabel: string
+    targetKind: 'issue' | 'case_study'
+    issueId: number | null
+    caseStudyId: number | null
+    note?: string | null
+  },
+): Promise<void> {
   if (!opts.ownerEmail) return
   if (opts.proposerTrustScore < PROPOSAL_NOTIFY_MIN_TRUST) return
 
@@ -51,8 +60,7 @@ export async function sendProposalNotification(event: H3Event, opts: {
         <p><a href="${url}">Review the suggestion</a> to approve or reject it.</p>
       `,
     })
-  }
-  catch (err) {
+  } catch (err) {
     console.warn('[email-revisions] proposal notification failed:', err)
   }
 }
@@ -61,29 +69,34 @@ export async function sendProposalNotification(event: H3Event, opts: {
  * Notify a proposer that the owner/admin approved or rejected their suggestion.
  * Always sent on an explicit human decision. Best-effort.
  */
-export async function sendDecisionNotification(event: H3Event, opts: {
-  proposerEmail: string | null | undefined
-  proposerName?: string | null
-  decision: 'approved' | 'rejected' | 'superseded'
-  reason?: string | null
-  nodeLabel: string
-  targetKind: 'issue' | 'case_study'
-  issueId: number | null
-  caseStudyId: number | null
-}): Promise<void> {
+export async function sendDecisionNotification(
+  event: H3Event,
+  opts: {
+    proposerEmail: string | null | undefined
+    proposerName?: string | null
+    decision: 'approved' | 'rejected' | 'superseded'
+    reason?: string | null
+    nodeLabel: string
+    targetKind: 'issue' | 'case_study'
+    issueId: number | null
+    caseStudyId: number | null
+  },
+): Promise<void> {
   if (!opts.proposerEmail) return
 
   const url = nodeUrl(event, opts.targetKind, opts.issueId, opts.caseStudyId)
   // 'superseded' = the node changed under the proposal before it was accepted,
   // so it was retired without applying (see the staleness guard in decideRevision).
-  const verb = opts.decision === 'approved'
-    ? 'accepted'
-    : opts.decision === 'superseded'
-      ? 'superseded by newer changes'
-      : 'declined'
-  const subject = opts.decision === 'superseded'
-    ? 'Your suggested edit is out of date'
-    : `Your suggested edit was ${verb}`
+  const verb =
+    opts.decision === 'approved'
+      ? 'accepted'
+      : opts.decision === 'superseded'
+        ? 'superseded by newer changes'
+        : 'declined'
+  const subject =
+    opts.decision === 'superseded'
+      ? 'Your suggested edit is out of date'
+      : `Your suggested edit was ${verb}`
   try {
     await sendEmail(event, {
       to: opts.proposerEmail,
@@ -95,8 +108,7 @@ export async function sendDecisionNotification(event: H3Event, opts: {
         <p><a href="${url}">View the node</a>.</p>
       `,
     })
-  }
-  catch (err) {
+  } catch (err) {
     console.warn('[email-revisions] decision notification failed:', err)
   }
 }

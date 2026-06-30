@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
   // Bulk-fetch endorsement counts + verification flags + whether the viewer
   // has already endorsed. Counts are split by kind: peer endorsements are
   // tallied, verifications are surfaced as a per-qualification boolean.
-  const qIds = rows.map(r => r.id)
+  const qIds = rows.map((r) => r.id)
   const counts = qIds.length
     ? await db
         .select({
@@ -69,8 +69,7 @@ export default defineEventHandler(async (event) => {
   for (const c of counts) {
     if (c.kind === 'verification') {
       if (Number(c.count) > 0) verifiedSet.add(c.qualificationId)
-    }
-    else {
+    } else {
       countMap.set(c.qualificationId, (countMap.get(c.qualificationId) ?? 0) + Number(c.count))
     }
   }
@@ -79,16 +78,19 @@ export default defineEventHandler(async (event) => {
   // is trusted by definition; explicit verification rows would be redundant.
   const ownerIsAdmin = isAdminEmail(user.email)
 
-  const viewerEndorsements = viewerId && qIds.length
-    ? await db
-        .select({ qualificationId: qualificationEndorsements.qualificationId })
-        .from(qualificationEndorsements)
-        .where(and(
-          inArray(qualificationEndorsements.qualificationId, qIds),
-          eq(qualificationEndorsements.endorserId, viewerId),
-        ))
-    : []
-  const viewerEndorsedSet = new Set(viewerEndorsements.map(r => r.qualificationId))
+  const viewerEndorsements =
+    viewerId && qIds.length
+      ? await db
+          .select({ qualificationId: qualificationEndorsements.qualificationId })
+          .from(qualificationEndorsements)
+          .where(
+            and(
+              inArray(qualificationEndorsements.qualificationId, qIds),
+              eq(qualificationEndorsements.endorserId, viewerId),
+            ),
+          )
+      : []
+  const viewerEndorsedSet = new Set(viewerEndorsements.map((r) => r.qualificationId))
 
   // Total peer endorsements received across all this user's qualifications.
   const totalEndorsementsReceived = Array.from(countMap.values()).reduce((sum, n) => sum + n, 0)
@@ -102,18 +104,19 @@ export default defineEventHandler(async (event) => {
   if (viewerId && !isOwner) {
     if (viewerIsAdmin) {
       viewerCanEndorse = true
-    }
-    else {
+    } else {
       // Only peer endorsements count toward the trust gate — receiving an
       // admin verification doesn't unlock endorsing others.
       const [row] = await db
         .select({ n: count(qualificationEndorsements.id).as('n') })
         .from(qualificationEndorsements)
         .innerJoin(qualifications, eq(qualifications.id, qualificationEndorsements.qualificationId))
-        .where(and(
-          eq(qualifications.userId, viewerId),
-          eq(qualificationEndorsements.kind, 'endorsement'),
-        ))
+        .where(
+          and(
+            eq(qualifications.userId, viewerId),
+            eq(qualificationEndorsements.kind, 'endorsement'),
+          ),
+        )
       viewerCanEndorse = Number(row?.n ?? 0) > 0
     }
   }
@@ -128,7 +131,11 @@ export default defineEventHandler(async (event) => {
   const userSolutions = await db.query.issues.findMany({
     where: isOwner
       ? and(eq(issues.authorId, user.id), eq(issues.type, 'solution'))
-      : and(eq(issues.authorId, user.id), eq(issues.type, 'solution'), ne(issues.status, 'rejected')),
+      : and(
+          eq(issues.authorId, user.id),
+          eq(issues.type, 'solution'),
+          ne(issues.status, 'rejected'),
+        ),
     with: issueWithRelations,
   })
 
@@ -141,7 +148,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const filterSpam = (items: typeof userIssues) =>
-    isOwner ? items.filter(i => !i.isSpam) : items
+    isOwner ? items.filter((i) => !i.isSpam) : items
 
   return {
     id: user.id,
@@ -151,7 +158,7 @@ export default defineEventHandler(async (event) => {
     location: user.location,
     trustScore: user.trustScore,
     createdAt: user.createdAt,
-    qualifications: rows.map(q => ({
+    qualifications: rows.map((q) => ({
       id: q.id,
       title: q.title,
       area: q.area,
@@ -169,8 +176,14 @@ export default defineEventHandler(async (event) => {
       isAdmin: viewerIsAdmin,
       isAuthenticated: !!viewerId,
     },
-    issues: await withMembers('issue', filterSpam(userIssues).map(i => transformIssue(i, { includeModeration: isOwner }))),
-    solutions: await withMembers('issue', filterSpam(userSolutions).map(i => transformIssue(i, { includeModeration: isOwner }))),
+    issues: await withMembers(
+      'issue',
+      filterSpam(userIssues).map((i) => transformIssue(i, { includeModeration: isOwner })),
+    ),
+    solutions: await withMembers(
+      'issue',
+      filterSpam(userSolutions).map((i) => transformIssue(i, { includeModeration: isOwner })),
+    ),
     caseStudies: await withMembers('case_study', userCaseStudies.map(transformCaseStudy)),
   }
 })

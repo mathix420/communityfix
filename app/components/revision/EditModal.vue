@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import type { CaseStudyOutcome, LocationScale, SolutionStatus } from '../../../server/database/schema'
+import type {
+  CaseStudyOutcome,
+  LocationScale,
+  SolutionStatus,
+} from '../../../server/database/schema'
 import type { IssueLinkRow } from '../issue/IssueFields.vue'
 import type {
   CaseStudyLessonRow,
@@ -30,9 +34,9 @@ interface IssueNode {
   description?: string | null
   solutionStatus?: SolutionStatus | null
   locationName?: string | null
-  location?: { latitude: number, longitude: number } | null
+  location?: { latitude: number; longitude: number } | null
   scale?: LocationScale | null
-  links?: { url: string, title?: string | null }[] | null
+  links?: { url: string; title?: string | null }[] | null
   parentId?: number | null
 }
 interface CaseStudyNode {
@@ -40,7 +44,7 @@ interface CaseStudyNode {
   solutionId: number
   outcome: CaseStudyOutcome
   locationName: string
-  location?: { latitude: number, longitude: number } | null
+  location?: { latitude: number; longitude: number } | null
   scale?: LocationScale | null
   implementer?: string | null
   startDate?: string | null
@@ -50,9 +54,11 @@ interface CaseStudyNode {
   currency?: string | null
   fundingSource?: string | null
   lessonsLearned?: string[] | null
-  sources?: { url: string, title?: string | null }[] | null
-  links?: { url: string, title?: string | null }[] | null
-  metrics?: { label: string, baseline?: string | null, result?: string | null, unit?: string | null }[] | null
+  sources?: { url: string; title?: string | null }[] | null
+  links?: { url: string; title?: string | null }[] | null
+  metrics?:
+    | { label: string; baseline?: string | null; result?: string | null; unit?: string | null }[]
+    | null
 }
 
 const props = defineProps<{
@@ -114,49 +120,51 @@ const newParentId = ref<number | null>(null)
 
 // Seed the form when the modal opens. Snapshots are taken so we only PATCH the
 // fields the user actually changed (the endpoint also no-ops a no-change diff).
-watch(() => props.open, (v) => {
-  if (!v) return
-  error.value = ''
-  note.value = ''
-  newParentId.value = null
+watch(
+  () => props.open,
+  (v) => {
+    if (!v) return
+    error.value = ''
+    note.value = ''
+    newParentId.value = null
 
-  if (!isCaseStudy.value && props.issue) {
-    const n = props.issue
-    title.value = n.title
-    summary.value = n.summary
-    description.value = n.description ?? ''
-    locationName.value = n.locationName ?? ''
-    latitude.value = n.location?.latitude
-    longitude.value = n.location?.longitude
-    scale.value = n.scale ?? undefined
-    solutionStatus.value = n.solutionStatus ?? undefined
-    links.value = (n.links ?? []).map(l => ({ url: l.url, title: l.title ?? '' }))
-  }
-  else if (isCaseStudy.value && props.caseStudy) {
-    const n = props.caseStudy
-    outcome.value = n.outcome
-    csLocationName.value = n.locationName ?? ''
-    csLatitude.value = n.location?.latitude
-    csLongitude.value = n.location?.longitude
-    csScale.value = n.scale ?? undefined
-    implementer.value = n.implementer ?? ''
-    startDate.value = n.startDate ?? ''
-    endDate.value = n.endDate ?? ''
-    csDescription.value = n.description ?? ''
-    cost.value = n.cost != null ? Number(n.cost) : undefined
-    currency.value = n.currency ?? ''
-    fundingSource.value = n.fundingSource ?? ''
-    lessons.value = (n.lessonsLearned ?? []).map(s => ({ text: s }))
-    sources.value = (n.sources ?? []).map(s => ({ url: s.url, title: s.title ?? '' }))
-    csLinks.value = (n.links ?? []).map(l => ({ url: l.url, title: l.title ?? '' }))
-    metrics.value = (n.metrics ?? []).map(m => ({
-      label: m.label,
-      baseline: m.baseline ?? '',
-      result: m.result ?? '',
-      unit: m.unit ?? '',
-    }))
-  }
-})
+    if (!isCaseStudy.value && props.issue) {
+      const n = props.issue
+      title.value = n.title
+      summary.value = n.summary
+      description.value = n.description ?? ''
+      locationName.value = n.locationName ?? ''
+      latitude.value = n.location?.latitude
+      longitude.value = n.location?.longitude
+      scale.value = n.scale ?? undefined
+      solutionStatus.value = n.solutionStatus ?? undefined
+      links.value = (n.links ?? []).map((l) => ({ url: l.url, title: l.title ?? '' }))
+    } else if (isCaseStudy.value && props.caseStudy) {
+      const n = props.caseStudy
+      outcome.value = n.outcome
+      csLocationName.value = n.locationName ?? ''
+      csLatitude.value = n.location?.latitude
+      csLongitude.value = n.location?.longitude
+      csScale.value = n.scale ?? undefined
+      implementer.value = n.implementer ?? ''
+      startDate.value = n.startDate ?? ''
+      endDate.value = n.endDate ?? ''
+      csDescription.value = n.description ?? ''
+      cost.value = n.cost != null ? Number(n.cost) : undefined
+      currency.value = n.currency ?? ''
+      fundingSource.value = n.fundingSource ?? ''
+      lessons.value = (n.lessonsLearned ?? []).map((s) => ({ text: s }))
+      sources.value = (n.sources ?? []).map((s) => ({ url: s.url, title: s.title ?? '' }))
+      csLinks.value = (n.links ?? []).map((l) => ({ url: l.url, title: l.title ?? '' }))
+      metrics.value = (n.metrics ?? []).map((m) => ({
+        label: m.label,
+        baseline: m.baseline ?? '',
+        result: m.result ?? '',
+        unit: m.unit ?? '',
+      }))
+    }
+  },
+)
 
 function close() {
   if (submitting.value) return
@@ -168,8 +176,8 @@ function close() {
 // only real changes / no-ops an empty diff).
 function buildIssueBody() {
   const cleanedLinks = links.value
-    .map(l => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
-    .filter(l => l.url)
+    .map((l) => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
+    .filter((l) => l.url)
   const body: Record<string, unknown> = {
     title: title.value.trim(),
     summary: summary.value.trim(),
@@ -192,20 +200,20 @@ function buildIssueBody() {
 // cleaning (sources/links/metrics trimmed + filtered, lessons rows → string[]).
 function buildCaseStudyBody() {
   const cleanedSources = sources.value
-    .map(s => ({ url: s.url.trim(), title: s.title.trim() || undefined }))
-    .filter(s => s.url)
+    .map((s) => ({ url: s.url.trim(), title: s.title.trim() || undefined }))
+    .filter((s) => s.url)
   const cleanedLinks = csLinks.value
-    .map(l => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
-    .filter(l => l.url)
+    .map((l) => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
+    .filter((l) => l.url)
   const cleanedMetrics = metrics.value
-    .map(m => ({
+    .map((m) => ({
       label: m.label.trim(),
       baseline: m.baseline.trim() || undefined,
       result: m.result.trim() || undefined,
       unit: m.unit.trim() || undefined,
     }))
-    .filter(m => m.label)
-  const cleanedLessons = lessons.value.map(l => l.text.trim()).filter(Boolean)
+    .filter((m) => m.label)
+  const cleanedLessons = lessons.value.map((l) => l.text.trim()).filter(Boolean)
 
   const body: Record<string, unknown> = {
     outcome: outcome.value,
@@ -244,8 +252,7 @@ async function submit() {
         body: buildIssueBody(),
       })
       applied = res.applied
-    }
-    else if (isCaseStudy.value && props.caseStudy) {
+    } else if (isCaseStudy.value && props.caseStudy) {
       if (!csLocationName.value.trim()) throw new Error('Location is required')
       if (!outcome.value) throw new Error('Outcome is required')
       const res = await $fetch(`/api/case-study/${props.caseStudy.id}`, {
@@ -259,8 +266,7 @@ async function submit() {
 
     if (applied) {
       toast.add({ title: 'Saved', description: 'Your changes are live.', color: 'success' })
-    }
-    else {
+    } else {
       toast.add({
         title: 'Suggestion submitted for review',
         description: 'The owner will be notified and can accept or decline it.',
@@ -269,23 +275,21 @@ async function submit() {
     }
     emit('submitted')
     emit('update:open', false)
-  }
-  catch (err: unknown) {
-    const status = (err as { statusCode?: number, response?: { status?: number } })?.statusCode
-      ?? (err as { response?: { status?: number } })?.response?.status
-    const message = (err as { data?: { message?: string }, message?: string })?.data?.message
-      ?? (err as { message?: string })?.message
+  } catch (err: unknown) {
+    const status =
+      (err as { statusCode?: number; response?: { status?: number } })?.statusCode ??
+      (err as { response?: { status?: number } })?.response?.status
+    const message =
+      (err as { data?: { message?: string }; message?: string })?.data?.message ??
+      (err as { message?: string })?.message
     if (status === 400) {
       error.value = message || 'No changes to save.'
-    }
-    else if (status === 429) {
+    } else if (status === 429) {
       error.value = 'You are proposing edits too quickly — please try again later.'
-    }
-    else {
+    } else {
       error.value = message || 'Failed to save'
     }
-  }
-  finally {
+  } finally {
     submitting.value = false
   }
 }
@@ -308,49 +312,46 @@ async function submit() {
             </template>
           </p>
         </div>
-
         <form class="grid gap-4" @submit.prevent="submit">
           <IssueFields
             v-if="!isCaseStudy"
-            v-model:title="title"
-            v-model:summary="summary"
             v-model:description="description"
-            v-model:location-name="locationName"
             v-model:latitude="latitude"
+            v-model:links="links"
+            v-model:location-name="locationName"
             v-model:longitude="longitude"
             v-model:scale="scale"
             v-model:solution-status="solutionStatus"
-            v-model:links="links"
+            v-model:summary="summary"
+            v-model:title="title"
             :kind="isSolution ? 'solution' : 'issue'"
             :show-solution-status="true"
           />
-
           <CaseStudyFields
             v-else
-            v-model:outcome="outcome"
-            v-model:location-name="csLocationName"
-            v-model:latitude="csLatitude"
-            v-model:longitude="csLongitude"
-            v-model:scale="csScale"
-            v-model:implementer="implementer"
-            v-model:start-date="startDate"
-            v-model:end-date="endDate"
-            v-model:description="csDescription"
             v-model:cost="cost"
             v-model:currency="currency"
+            v-model:description="csDescription"
+            v-model:end-date="endDate"
             v-model:funding-source="fundingSource"
+            v-model:implementer="implementer"
+            v-model:latitude="csLatitude"
             v-model:lessons="lessons"
-            v-model:sources="sources"
             v-model:links="csLinks"
+            v-model:location-name="csLocationName"
+            v-model:longitude="csLongitude"
             v-model:metrics="metrics"
+            v-model:outcome="outcome"
+            v-model:scale="csScale"
+            v-model:sources="sources"
+            v-model:start-date="startDate"
           />
-
           <RevisionParentPicker
             v-if="!isCaseStudy && issue"
             v-model="newParentId"
-            :mode="isSolution ? 'solution' : 'issue'"
             :current-node-id="issue.id"
             :current-parent-id="issue.parentId ?? null"
+            :mode="isSolution ? 'solution' : 'issue'"
           />
           <RevisionParentPicker
             v-else-if="isCaseStudy && caseStudy"
@@ -359,7 +360,6 @@ async function submit() {
             :current-node-id="caseStudy.id"
             :current-parent-id="caseStudy.solutionId"
           />
-
           <UFormField
             label="Note"
             name="note"
@@ -367,19 +367,19 @@ async function submit() {
           >
             <UTextarea
               v-model="note"
+              class="w-full"
               placeholder="What did you change and why?"
               :rows="2"
-              class="w-full"
             />
           </UFormField>
-
-          <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-
+          <p v-if="error" class="text-sm text-red-600">
+            {{ error }}
+          </p>
           <div class="flex justify-end gap-2">
-            <UButton variant="ghost" color="neutral" :disabled="submitting" @click="close">
+            <UButton color="neutral" variant="ghost" :disabled="submitting" @click="close">
               Cancel
             </UButton>
-            <UButton type="submit" color="primary" :loading="submitting">
+            <UButton color="primary" type="submit" :loading="submitting">
               {{ canApply ? 'Save changes' : 'Submit suggestion' }}
             </UButton>
           </div>

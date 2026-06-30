@@ -38,7 +38,7 @@ export async function findSimilar<T extends { similarity: number }>(opts: {
 
   const rows = results as unknown as T[]
   if (opts.threshold != null) {
-    return rows.filter(r => r.similarity > opts.threshold!)
+    return rows.filter((r) => r.similarity > opts.threshold!)
   }
   return rows
 }

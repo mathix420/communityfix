@@ -36,19 +36,25 @@ export default defineEventHandler(async (event) => {
 
   await db.transaction(async (tx) => {
     // Upsert vote with weight
-    await tx.insert(votes).values({
-      userId: session.user.id,
-      issueId: id,
-      value: body.value!,
-      weight,
-    }).onConflictDoUpdate({
-      target: [votes.userId, votes.issueId],
-      set: { value: body.value!, weight, updatedAt: new Date() },
-    })
+    await tx
+      .insert(votes)
+      .values({
+        userId: session.user.id,
+        issueId: id,
+        value: body.value!,
+        weight,
+      })
+      .onConflictDoUpdate({
+        target: [votes.userId, votes.issueId],
+        set: { value: body.value!, weight, updatedAt: new Date() },
+      })
 
     // Recalculate cached score using weighted votes
-    await tx.update(issues)
-      .set({ voteScore: sql`(SELECT COALESCE(SUM(value * weight), 0) FROM votes WHERE issue_id = ${id})` })
+    await tx
+      .update(issues)
+      .set({
+        voteScore: sql`(SELECT COALESCE(SUM(value * weight), 0) FROM votes WHERE issue_id = ${id})`,
+      })
       .where(eq(issues.id, id))
   })
 
@@ -62,8 +68,9 @@ export default defineEventHandler(async (event) => {
   // waitUntil so the recompute survives past the response being returned.
   if (updated?.authorId) {
     const authorId = updated.authorId
-    const trustPromise = updateUserTrustScore(authorId).catch(err =>
-      console.error(`[vote.post] Trust score update failed for author ${authorId}:`, err))
+    const trustPromise = updateUserTrustScore(authorId).catch((err) =>
+      console.error(`[vote.post] Trust score update failed for author ${authorId}:`, err),
+    )
     ;(event.context as any).cloudflare?.context?.waitUntil?.(trustPromise)
   }
 

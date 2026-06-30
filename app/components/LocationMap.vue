@@ -28,12 +28,18 @@ const areaStyle = {
 
 function scaleToZoom(scale: string | null | undefined): number {
   switch (scale) {
-    case 'neighborhood': return 14
-    case 'city': return 11
-    case 'region': return 7
-    case 'national': return 4
-    case 'global': return 2
-    default: return 9
+    case 'neighborhood':
+      return 14
+    case 'city':
+      return 11
+    case 'region':
+      return 7
+    case 'national':
+      return 4
+    case 'global':
+      return 2
+    default:
+      return 9
   }
 }
 
@@ -76,50 +82,60 @@ async function fetchArea() {
       lon: string
       boundingbox?: [string, string, string, string]
       geojson?: GeoJSON.Geometry
-    }>(
-      'https://nominatim.openstreetmap.org/reverse',
-      {
-        query: {
-          lat: String(props.latitude),
-          lon: String(props.longitude),
-          format: 'json',
-          polygon_geojson: '1',
-          polygon_threshold: '0.005',
-          zoom: scaleToNominatimZoom(props.scale),
-        },
-        headers: { 'Accept-Language': 'en' },
+    }>('https://nominatim.openstreetmap.org/reverse', {
+      query: {
+        lat: String(props.latitude),
+        lon: String(props.longitude),
+        format: 'json',
+        polygon_geojson: '1',
+        polygon_threshold: '0.005',
+        zoom: scaleToNominatimZoom(props.scale),
       },
-    )
+      headers: { 'Accept-Language': 'en' },
+    })
     showArea(data)
-  }
-  catch {
+  } catch {
     // Nominatim failed — map stays centered on the pin, no area drawn
   }
 }
 
 function scaleToNominatimZoom(scale: string | null | undefined): string {
   switch (scale) {
-    case 'neighborhood': return '16'
-    case 'city': return '10'
-    case 'region': return '8'
-    case 'national': return '5'
-    case 'global': return '3'
-    default: return '10'
+    case 'neighborhood':
+      return '16'
+    case 'city':
+      return '10'
+    case 'region':
+      return '8'
+    case 'national':
+      return '5'
+    case 'global':
+      return '3'
+    default:
+      return '10'
   }
 }
 
-function showArea(result: { geojson?: GeoJSON.Geometry, boundingbox?: [string, string, string, string] }) {
+function showArea(result: {
+  geojson?: GeoJSON.Geometry
+  boundingbox?: [string, string, string, string]
+}) {
   if (!map || !L) return
 
   let bounds: any = null
 
-  if (result.geojson && (result.geojson.type === 'Polygon' || result.geojson.type === 'MultiPolygon')) {
+  if (
+    result.geojson &&
+    (result.geojson.type === 'Polygon' || result.geojson.type === 'MultiPolygon')
+  ) {
     areaLayer = L.geoJSON(result.geojson, { style: areaStyle }).addTo(map)
     bounds = areaLayer.getBounds()
-  }
-  else if (result.boundingbox) {
+  } else if (result.boundingbox) {
     const [south, north, west, east] = result.boundingbox.map(Number)
-    bounds = L.latLngBounds([[south, west], [north, east]])
+    bounds = L.latLngBounds([
+      [south, west],
+      [north, east],
+    ])
     areaLayer = L.rectangle(bounds, { ...areaStyle, opacity: 0.4, fillOpacity: 0.06 }).addTo(map)
   }
 
@@ -133,7 +149,13 @@ function showArea(result: { geojson?: GeoJSON.Geometry, boundingbox?: [string, s
 }
 
 onMounted(initMap)
-onBeforeUnmount(() => { map?.remove(); map = null; areaLayer = null; areaBounds = null; L = null })
+onBeforeUnmount(() => {
+  map?.remove()
+  map = null
+  areaLayer = null
+  areaBounds = null
+  L = null
+})
 
 defineExpose({
   invalidateSize: () => {
@@ -141,8 +163,7 @@ defineExpose({
     map.invalidateSize()
     if (areaBounds && areaBounds.isValid()) {
       map.fitBounds(areaBounds, FIT_OPTIONS)
-    }
-    else {
+    } else {
       map.setView([props.latitude, props.longitude], scaleToZoom(props.scale))
     }
   },
@@ -161,12 +182,13 @@ defineExpose({
 
 :deep(.leaflet-control-zoom) {
   border: none !important;
-  border-radius: 0.5rem !important;
+  border-radius: .5rem !important;
   overflow: hidden !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 2px 8px #0000001f !important;
 }
+
 :deep(.leaflet-control-zoom a) {
-  background: white !important;
+  background: #fff !important;
   color: #6b7280 !important;
   border: none !important;
   border-bottom: 1px solid #f3f4f6 !important;
@@ -175,9 +197,11 @@ defineExpose({
   line-height: 32px !important;
   font-size: 16px !important;
 }
+
 :deep(.leaflet-control-zoom a:last-child) {
   border-bottom: none !important;
 }
+
 :deep(.leaflet-control-zoom a:hover) {
   background: #f9fafb !important;
   color: #374151 !important;

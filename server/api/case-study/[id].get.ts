@@ -17,6 +17,8 @@ export default defineEventHandler(async (event) => {
   if (!row) return null
 
   const session = await getUserSession(event)
-  const viewerIsOwner = session.user?.id ? await isNodeOwner(session.user.id, 'case_study', row.id) : false
+  const viewerIsOwner = session.user?.id
+    ? await isNodeOwner(session.user.id, 'case_study', row.id)
+    : false
   return { ...transformCaseStudy(row), viewerIsOwner }
 })

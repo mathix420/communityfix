@@ -26,7 +26,14 @@ export default defineEventHandler(async (event) => {
       FROM ${auditLogs}
       WHERE type = 'moderation'
         AND created_at > NOW() - (${days}::int * INTERVAL '1 day')
-    `) as unknown as Array<{ total: number, auto_resolved: number, needs_review: number, reviewed: number, overridden: number, avg_confidence: number | null }>,
+    `) as unknown as Array<{
+      total: number
+      auto_resolved: number
+      needs_review: number
+      reviewed: number
+      overridden: number
+      avg_confidence: number | null
+    }>,
 
     // Average confidence broken out by ultimate outcome.
     db.execute(sql`
@@ -39,7 +46,7 @@ export default defineEventHandler(async (event) => {
         AND created_at > NOW() - (${days}::int * INTERVAL '1 day')
         AND details ? 'confidence'
       GROUP BY action
-    `) as unknown as Array<{ action: string, n: number, avg_confidence: number | null }>,
+    `) as unknown as Array<{ action: string; n: number; avg_confidence: number | null }>,
 
     // Daily series for the chart.
     db.execute(sql`
@@ -53,7 +60,12 @@ export default defineEventHandler(async (event) => {
         AND created_at > NOW() - (${days}::int * INTERVAL '1 day')
       GROUP BY 1
       ORDER BY 1 ASC
-    `) as unknown as Array<{ day: string, total: number, overridden: number, needs_review: number }>,
+    `) as unknown as Array<{
+      day: string
+      total: number
+      overridden: number
+      needs_review: number
+    }>,
 
     // Appeals are the cleanest false-positive signal.
     db.execute(sql`
@@ -64,7 +76,7 @@ export default defineEventHandler(async (event) => {
       FROM ${issues}
       WHERE appealed_at IS NOT NULL
         AND appealed_at > NOW() - (${days}::int * INTERVAL '1 day')
-    `) as unknown as Array<{ pending: number, granted: number, denied: number }>,
+    `) as unknown as Array<{ pending: number; granted: number; denied: number }>,
 
     // Of moderation calls that were eventually `reviewed` or `overridden` by
     // admins, how often did the admin disagree (overridden)?
@@ -75,10 +87,17 @@ export default defineEventHandler(async (event) => {
       FROM ${auditLogs}
       WHERE type = 'moderation'
         AND created_at > NOW() - (${days}::int * INTERVAL '1 day')
-    `) as unknown as Array<{ disagreed: number, adjudicated: number }>,
+    `) as unknown as Array<{ disagreed: number; adjudicated: number }>,
   ])
 
-  const o = overall[0] ?? { total: 0, auto_resolved: 0, needs_review: 0, reviewed: 0, overridden: 0, avg_confidence: null }
+  const o = overall[0] ?? {
+    total: 0,
+    auto_resolved: 0,
+    needs_review: 0,
+    reviewed: 0,
+    overridden: 0,
+    avg_confidence: null,
+  }
   const appeals = appealStats[0] ?? { pending: 0, granted: 0, denied: 0 }
   const accuracy = recentAccuracy[0] ?? { disagreed: 0, adjudicated: 0 }
 
@@ -91,7 +110,7 @@ export default defineEventHandler(async (event) => {
   const resolved = granted + denied
   const appealGrantRate = resolved > 0 ? granted / resolved : null
 
-  const daily: DailyPoint[] = dailyRaw.map(d => ({
+  const daily: DailyPoint[] = dailyRaw.map((d) => ({
     day: typeof d.day === 'string' ? d.day : new Date(d.day).toISOString(),
     total: Number(d.total),
     overridden: Number(d.overridden),
@@ -108,7 +127,7 @@ export default defineEventHandler(async (event) => {
       overridden: Number(o.overridden),
       avgConfidence: o.avg_confidence == null ? null : Number(o.avg_confidence),
     },
-    byAction: byAiDecision.map(b => ({
+    byAction: byAiDecision.map((b) => ({
       action: b.action,
       n: Number(b.n),
       avgConfidence: b.avg_confidence == null ? null : Number(b.avg_confidence),

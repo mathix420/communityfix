@@ -10,8 +10,8 @@ const { hasAttention } = useDashboardAttention()
       <AuthState v-slot="{ loggedIn, user }">
         <template v-if="loggedIn">
           <NuxtLink
-            to="/dashboard"
             class="relative interactive-underline"
+            to="/dashboard"
             @click="track('Nav dashboard')"
           >
             {{ user?.name || user?.email }}
@@ -23,18 +23,10 @@ const { hasAttention } = useDashboardAttention()
           </NuxtLink>
         </template>
         <template v-else>
-          <NuxtLink
-            to="/login"
-            class="interactive-underline"
-            @click="track('Nav login')"
-          >
+          <NuxtLink class="interactive-underline" to="/login" @click="track('Nav login')">
             login
           </NuxtLink>
-          <NuxtLink
-            to="/register"
-            class="interactive-underline"
-            @click="track('Nav register')"
-          >
+          <NuxtLink class="interactive-underline" to="/register" @click="track('Nav register')">
             register
           </NuxtLink>
         </template>

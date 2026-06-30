@@ -55,15 +55,17 @@ function humanise(key: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
 }
 
-const rows = computed(() => Object.keys(props.changes).map((key) => {
-  const oldValue = props.before?.[key]
-  // Prefer the applied snapshot's value; fall back to the raw change payload.
-  const newValue = key in props.after ? props.after[key] : props.changes[key]
-  let kind: 'text' | 'structural' | 'value' = 'value'
-  if (TEXT_FIELDS.has(key)) kind = 'text'
-  else if (STRUCTURAL_FIELDS.has(key)) kind = 'structural'
-  return { key, label: humanise(key), kind, oldValue, newValue }
-}))
+const rows = computed(() =>
+  Object.keys(props.changes).map((key) => {
+    const oldValue = props.before?.[key]
+    // Prefer the applied snapshot's value; fall back to the raw change payload.
+    const newValue = key in props.after ? props.after[key] : props.changes[key]
+    let kind: 'text' | 'structural' | 'value' = 'value'
+    if (TEXT_FIELDS.has(key)) kind = 'text'
+    else if (STRUCTURAL_FIELDS.has(key)) kind = 'structural'
+    return { key, label: humanise(key), kind, oldValue, newValue }
+  }),
+)
 
 function asText(value: unknown): string {
   return value == null ? '' : String(value)
@@ -78,7 +80,7 @@ function compact(value: unknown): string {
   if (typeof value === 'number' || typeof value === 'boolean') return String(value)
   if (Array.isArray(value)) {
     if (value.length === 0) return '—'
-    return value.map(item => compactItem(item)).join(', ')
+    return value.map((item) => compactItem(item)).join(', ')
   }
   if (typeof value === 'object') {
     const obj = value as Record<string, unknown>
@@ -92,7 +94,8 @@ function compact(value: unknown): string {
 
 function compactItem(item: unknown): string {
   if (item == null) return '—'
-  if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') return String(item)
+  if (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean')
+    return String(item)
   if (typeof item === 'object') {
     const obj = item as Record<string, unknown>
     if (typeof obj.title === 'string' && obj.title) return obj.title
@@ -111,48 +114,60 @@ function asId(value: unknown): string {
 
 <template>
   <div class="space-y-3 text-sm">
-    <p v-if="rows.length === 0" class="text-xs text-toned">No field changes.</p>
-
+    <p v-if="rows.length === 0" class="text-xs text-toned">
+      No field changes.
+    </p>
     <div v-for="row in rows" :key="row.key" class="space-y-1">
-      <span class="text-[11px] font-medium uppercase tracking-wide text-toned">{{ row.label }}</span>
-
+      <span class="text-[11px] font-medium uppercase tracking-wide text-toned">
+        {{ row.label }}
+      </span>
       <!-- Long text → inline word diff -->
       <p v-if="row.kind === 'text'" class="leading-relaxed whitespace-pre-wrap break-words">
-        <template
-          v-for="(part, i) in wordDiff(asText(row.oldValue), asText(row.newValue))"
-          :key="i"
-        >
+        <template v-for="(part, i) in wordDiff(asText(row.oldValue), asText(row.newValue))" :key="i">
           <del
             v-if="part.type === 'removed'"
             class="rounded-sm bg-red-50 text-red-700 line-through decoration-red-400"
-          >{{ part.value }}</del>
+          >
+            {{ part.value }}
+          </del>
           <ins
             v-else-if="part.type === 'added'"
             class="rounded-sm bg-green-50 text-green-700 no-underline"
-          >{{ part.value }}</ins>
-          <span v-else>{{ part.value }}</span>
+          >
+            {{ part.value }}
+          </ins>
+          <span v-else>
+            {{ part.value }}
+          </span>
         </template>
-        <span
-          v-if="!asText(row.oldValue) && !asText(row.newValue)"
-          class="text-toned"
-        >—</span>
+        <span v-if="!asText(row.oldValue) && !asText(row.newValue)" class="text-toned">
+          —
+        </span>
       </p>
-
       <!-- Reparent / re-attach → id-only structural row -->
       <p v-else-if="row.kind === 'structural'" class="font-mono text-xs">
-        <span :class="row.oldValue == null ? 'text-toned' : 'text-gray-700'">{{ asId(row.oldValue) }}</span>
-        <UIcon name="lucide:arrow-right" class="mx-1.5 inline size-3 align-middle text-gray-400" />
-        <span class="text-gray-900">{{ asId(row.newValue) }}</span>
+        <span :class="row.oldValue == null ? 'text-toned' : 'text-gray-700'">
+          {{ asId(row.oldValue) }}
+        </span>
+        <UIcon class="mx-1.5 inline size-3 align-middle text-gray-400" name="lucide:arrow-right" />
+        <span class="text-gray-900">
+          {{ asId(row.newValue) }}
+        </span>
       </p>
-
       <!-- Arrays + scalars → compact old → new -->
       <p v-else class="flex flex-wrap items-center gap-1.5">
         <span
           class="rounded bg-gray-50 px-1.5 py-0.5"
-          :class="(row.oldValue == null || row.oldValue === '') ? 'text-toned' : 'text-gray-700 line-through decoration-gray-300'"
-        >{{ compact(row.oldValue) }}</span>
-        <UIcon name="lucide:arrow-right" class="size-3 text-gray-400" />
-        <span class="rounded bg-green-50 px-1.5 py-0.5 text-green-700">{{ compact(row.newValue) }}</span>
+          :class="row.oldValue == null || row.oldValue === ''
+            ? 'text-toned'
+            : 'text-gray-700 line-through decoration-gray-300'"
+        >
+          {{ compact(row.oldValue) }}
+        </span>
+        <UIcon class="size-3 text-gray-400" name="lucide:arrow-right" />
+        <span class="rounded bg-green-50 px-1.5 py-0.5 text-green-700">
+          {{ compact(row.newValue) }}
+        </span>
       </p>
     </div>
   </div>

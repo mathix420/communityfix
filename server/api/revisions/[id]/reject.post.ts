@@ -9,8 +9,16 @@ export default defineEventHandler(async (event) => {
   if (!id || isNaN(parseInt(id, 10))) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid revision ID' })
   }
-  const body = await readBody<{ reason?: string | null }>(event).catch(() => ({} as { reason?: string | null }))
+  const body = await readBody<{ reason?: string | null }>(event).catch(
+    () => ({}) as { reason?: string | null },
+  )
 
-  const revision = await decideRevision(session.user.id, parseInt(id, 10), 'reject', body?.reason ?? null, event)
+  const revision = await decideRevision(
+    session.user.id,
+    parseInt(id, 10),
+    'reject',
+    body?.reason ?? null,
+    event,
+  )
   return { success: true, revision: revision ? serializeRevision(revision) : null }
 })

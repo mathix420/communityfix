@@ -29,7 +29,7 @@ const idInput = ref('')
 const checking = ref(false)
 const error = ref('')
 // The resolved, validated target (title for confirmation).
-const resolved = ref<{ id: number, title: string } | null>(null)
+const resolved = ref<{ id: number; title: string } | null>(null)
 
 // What kind the picked target must be, and how we label it.
 const wantSolution = computed(() => props.mode === 'case_study')
@@ -69,11 +69,9 @@ async function lookup() {
     }
     resolved.value = { id: node.id, title: node.title }
     model.value = node.id
-  }
-  catch {
+  } catch {
     error.value = `Couldn't load node #${id}.`
-  }
-  finally {
+  } finally {
     checking.value = false
   }
 }
@@ -89,63 +87,70 @@ function clearChoice() {
 <template>
   <section class="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
     <button
-      type="button"
       class="flex w-full items-center gap-2 text-left text-sm font-medium text-gray-700"
+      type="button"
       @click="expanded = !expanded"
     >
       <UIcon
-        name="lucide:chevron-right"
         class="size-4 text-gray-400 transition-transform"
+        name="lucide:chevron-right"
         :class="{ 'rotate-90': expanded }"
       />
-      <UIcon name="lucide:git-fork" class="size-4 text-gray-400" />
+      <UIcon class="size-4 text-gray-400" name="lucide:git-fork" />
       Move under a different {{ targetLabel }}
-      <span v-if="resolved" class="ml-auto font-mono text-xs text-primary-700">→ #{{ resolved.id }}</span>
+      <span v-if="resolved" class="ml-auto font-mono text-xs text-primary-700">
+        → #{{ resolved.id }}
+      </span>
     </button>
-
     <div v-if="expanded" class="space-y-2 pl-6">
       <p class="text-xs text-toned">
         Paste the id of the new {{ targetLabel }} (the
-        <span class="font-mono">#00000</span> number on its page). Leave blank to keep the current one.
+        <span class="font-mono">
+          #00000
+        </span>
+        number on its page). Leave blank to keep the current one.
       </p>
-
       <div class="flex items-center gap-2">
         <UInput
           v-model="idInput"
-          type="number"
+          class="w-32"
           placeholder="e.g. 42"
           size="sm"
-          class="w-32"
+          type="number"
           @keydown.enter.prevent="lookup"
         />
         <UButton
+          color="neutral"
           size="sm"
           variant="soft"
-          color="neutral"
-          :loading="checking"
           :disabled="!idInput.trim()"
+          :loading="checking"
           @click="lookup"
         >
           Check
         </UButton>
         <UButton
           v-if="resolved || idInput"
+          color="neutral"
           size="sm"
           variant="ghost"
-          color="neutral"
           @click="clearChoice"
         >
           Clear
         </UButton>
       </div>
-
-      <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
-
+      <p v-if="error" class="text-xs text-red-600">
+        {{ error }}
+      </p>
       <p v-else-if="resolved" class="text-xs text-green-700 inline-flex items-center gap-1.5">
-        <UIcon name="lucide:check-circle" class="size-3.5" />
+        <UIcon class="size-3.5" name="lucide:check-circle" />
         Will move under
-        <span class="font-mono">#{{ resolved.id }}</span>
-        <span class="truncate font-medium">{{ resolved.title }}</span>
+        <span class="font-mono">
+          #{{ resolved.id }}
+        </span>
+        <span class="truncate font-medium">
+          {{ resolved.title }}
+        </span>
       </p>
     </div>
   </section>

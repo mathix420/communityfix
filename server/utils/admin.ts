@@ -6,7 +6,7 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   const raw = useRuntimeConfig().adminEmails || ''
   const allowed = raw
     .split(',')
-    .map(s => s.trim().toLowerCase())
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
   return allowed.includes(email.toLowerCase())
 }

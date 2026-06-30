@@ -1,15 +1,18 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
-  variant?: 'primary' | 'neutral' | 'outline'
-  size?: 'sm' | 'md'
-  rounded?: 'md' | 'full'
-  interactive?: boolean
-}>(), {
-  variant: 'primary',
-  size: 'md',
-  rounded: 'full',
-  interactive: true,
-})
+withDefaults(
+  defineProps<{
+    variant?: 'primary' | 'neutral' | 'outline'
+    size?: 'sm' | 'md'
+    rounded?: 'md' | 'full'
+    interactive?: boolean
+  }>(),
+  {
+    variant: 'primary',
+    size: 'md',
+    rounded: 'full',
+    interactive: true,
+  },
+)
 
 const variantClasses = {
   primary: 'bg-primary-50 text-primary-600 border border-primary-200',

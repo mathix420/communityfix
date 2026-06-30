@@ -109,10 +109,10 @@ function changesFromBody(fields: Omit<IssuePatchBody, 'note'>, base: Snapshot): 
   if (fields.links !== undefined) changes.links = fields.links ?? null
   if (fields.parentId !== undefined) changes.parentId = fields.parentId ?? null
   if (fields.latitude !== undefined || fields.longitude !== undefined) {
-    const baseLoc = base.location as { latitude: number, longitude: number } | null
+    const baseLoc = base.location as { latitude: number; longitude: number } | null
     const lat = fields.latitude ?? baseLoc?.latitude ?? null
     const lng = fields.longitude ?? baseLoc?.longitude ?? null
-    changes.location = (lat != null && lng != null) ? { latitude: lat, longitude: lng } : null
+    changes.location = lat != null && lng != null ? { latitude: lat, longitude: lng } : null
   }
   return changes
 }

@@ -9,7 +9,9 @@ export const PROPOSAL_RATE_LIMIT = 20
 // Sliding window length (24h).
 export const PROPOSAL_RATE_WINDOW_MS = 24 * 60 * 60 * 1000
 
-function proposalKey(userId: string) { return `proposal-rate:${userId}` }
+function proposalKey(userId: string) {
+  return `proposal-rate:${userId}`
+}
 
 /**
  * Throws a 429 when the user has already created `PROPOSAL_RATE_LIMIT`
@@ -23,7 +25,7 @@ export async function checkProposalRateLimit(userId: string): Promise<void> {
   const now = Date.now()
 
   const recent = (await storage.getItem<number[]>(key)) ?? []
-  const windowed = recent.filter(ts => now - ts < PROPOSAL_RATE_WINDOW_MS)
+  const windowed = recent.filter((ts) => now - ts < PROPOSAL_RATE_WINDOW_MS)
 
   if (windowed.length >= PROPOSAL_RATE_LIMIT) {
     throw createError({

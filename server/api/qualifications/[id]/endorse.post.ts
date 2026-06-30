@@ -39,7 +39,8 @@ export default defineEventHandler(async (event) => {
     if (Number(trustRow?.n ?? 0) === 0) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'You need at least one endorsement on your own credentials before you can endorse others.',
+        statusMessage:
+          'You need at least one endorsement on your own credentials before you can endorse others.',
       })
     }
   }
@@ -49,7 +50,8 @@ export default defineEventHandler(async (event) => {
   const kind = isAdminEmail(session.user.email) ? 'verification' : 'endorsement'
 
   // Idempotent insert — unique constraint protects against double-clicks.
-  await db.insert(qualificationEndorsements)
+  await db
+    .insert(qualificationEndorsements)
     .values({ qualificationId: id, endorserId: viewerId, kind })
     .onConflictDoNothing()
 
@@ -58,10 +60,12 @@ export default defineEventHandler(async (event) => {
   const [countRow] = await db
     .select({ n: count(qualificationEndorsements.id).as('n') })
     .from(qualificationEndorsements)
-    .where(and(
-      eq(qualificationEndorsements.qualificationId, id),
-      eq(qualificationEndorsements.kind, 'endorsement'),
-    ))
+    .where(
+      and(
+        eq(qualificationEndorsements.qualificationId, id),
+        eq(qualificationEndorsements.kind, 'endorsement'),
+      ),
+    )
 
   return { ok: true, endorsementCount: Number(countRow?.n ?? 0), kind }
 })

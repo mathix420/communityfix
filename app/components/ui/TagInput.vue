@@ -1,11 +1,14 @@
 <script setup lang="ts">
-const props = withDefaults(defineProps<{
-  suggestions?: string[]
-  placeholder?: string
-}>(), {
-  suggestions: () => [],
-  placeholder: 'Add a tag...',
-})
+const props = withDefaults(
+  defineProps<{
+    suggestions?: string[]
+    placeholder?: string
+  }>(),
+  {
+    suggestions: () => [],
+    placeholder: 'Add a tag...',
+  },
+)
 
 const modelValue = defineModel<string[]>({ default: () => [] })
 
@@ -16,9 +19,10 @@ const highlightedIndex = ref(-1)
 
 const filteredSuggestions = computed(() => {
   const q = input.value.toLowerCase().trim()
-  return props.suggestions.filter(s =>
-    !modelValue.value.some(t => t.toLowerCase() === s.toLowerCase())
-    && (!q || s.toLowerCase().includes(q)),
+  return props.suggestions.filter(
+    (s) =>
+      !modelValue.value.some((t) => t.toLowerCase() === s.toLowerCase()) &&
+      (!q || s.toLowerCase().includes(q)),
   )
 })
 
@@ -27,7 +31,7 @@ const showDropdown = computed(() => focused.value && filteredSuggestions.value.l
 function addTag(raw: string) {
   const tag = raw.trim()
   if (!tag) return
-  if (modelValue.value.some(t => t.toLowerCase() === tag.toLowerCase())) return
+  if (modelValue.value.some((t) => t.toLowerCase() === tag.toLowerCase())) return
   modelValue.value = [...modelValue.value, tag]
   input.value = ''
   highlightedIndex.value = -1
@@ -50,7 +54,10 @@ function onKeydown(e: KeyboardEvent) {
   } else if (e.key === 'ArrowDown') {
     e.preventDefault()
     if (showDropdown.value) {
-      highlightedIndex.value = Math.min(highlightedIndex.value + 1, filteredSuggestions.value.length - 1)
+      highlightedIndex.value = Math.min(
+        highlightedIndex.value + 1,
+        filteredSuggestions.value.length - 1,
+      )
     }
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
@@ -91,32 +98,27 @@ watch(input, () => {
       :class="focused ? 'ring-2 ring-primary-500 border-primary-500' : ''"
       @click="inputEl?.focus()"
     >
-      <UiTag
-        v-for="(tag, i) in modelValue"
-        :key="tag"
-        class="gap-1"
-      >
+      <UiTag v-for="(tag, i) in modelValue" :key="tag" class="gap-1">
         {{ tag }}
         <button
-          type="button"
           class="inline-flex items-center rounded-full p-0.5 hover:bg-primary-100 dark:hover:bg-primary-900"
+          type="button"
           @click.stop="removeTag(i)"
         >
-          <UIcon name="lucide:x" class="size-3" />
+          <UIcon class="size-3" name="lucide:x" />
         </button>
       </UiTag>
       <input
         ref="inputEl"
         v-model="input"
+        class="min-w-[80px] flex-1 border-none bg-transparent py-0.5 text-sm outline-none placeholder:text-gray-400"
         type="text"
         :placeholder="modelValue.length ? '' : placeholder"
-        class="min-w-[80px] flex-1 border-none bg-transparent py-0.5 text-sm outline-none placeholder:text-gray-400"
-        @keydown="onKeydown"
-        @focus="onFocus"
         @blur="onBlur"
+        @focus="onFocus"
+        @keydown="onKeydown"
       >
     </div>
-
     <div
       v-if="showDropdown"
       class="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
@@ -124,8 +126,8 @@ watch(input, () => {
       <button
         v-for="(s, i) in filteredSuggestions"
         :key="s"
-        type="button"
         class="block w-full px-3 py-2 text-left text-sm transition-colors"
+        type="button"
         :class="i === highlightedIndex
           ? 'bg-primary-50 text-primary-600 dark:bg-primary-950 dark:text-primary-400'
           : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'"

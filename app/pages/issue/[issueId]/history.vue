@@ -11,7 +11,8 @@ const issueId = computed(() => route.params.issueId as string)
 
 // The parent route already loaded the issue and provided it; reuse its
 // server-resolved ownership flag (node_members-based).
-const issue = inject<Ref<{ id: number, authorId: string | null, viewerIsOwner?: boolean } | null>>('issue')
+const issue =
+  inject<Ref<{ id: number; authorId: string | null; viewerIsOwner?: boolean } | null>>('issue')
 
 const { user, loggedIn } = useUserSession()
 const { isAdmin } = usePendingRevisions()
@@ -28,8 +29,8 @@ const canDecide = computed(() => isOwner.value || isAdmin.value)
 <template>
   <div class="mt-3">
     <RevisionTimeline
-      :revisions="revisions ?? []"
       :can-decide="canDecide"
+      :revisions="revisions ?? []"
       :viewer-id="loggedIn ? user?.id : null"
       @changed="refresh"
     />

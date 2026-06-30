@@ -4,23 +4,20 @@ const issueId = computed(() => route.params.issueId)
 const { data: issue, refresh: refreshIssue } = await useFetch(() => `/api/issue/${issueId.value}`)
 
 // Parent issue (if any) so the breadcrumb can name it.
-const { data: parentIssue } = await useFetch(
-  () => `/api/issue/${issue.value?.parentId}`,
-  { immediate: !!issue.value?.parentId, watch: false },
-)
+const { data: parentIssue } = await useFetch(() => `/api/issue/${issue.value?.parentId}`, {
+  immediate: !!issue.value?.parentId,
+  watch: false,
+})
 
 // Solutions can't have sub-solutions, so the Solutions tab is meaningless on
 // a solution page — case studies replace it. Inverse for issues: no case
 // studies tab there (the studies route still resolves for direct links).
 const tabs = computed(() => {
   const isSolution = issue.value?.type === 'solution'
-  const base = [
-    { name: 'Overview', path: `/issue/${issueId.value}` },
-  ]
+  const base = [{ name: 'Overview', path: `/issue/${issueId.value}` }]
   if (isSolution) {
     base.push({ name: 'Case Studies', path: `/issue/${issueId.value}/studies` })
-  }
-  else {
+  } else {
     base.push({ name: 'Solutions', path: `/issue/${issueId.value}/solutions` })
   }
   base.push(
@@ -81,7 +78,7 @@ watchEffect(() => {
   if (canApply.value && issue.value) refreshPendingCount()
 })
 const pendingCount = computed(() =>
-  canApply.value ? (revisionRows.value ?? []).filter(r => r.status === 'pending').length : 0,
+  canApply.value ? (revisionRows.value ?? []).filter((r) => r.status === 'pending').length : 0,
 )
 const onHistoryTab = computed(() => route.path.endsWith('/history'))
 
@@ -101,9 +98,13 @@ const tabSuffix = computed(() => {
 if (issue.value) {
   useSeoMeta({
     title: () => `${issue.value!.title}${tabSuffix.value}`,
-    description: issue.value.summary || `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
+    description:
+      issue.value.summary ||
+      `Learn about ${issue.value.title} and discover community-driven solutions on CommunityFix.`,
     ogTitle: `${issue.value.title} - CommunityFix`,
-    ogDescription: issue.value.summary || `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
+    ogDescription:
+      issue.value.summary ||
+      `Join the discussion and contribute solutions for ${issue.value.title} on CommunityFix.`,
     ogType: 'article',
     keywords: `${issue.value.title}, community solutions, ${issue.value.tags?.join(', ') || 'collaborative projects'}`,
   })
@@ -133,9 +134,8 @@ if (issue.value) {
       description: issue.value.summary || issue.value.description || undefined,
       url: `${SITE_URL}/issue/${issue.value.id}`,
       datePublished: issue.value.date || undefined,
-      authorName: issue.value.author && issue.value.author !== 'Anonymous'
-        ? issue.value.author
-        : undefined,
+      authorName:
+        issue.value.author && issue.value.author !== 'Anonymous' ? issue.value.author : undefined,
     }),
   ])
 }
@@ -153,47 +153,40 @@ if (issue.value) {
         </p>
       </div>
       <UButton
-        :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
-        size="sm"
-        color="neutral"
-        variant="ghost"
         class="shrink-0 self-end sm:self-start text-gray-500 hover:text-gray-900"
+        color="neutral"
+        size="sm"
+        variant="ghost"
+        :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
         @click="openEdit"
       >
         {{ editLabel }}
       </UButton>
     </div>
-    <UiMarkdown
-      :value="issue.summary"
-      class="text-toned text-lg my-8"
-    />
-
+    <UiMarkdown class="text-toned text-lg my-8" :value="issue.summary" />
     <NuxtLink
       v-if="canApply && pendingCount > 0 && !onHistoryTab"
-      :to="`/issue/${issueId}/history`"
       class="mb-4 flex items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800 transition-colors hover:bg-yellow-100"
+      :to="`/issue/${issueId}/history`"
       @click="track('Pending proposals banner click', { count: pendingCount })"
     >
-      <UIcon name="lucide:git-pull-request-arrow" class="size-4 shrink-0" />
+      <UIcon class="size-4 shrink-0" name="lucide:git-pull-request-arrow" />
       <span class="flex-1">
         {{ pendingCount }} suggested {{ pendingCount === 1 ? 'edit is' : 'edits are' }} awaiting your review.
       </span>
       <span class="inline-flex items-center gap-1 font-medium">
         Review
-        <UIcon name="lucide:arrow-right" class="size-3.5" />
+        <UIcon class="size-3.5" name="lucide:arrow-right" />
       </span>
     </NuxtLink>
-
     <UiNavTabs :tabs="tabs" />
-
     <RevisionEditModal
       v-model:open="editOpen"
-      :kind="editKind"
       :can-apply="canApply"
       :issue="issue"
+      :kind="editKind"
       @submitted="onEdited"
     />
-
     <NuxtPage />
   </AppContainer>
   <AppContainer v-else>

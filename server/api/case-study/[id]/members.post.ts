@@ -14,13 +14,17 @@ export default defineEventHandler(async (event) => {
   }
   const caseStudyId = parseInt(id, 10)
 
-  const body = await readBody<{ userId?: string, role?: string }>(event)
+  const body = await readBody<{ userId?: string; role?: string }>(event)
   if (!body?.userId || !body.role || !NODE_MEMBER_ROLES.includes(body.role as NodeMemberRole)) {
     throw createError({ statusCode: 400, statusMessage: 'userId and a valid role are required' })
   }
 
-  const node = await useDB().query.caseStudies.findFirst({ where: eq(caseStudies.id, caseStudyId), columns: { id: true } })
-  if (!node) throw createError({ statusCode: 404, statusMessage: `Case study ${caseStudyId} not found` })
+  const node = await useDB().query.caseStudies.findFirst({
+    where: eq(caseStudies.id, caseStudyId),
+    columns: { id: true },
+  })
+  if (!node)
+    throw createError({ statusCode: 404, statusMessage: `Case study ${caseStudyId} not found` })
 
   const isAdmin = await isSessionAdmin(event)
   await changeMemberRole({

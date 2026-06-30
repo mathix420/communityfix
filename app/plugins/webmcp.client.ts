@@ -7,7 +7,10 @@ interface ModelContextTool {
 }
 
 interface ModelContext {
-  registerTool: (tool: ModelContextTool, options?: { exposedTo?: string | string[] }) => { unregister: () => void } | void
+  registerTool: (
+    tool: ModelContextTool,
+    options?: { exposedTo?: string | string[] },
+  ) => { unregister: () => void } | void
 }
 
 declare global {
@@ -26,12 +29,17 @@ export default defineNuxtPlugin(() => {
   const tools: ModelContextTool[] = [
     {
       name: 'cf_search_issues',
-      description: 'Search CommunityFix for issues and solutions matching a natural-language query. Navigates the current tab to the search results page.',
+      description:
+        'Search CommunityFix for issues and solutions matching a natural-language query. Navigates the current tab to the search results page.',
       inputSchema: {
         type: 'object',
         properties: {
           query: { type: 'string', description: 'Natural-language search query.' },
-          sort: { type: 'string', enum: ['newest', 'oldest', 'most_voted', 'trending'], default: 'trending' },
+          sort: {
+            type: 'string',
+            enum: ['newest', 'oldest', 'most_voted', 'trending'],
+            default: 'trending',
+          },
         },
         required: ['query'],
       },
@@ -40,7 +48,10 @@ export default defineNuxtPlugin(() => {
         const sort = typeof input.sort === 'string' ? input.sort : 'trending'
         if (!query) return { ok: false, error: 'query is required' }
         await router.push({ path: '/', query: { search: query, sort } })
-        return { ok: true, url: `https://communityfix.org/?search=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}` }
+        return {
+          ok: true,
+          url: `https://communityfix.org/?search=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}`,
+        }
       },
     },
     {
@@ -55,7 +66,8 @@ export default defineNuxtPlugin(() => {
       },
       execute: async (input) => {
         const id = Number(input.id)
-        if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'id must be a positive integer' }
+        if (!Number.isInteger(id) || id <= 0)
+          return { ok: false, error: 'id must be a positive integer' }
         await router.push(`/issue/${id}`)
         return { ok: true, url: `https://communityfix.org/issue/${id}` }
       },
@@ -70,7 +82,8 @@ export default defineNuxtPlugin(() => {
       },
       execute: async (input) => {
         const id = Number(input.id)
-        if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'id must be a positive integer' }
+        if (!Number.isInteger(id) || id <= 0)
+          return { ok: false, error: 'id must be a positive integer' }
         await router.push(`/case-study/${id}`)
         return { ok: true, url: `https://communityfix.org/case-study/${id}` }
       },
@@ -92,25 +105,31 @@ export default defineNuxtPlugin(() => {
     },
     {
       name: 'cf_start_new_issue',
-      description: 'Open the new-issue composer. The user remains in control of submitting — this only prepares the form.',
+      description:
+        'Open the new-issue composer. The user remains in control of submitting — this only prepares the form.',
       inputSchema: {
         type: 'object',
         properties: {
           title: { type: 'string', description: 'Optional title to pre-fill.' },
-          summary: { type: 'string', description: 'Optional short plaintext summary to pre-fill (max 280 chars).' },
+          summary: {
+            type: 'string',
+            description: 'Optional short plaintext summary to pre-fill (max 280 chars).',
+          },
         },
       },
       execute: async (input) => {
         const query: Record<string, string> = {}
         if (typeof input.title === 'string' && input.title.trim()) query.title = input.title.trim()
-        if (typeof input.summary === 'string' && input.summary.trim()) query.summary = input.summary.trim().slice(0, 280)
+        if (typeof input.summary === 'string' && input.summary.trim())
+          query.summary = input.summary.trim().slice(0, 280)
         await router.push({ path: '/new', query })
         return { ok: true, url: 'https://communityfix.org/new' }
       },
     },
     {
       name: 'cf_discovery',
-      description: 'List CommunityFix discovery endpoints (MCP server card, llms.txt, sitemap, OAuth metadata) so the agent can switch to the structured API.',
+      description:
+        'List CommunityFix discovery endpoints (MCP server card, llms.txt, sitemap, OAuth metadata) so the agent can switch to the structured API.',
       inputSchema: { type: 'object', properties: {} },
       execute: () => ({
         mcpEndpoint: 'https://communityfix.org/api/mcp',
@@ -126,8 +145,7 @@ export default defineNuxtPlugin(() => {
   for (const tool of tools) {
     try {
       mc.registerTool(tool)
-    }
-    catch (err) {
+    } catch (err) {
       console.warn('[webmcp] failed to register tool', tool.name, err)
     }
   }

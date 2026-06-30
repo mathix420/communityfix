@@ -10,16 +10,22 @@ import type { LocationScale, SolutionStatus } from '../../../server/database/sch
 // `kind` toggles the solution-only fields (links + solution status). Placeholders
 // match the parent page's `childType === 'solution'` branches.
 
-export interface IssueLinkRow { url: string, title: string }
+export interface IssueLinkRow {
+  url: string
+  title: string
+}
 
-const props = withDefaults(defineProps<{
-  kind: 'issue' | 'solution'
-  // The create page has no solution-status control; the edit modal does. Off by
-  // default so the create flow stays byte-for-byte identical.
-  showSolutionStatus?: boolean
-}>(), {
-  showSolutionStatus: false,
-})
+const props = withDefaults(
+  defineProps<{
+    kind: 'issue' | 'solution'
+    // The create page has no solution-status control; the edit modal does. Off by
+    // default so the create flow stays byte-for-byte identical.
+    showSolutionStatus?: boolean
+  }>(),
+  {
+    showSolutionStatus: false,
+  },
+)
 
 const title = defineModel<string>('title', { default: '' })
 const summary = defineModel<string>('summary', { default: '' })
@@ -35,7 +41,7 @@ const links = defineModel<IssueLinkRow[]>('links', { default: () => [] })
 
 const isSolution = computed(() => props.kind === 'solution')
 
-const solutionStatusOptions: { label: string, value: SolutionStatus }[] = [
+const solutionStatusOptions: { label: string; value: SolutionStatus }[] = [
   { label: 'Plan', value: 'plan' },
   { label: 'In progress', value: 'in-progress' },
   { label: 'Done', value: 'done' },
@@ -50,95 +56,73 @@ function removeLink(i: number) {
 </script>
 
 <template>
-  <UFormField
-    label="Title"
-    name="title"
-    required
-  >
+  <UFormField label="Title" name="title" required>
     <UInput
       v-model="title"
+      class="w-full"
+      size="lg"
       type="text"
       :placeholder="isSolution ? 'A short, descriptive solution title' : 'A short, descriptive title'"
-      size="lg"
-      class="w-full"
     />
   </UFormField>
-
-  <UFormField
-    label="Summary"
-    name="summary"
-    required
-  >
+  <UFormField label="Summary" name="summary" required>
     <UTextarea
       v-model="summary"
-      :placeholder="isSolution ? 'Briefly describe the proposed solution' : 'Briefly describe the issue'"
-      size="lg"
       class="w-full"
+      size="lg"
+      :placeholder="isSolution ? 'Briefly describe the proposed solution' : 'Briefly describe the issue'"
       :rows="3"
     />
   </UFormField>
-
-  <UFormField
-    label="Description"
-    name="description"
-  >
+  <UFormField label="Description" name="description">
     <UTextarea
       v-model="description"
+      class="w-full"
       placeholder="Additional details..."
       size="lg"
-      class="w-full"
       :rows="6"
     />
   </UFormField>
-
   <LocationPicker
     v-model:latitude="latitude"
-    v-model:longitude="longitude"
     v-model:location-name="locationName"
+    v-model:longitude="longitude"
     v-model:scale="scale"
   />
-
-  <UFormField
-    v-if="isSolution && showSolutionStatus"
-    label="Status"
-    name="solutionStatus"
-  >
+  <UFormField v-if="isSolution && showSolutionStatus" label="Status" name="solutionStatus">
     <USelectMenu
       v-model="solutionStatus"
-      :items="solutionStatusOptions"
-      value-key="value"
+      class="w-full"
       placeholder="Status..."
       size="lg"
-      class="w-full"
+      value-key="value"
+      :items="solutionStatusOptions"
     />
   </UFormField>
-
   <section v-if="isSolution" class="flex flex-col gap-2">
     <div class="flex items-center justify-between">
-      <span class="text-sm font-medium text-gray-700">Links</span>
+      <span class="text-sm font-medium text-gray-700">
+        Links
+      </span>
       <button
-        type="button"
         class="text-xs font-mono text-primary-700 hover:text-primary-900 inline-flex items-center gap-1"
+        type="button"
         @click="addLink"
       >
-        <UIcon name="lucide:plus" class="size-3.5" />
+        <UIcon class="size-3.5" name="lucide:plus" />
         Add link
       </button>
     </div>
-    <div
-      v-for="(l, i) in links"
-      :key="i"
-      class="grid grid-cols-[1fr_1fr_auto] gap-2"
-    >
-      <UInput v-model="l.url" type="url" placeholder="https://..." size="md" />
-      <UInput v-model="l.title" type="text" placeholder="Title (optional)" size="md" />
+    <div v-for="(l, i) in links" :key="i" class="grid grid-cols-[1fr_1fr_auto] gap-2">
+      <UInput v-model="l.url" placeholder="https://..." size="md" type="url" />
+      <UInput v-model="l.title" placeholder="Title (optional)" size="md" type="text" />
       <button
-        type="button"
-        class="text-gray-400 hover:text-red-600 px-2"
         aria-label="Remove link"
+        class="text-gray-400 hover:text-red-600 px-2"
+        type="button"
         @click="removeLink(i)"
       >
-        <UIcon name="lucide:x" class="size-4" />
+        <UIcon class="size-4" name="lucide:x" />
       </button>
     </div>
     <p v-if="!links.length" class="text-xs text-gray-400 font-mono">

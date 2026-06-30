@@ -5,10 +5,7 @@ const POST_LOGIN_COOKIE = 'mcp_continue'
 // Same-origin paths only (must start with "/" and not "//"), so the cookie
 // can't be turned into an open redirector.
 export function isSafePostLoginRedirect(url: unknown): url is string {
-  return typeof url === 'string'
-    && url.length > 0
-    && url.startsWith('/')
-    && !url.startsWith('//')
+  return typeof url === 'string' && url.length > 0 && url.startsWith('/') && !url.startsWith('//')
 }
 
 export function setPostLoginRedirect(event: H3Event, url: string): void {

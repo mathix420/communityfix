@@ -27,20 +27,20 @@ async function runAutoMod() {
   autoModError.value = ''
   autoModLoading.value = true
   try {
-    const path = autoModKind.value === 'case-study'
-      ? `/api/admin/case-study/${autoModId.value}/remod`
-      : `/api/admin/issues/${autoModId.value}/remod`
+    const path =
+      autoModKind.value === 'case-study'
+        ? `/api/admin/case-study/${autoModId.value}/remod`
+        : `/api/admin/issues/${autoModId.value}/remod`
     await $fetch(path, { method: 'POST' as const })
     autoModOpen.value = false
     autoModId.value = null
     await refreshNuxtData()
-  }
-  catch (err: unknown) {
-    autoModError.value = (err as { data?: { message?: string }, message?: string })?.data?.message
-      ?? (err as { message?: string })?.message
-      ?? 'Failed to run auto-mod'
-  }
-  finally {
+  } catch (err: unknown) {
+    autoModError.value =
+      (err as { data?: { message?: string }; message?: string })?.data?.message ??
+      (err as { message?: string })?.message ??
+      'Failed to run auto-mod'
+  } finally {
     autoModLoading.value = false
   }
 }
@@ -48,56 +48,60 @@ async function runAutoMod() {
 
 <template>
   <div class="max-w-5xl mx-auto overflow-x-clip h-fit w-full mb-auto pt-20 px-4 pb-4">
-    <UiPageHeader
-      title="Admin"
-      description="Automated decisions, appeals, and moderation."
-    />
-
+    <UiPageHeader description="Automated decisions, appeals, and moderation." title="Admin" />
     <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
-      <UiNavTabs :tabs="tabs" class="!mb-0" />
+      <UiNavTabs class="!mb-0" :tabs="tabs" />
       <UButton
-        size="sm"
         color="primary"
-        variant="soft"
         icon="lucide:sparkles"
+        size="sm"
+        variant="soft"
         @click="autoModOpen = true"
       >
         Run auto-mod
       </UButton>
     </div>
-
     <NuxtPage />
-
     <UModal v-model:open="autoModOpen">
       <template #content>
         <div class="p-4 space-y-3">
-          <h3 class="font-medium">Run auto-mod</h3>
+          <h3 class="font-medium">
+            Run auto-mod
+          </h3>
           <p class="text-sm text-toned">
-            Resets the target to <span class="font-mono">pending</span> and re-runs the AI moderation pipeline.
+            Resets the target to
+            <span class="font-mono">
+              pending
+            </span>
+            and re-runs the AI moderation pipeline.
           </p>
           <div class="flex gap-2">
             <USelectMenu
               v-model="autoModKind"
-              :items="autoModKindOptions"
-              value-key="value"
               class="w-40"
+              value-key="value"
+              :items="autoModKindOptions"
             />
             <UInput
               v-model.number="autoModId"
-              type="number"
-              placeholder="Target ID"
-              class="flex-1"
               autofocus
+              class="flex-1"
+              placeholder="Target ID"
+              type="number"
               @keyup.enter="runAutoMod"
             />
           </div>
-          <p v-if="autoModError" class="text-xs text-red-600">{{ autoModError }}</p>
+          <p v-if="autoModError" class="text-xs text-red-600">
+            {{ autoModError }}
+          </p>
           <div class="flex justify-end gap-2">
-            <UButton variant="ghost" color="neutral" @click="autoModOpen = false">Cancel</UButton>
+            <UButton color="neutral" variant="ghost" @click="autoModOpen = false">
+              Cancel
+            </UButton>
             <UButton
               color="primary"
-              :loading="autoModLoading"
               :disabled="!autoModId"
+              :loading="autoModLoading"
               @click="runAutoMod"
             >
               Run pipeline

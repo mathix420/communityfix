@@ -41,10 +41,10 @@ export function usePendingRevisions() {
   })
 
   // Number of proposals awaiting this user's decision — the header badge count.
-  const count = computed(() => (loggedIn.value ? data.value?.toReview.length ?? 0 : 0))
-  const toReview = computed(() => (loggedIn.value ? data.value?.toReview ?? [] : []))
-  const mine = computed(() => (loggedIn.value ? data.value?.mine ?? [] : []))
-  const isAdmin = computed(() => (loggedIn.value ? data.value?.isAdmin ?? false : false))
+  const count = computed(() => (loggedIn.value ? (data.value?.toReview.length ?? 0) : 0))
+  const toReview = computed(() => (loggedIn.value ? (data.value?.toReview ?? []) : []))
+  const mine = computed(() => (loggedIn.value ? (data.value?.mine ?? []) : []))
+  const isAdmin = computed(() => (loggedIn.value ? (data.value?.isAdmin ?? false) : false))
 
   return { data, count, toReview, mine, isAdmin, pending, refresh }
 }

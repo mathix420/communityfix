@@ -11,11 +11,6 @@ const issue = inject<Ref<{ id: number } | null>>('issue')
 
 <template>
   <div class="mt-3">
-    <NodeMembers
-      v-if="issue"
-      :kind="'issue'"
-      :node-id="issue.id"
-      always-show
-    />
+    <NodeMembers v-if="issue" always-show :kind="'issue'" :node-id="issue.id" />
   </div>
 </template>

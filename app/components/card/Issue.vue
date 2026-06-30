@@ -15,22 +15,24 @@ const props = defineProps<{
     solutionStatus?: string | null
     locationName?: string | null
     scale?: string | null
-    owners?: { id: string | null, name: string, changes: number }[]
-    collaborators?: { id: string | null, name: string, changes: number }[]
+    owners?: { id: string | null; name: string; changes: number }[]
+    collaborators?: { id: string | null; name: string; changes: number }[]
   }
 }>()
 
 const toast = useToast()
 const { loggedIn } = useUserSession()
 const { requireAuth } = useAuthRedirect()
-const { score, userVote, loading, vote, fetchVotes } = useVote(props.issue.id, props.issue.voteScore ?? 0)
+const { score, userVote, loading, vote, fetchVotes } = useVote(
+  props.issue.id,
+  props.issue.voteScore ?? 0,
+)
 
 onMounted(() => {
   if (loggedIn.value) {
     fetchVotes()
   }
 })
-
 
 function handleVote(value: 1 | -1) {
   if (!requireAuth('vote')) return
@@ -47,10 +49,8 @@ async function handleShare() {
     try {
       await navigator.share({ title, text, url })
       track('Share issue', { issueId: props.issue.id, method: 'native' })
-    }
-    catch {}
-  }
-  else {
+    } catch {}
+  } else {
     try {
       await navigator.clipboard.writeText(url)
       track('Share issue', { issueId: props.issue.id, method: 'clipboard' })
@@ -59,8 +59,7 @@ async function handleShare() {
         description: 'Issue URL has been copied to clipboard',
         color: 'success',
       })
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to copy:', error)
       toast.add({
         title: 'Copy failed',
@@ -76,36 +75,49 @@ async function handleShare() {
   <UiCard padding="md">
     <div class="flex flex-col gap-4 min-w-0">
       <h2 class="font-title text-xl">
-        <span class="text-gray-400 select-none text-lg font-light font-mono mr-2">{{ formatNumber(issue.id) }}</span><NuxtLink
-          class="interactive-underline"
-          :to="`/issue/${issue.id}`"
-        >{{ issue.title }}</NuxtLink>
-        <UiBadge v-if="issue.status === 'rejected'" variant="error" class="ml-1 align-middle">
+        <span class="text-gray-400 select-none text-lg font-light font-mono mr-2">
+          {{ formatNumber(issue.id) }}
+        </span>
+        <NuxtLink class="interactive-underline" :to="`/issue/${issue.id}`">
+          {{ issue.title }}
+        </NuxtLink>
+        <UiBadge v-if="issue.status === 'rejected'" class="ml-1 align-middle" variant="error">
           Rejected
         </UiBadge>
-        <UiBadge v-else-if="issue.status === 'pending'" variant="warning" class="ml-1 align-middle">
+        <UiBadge v-else-if="issue.status === 'pending'" class="ml-1 align-middle" variant="warning">
           Pending
         </UiBadge>
-        <UiBadge v-if="issue.solutionStatus === 'plan'" variant="default" class="ml-1 align-middle">
+        <UiBadge v-if="issue.solutionStatus === 'plan'" class="ml-1 align-middle" variant="default">
           Plan
         </UiBadge>
-        <UiBadge v-else-if="issue.solutionStatus === 'in-progress'" variant="warning" class="ml-1 align-middle">
+        <UiBadge
+          v-else-if="issue.solutionStatus === 'in-progress'"
+          class="ml-1 align-middle"
+          variant="warning"
+        >
           In progress
         </UiBadge>
-        <UiBadge v-else-if="issue.solutionStatus === 'done'" variant="success" class="ml-1 align-middle">
+        <UiBadge
+          v-else-if="issue.solutionStatus === 'done'"
+          class="ml-1 align-middle"
+          variant="success"
+        >
           Done
         </UiBadge>
       </h2>
-      <UiMarkdown
-        :value="issue.summary"
-        class="prose-sm text-gray-700"
-      />
-      <div v-if="issue.locationName || (issue.scale && issue.scale !== 'global')" class="flex items-center gap-2 flex-wrap text-sm text-gray-500">
+      <UiMarkdown class="prose-sm text-gray-700" :value="issue.summary" />
+      <div
+        v-if="issue.locationName || (issue.scale && issue.scale !== 'global')"
+        class="flex items-center gap-2 flex-wrap text-sm text-gray-500"
+      >
         <span v-if="issue.locationName" class="flex items-center gap-1">
-          <UIcon name="lucide:map-pin" class="size-3.5" />
+          <UIcon class="size-3.5" name="lucide:map-pin" />
           {{ issue.locationName }}
         </span>
-        <span v-if="issue.scale && issue.scale !== 'global'" class="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono">
+        <span
+          v-if="issue.scale && issue.scale !== 'global'"
+          class="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono"
+        >
           {{ issue.scale }}
         </span>
       </div>
@@ -113,6 +125,7 @@ async function handleShare() {
         <div class="flex gap-2 flex-wrap items-center">
           <div class="inline-flex items-stretch rounded-md overflow-hidden bg-gray-100 text-sm font-mono">
             <button
+              aria-label="Upvote"
               :class="[
                 'px-2 flex items-center transition-colors',
                 userVote === 1
@@ -120,32 +133,28 @@ async function handleShare() {
                   : 'text-gray-700 hover:bg-gray-200',
               ]"
               :disabled="loading"
-              aria-label="Upvote"
               @click="handleVote(1)"
             >
-              <UIcon name="lucide:arrow-up" class="size-3.5" />
+              <UIcon class="size-3.5" name="lucide:arrow-up" />
             </button>
             <span class="px-2 py-1 tabular-nums font-medium border-x border-gray-200 min-w-[2rem] text-center text-gray-700">
               {{ score }}
             </span>
             <button
+              aria-label="Downvote"
               :class="[
                 'px-2 flex items-center transition-colors',
-                userVote === -1
-                  ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                  : 'text-gray-700 hover:bg-gray-200',
+                userVote === -1 ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'text-gray-700 hover:bg-gray-200',
               ]"
               :disabled="loading"
-              aria-label="Downvote"
               @click="handleVote(-1)"
             >
-              <UIcon name="lucide:arrow-down" class="size-3.5" />
+              <UIcon class="size-3.5" name="lucide:arrow-down" />
             </button>
           </div>
-
           <NuxtLink
-            :to="`/issue/${issue.id}/solutions`"
             class="flex items-center flex-wrap gap-1 text-sm"
+            :to="`/issue/${issue.id}/solutions`"
             @click="track('View solutions')"
           >
             <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
@@ -153,8 +162,8 @@ async function handleShare() {
             </span>
           </NuxtLink>
           <NuxtLink
-            :to="`/issue/${issue.id}/issues`"
             class="flex items-center gap-1 text-sm"
+            :to="`/issue/${issue.id}/issues`"
             @click="track('View sub-issues')"
           >
             <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
@@ -163,8 +172,8 @@ async function handleShare() {
           </NuxtLink>
         </div>
         <UserAvatarStack
-          :owners="issue.owners ?? [{ id: issue.authorId ?? null, name: issue.author, changes: 0 }]"
           :collaborators="issue.collaborators"
+          :owners="issue.owners ?? [{ id: issue.authorId ?? null, name: issue.author, changes: 0 }]"
         />
       </div>
     </div>

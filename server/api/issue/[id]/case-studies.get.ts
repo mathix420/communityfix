@@ -21,13 +21,16 @@ export default defineEventHandler(async (event) => {
   let solutionIds: number[]
   if (root.type === 'solution') {
     solutionIds = [root.id]
-  }
-  else {
+  } else {
     const solutionRows = await db.query.issues.findMany({
-      where: and(eq(issues.parentId, root.id), eq(issues.type, 'solution'), eq(issues.status, 'approved')),
+      where: and(
+        eq(issues.parentId, root.id),
+        eq(issues.type, 'solution'),
+        eq(issues.status, 'approved'),
+      ),
       columns: { id: true },
     })
-    solutionIds = solutionRows.map(r => r.id)
+    solutionIds = solutionRows.map((r) => r.id)
   }
 
   if (solutionIds.length === 0) return []

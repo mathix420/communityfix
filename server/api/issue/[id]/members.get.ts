@@ -13,7 +13,10 @@ export default defineEventHandler(async (event) => {
   }
   const issueId = parseInt(id, 10)
 
-  const node = await useDB().query.issues.findFirst({ where: eq(issues.id, issueId), columns: { id: true } })
+  const node = await useDB().query.issues.findFirst({
+    where: eq(issues.id, issueId),
+    columns: { id: true },
+  })
   if (!node) throw createError({ statusCode: 404, statusMessage: `Issue ${issueId} not found` })
 
   const session = await getUserSession(event)

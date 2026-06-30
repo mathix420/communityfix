@@ -12,8 +12,8 @@ import { sanitizeLinks, type Link } from './issue-write'
 import { editableCaseStudySnapshot, recordRevision } from './revision-write'
 import { isNodeOwner, addNodeMember } from './node-members'
 
-type Metric = { label: string, baseline?: string, result?: string, unit?: string }
-type Source = { url: string, title?: string }
+type Metric = { label: string; baseline?: string; result?: string; unit?: string }
+type Source = { url: string; title?: string }
 
 export interface CreateCaseStudyInput {
   solutionId: number
@@ -47,7 +47,10 @@ export interface UpdateCaseStudyInput extends Partial<Omit<CreateCaseStudyInput,
 // summary we stitch the structured fields together. Falls back to the parent
 // solution's title/summary so a case study with nothing but a location and an
 // outcome still gets a useful vector.
-async function buildEmbeddingText(solutionId: number, input: Partial<CreateCaseStudyInput>): Promise<string> {
+async function buildEmbeddingText(
+  solutionId: number,
+  input: Partial<CreateCaseStudyInput>,
+): Promise<string> {
   const db = useDB()
   const parent = await db.query.issues.findFirst({
     where: eq(issues.id, solutionId),
@@ -72,13 +75,17 @@ async function assertSolution(solutionId: number) {
     columns: { id: true },
   })
   if (!parent) {
-    throw createError({ statusCode: 404, statusMessage: 'Solution not found — case studies attach to solutions only.' })
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Solution not found — case studies attach to solutions only.',
+    })
   }
 }
 
 export async function createCaseStudy(authorId: string, input: CreateCaseStudyInput) {
   if (!input.outcome) throw createError({ statusCode: 400, statusMessage: 'Outcome is required' })
-  if (!input.locationName?.trim()) throw createError({ statusCode: 400, statusMessage: 'Location name is required' })
+  if (!input.locationName?.trim())
+    throw createError({ statusCode: 400, statusMessage: 'Location name is required' })
   if (input.latitude == null || input.longitude == null) {
     throw createError({ statusCode: 400, statusMessage: 'Latitude and longitude are required' })
   }
@@ -88,33 +95,38 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
   let embedding: number[] | null = null
   try {
     embedding = await generateEmbedding(await buildEmbeddingText(input.solutionId, input))
-  }
-  catch (err) {
-    console.error(`[case-study:create] Embedding generation failed for solution ${input.solutionId}:`, err)
+  } catch (err) {
+    console.error(
+      `[case-study:create] Embedding generation failed for solution ${input.solutionId}:`,
+      err,
+    )
   }
 
   const db = useDB()
-  const rows = await db.insert(caseStudies).values({
-    solutionId: input.solutionId,
-    authorId,
-    status: 'pending',
-    outcome: input.outcome,
-    locationName: input.locationName.trim(),
-    location: { x: input.longitude, y: input.latitude },
-    scale: input.scale ?? null,
-    description: input.description?.toString().trim() || null,
-    implementer: input.implementer?.toString().trim() || null,
-    startDate: input.startDate || null,
-    endDate: input.endDate || null,
-    metrics: input.metrics ?? null,
-    cost: input.cost != null ? String(input.cost) : null,
-    currency: input.currency?.toString().trim() || null,
-    fundingSource: input.fundingSource?.toString().trim() || null,
-    sources: input.sources ?? null,
-    lessonsLearned: input.lessonsLearned?.length ? input.lessonsLearned : null,
-    links: sanitizeLinks(input.links),
-    ...(embedding ? { embedding } : {}),
-  }).returning()
+  const rows = await db
+    .insert(caseStudies)
+    .values({
+      solutionId: input.solutionId,
+      authorId,
+      status: 'pending',
+      outcome: input.outcome,
+      locationName: input.locationName.trim(),
+      location: { x: input.longitude, y: input.latitude },
+      scale: input.scale ?? null,
+      description: input.description?.toString().trim() || null,
+      implementer: input.implementer?.toString().trim() || null,
+      startDate: input.startDate || null,
+      endDate: input.endDate || null,
+      metrics: input.metrics ?? null,
+      cost: input.cost != null ? String(input.cost) : null,
+      currency: input.currency?.toString().trim() || null,
+      fundingSource: input.fundingSource?.toString().trim() || null,
+      sources: input.sources ?? null,
+      lessonsLearned: input.lessonsLearned?.length ? input.lessonsLearned : null,
+      links: sanitizeLinks(input.links),
+      ...(embedding ? { embedding } : {}),
+    })
+    .returning()
 
   const created = rows[0]!
   await triggerModeration('case-study', created.id)
@@ -136,17 +148,21 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
       decidedByRole: 'owner',
       note: 'Created',
     })
-  }
-  catch (err) {
+  } catch (err) {
     console.error(`[case-study:create] Failed to record creation revision for ${created.id}:`, err)
   }
 
   // Creator becomes the case study's first owner — the membership row, not
   // authorId, is what grants edit/decide rights.
   try {
-    await addNodeMember({ kind: 'case_study', nodeId: created.id, userId: authorId, role: 'owner', source: 'creator' })
-  }
-  catch (err) {
+    await addNodeMember({
+      kind: 'case_study',
+      nodeId: created.id,
+      userId: authorId,
+      role: 'owner',
+      source: 'creator',
+    })
+  } catch (err) {
     console.error(`[case-study:create] Failed to seed owner membership for ${created.id}:`, err)
   }
 
@@ -156,13 +172,20 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
 export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInput) {
   const db = useDB()
   const existing = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, input.id) })
-  if (!existing) throw createError({ statusCode: 404, statusMessage: `Case study ${input.id} not found` })
+  if (!existing)
+    throw createError({ statusCode: 404, statusMessage: `Case study ${input.id} not found` })
 
-  const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } })
+  const me = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { email: true },
+  })
   const isAdmin = isAdminEmail(me?.email)
   // Editing without approval is an owner/admin right (see node_members).
   if (!isAdmin && !(await isNodeOwner(userId, 'case_study', existing.id))) {
-    throw createError({ statusCode: 403, statusMessage: 'Only an owner or an admin can update this case study' })
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Only an owner or an admin can update this case study',
+    })
   }
   if (!isAdmin) await assertNotBanned(userId)
 
@@ -179,33 +202,39 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
   }
   if (input.outcome !== undefined) patch.outcome = input.outcome
   if (input.scale !== undefined) patch.scale = input.scale
-  if (input.locationName !== undefined && input.locationName.trim()) patch.locationName = input.locationName.trim()
+  if (input.locationName !== undefined && input.locationName.trim())
+    patch.locationName = input.locationName.trim()
   if (input.latitude !== undefined || input.longitude !== undefined) {
     const lat = input.latitude ?? (existing.location as { y: number } | null)?.y
     const lng = input.longitude ?? (existing.location as { x: number } | null)?.x
     if (lat != null && lng != null) patch.location = { x: lng, y: lat }
   }
-  if (input.description !== undefined) patch.description = input.description?.toString().trim() || null
-  if (input.implementer !== undefined) patch.implementer = input.implementer?.toString().trim() || null
+  if (input.description !== undefined)
+    patch.description = input.description?.toString().trim() || null
+  if (input.implementer !== undefined)
+    patch.implementer = input.implementer?.toString().trim() || null
   if (input.startDate !== undefined) patch.startDate = input.startDate || null
   if (input.endDate !== undefined) patch.endDate = input.endDate || null
   if (input.metrics !== undefined) patch.metrics = input.metrics
   if (input.cost !== undefined) patch.cost = input.cost != null ? String(input.cost) : null
   if (input.currency !== undefined) patch.currency = input.currency?.toString().trim() || null
-  if (input.fundingSource !== undefined) patch.fundingSource = input.fundingSource?.toString().trim() || null
+  if (input.fundingSource !== undefined)
+    patch.fundingSource = input.fundingSource?.toString().trim() || null
   if (input.sources !== undefined) patch.sources = input.sources
-  if (input.lessonsLearned !== undefined) patch.lessonsLearned = input.lessonsLearned?.length ? input.lessonsLearned : null
+  if (input.lessonsLearned !== undefined)
+    patch.lessonsLearned = input.lessonsLearned?.length ? input.lessonsLearned : null
   if (input.links !== undefined) patch.links = sanitizeLinks(input.links)
 
   // Only admins can flip the verified flag.
   if (input.verified !== undefined && isAdmin) patch.verified = input.verified
 
   // If a field that feeds the embedding changed, regenerate.
-  const textChanged = patch.description !== undefined
-    || patch.implementer !== undefined
-    || patch.locationName !== undefined
-    || patch.outcome !== undefined
-    || patch.lessonsLearned !== undefined
+  const textChanged =
+    patch.description !== undefined ||
+    patch.implementer !== undefined ||
+    patch.locationName !== undefined ||
+    patch.outcome !== undefined ||
+    patch.lessonsLearned !== undefined
   if (textChanged) {
     patch.status = 'pending'
     patch.rejectionReason = null
@@ -219,14 +248,19 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
         implementer: patch.implementer ?? existing.implementer ?? undefined,
         lessonsLearned: (patch.lessonsLearned ?? existing.lessonsLearned) as string[] | undefined,
       }
-      patch.embedding = await generateEmbedding(await buildEmbeddingText(existing.solutionId, merged))
-    }
-    catch (err) {
+      patch.embedding = await generateEmbedding(
+        await buildEmbeddingText(existing.solutionId, merged),
+      )
+    } catch (err) {
       console.error(`[case-study:update] Embedding regeneration failed for ${input.id}:`, err)
     }
   }
 
-  const rows = await db.update(caseStudies).set(patch).where(eq(caseStudies.id, input.id)).returning()
+  const rows = await db
+    .update(caseStudies)
+    .set(patch)
+    .where(eq(caseStudies.id, input.id))
+    .returning()
   if (textChanged) {
     await triggerModeration('case-study', input.id)
   }
@@ -243,10 +277,12 @@ export async function reparentCaseStudy(userId: string, id: number, solutionId: 
   return caseStudy
 }
 
-export function transformCaseStudy(row: typeof caseStudies.$inferSelect & {
-  author?: { name: string | null } | null
-  solution?: { title: string | null, summary: string | null } | null
-}) {
+export function transformCaseStudy(
+  row: typeof caseStudies.$inferSelect & {
+    author?: { name: string | null } | null
+    solution?: { title: string | null; summary: string | null } | null
+  },
+) {
   if (!row.createdAt) {
     throw new Error(`[transformCaseStudy] Case study ${row.id} has no createdAt`)
   }
@@ -262,11 +298,13 @@ export function transformCaseStudy(row: typeof caseStudies.$inferSelect & {
     outcome: row.outcome,
     scale: row.scale,
     locationName: row.locationName,
-    location: row.location ? {
-      latitude: (row.location as { x: number, y: number }).y,
-      longitude: (row.location as { x: number, y: number }).x,
-      area: row.area ?? null,
-    } : null,
+    location: row.location
+      ? {
+          latitude: (row.location as { x: number; y: number }).y,
+          longitude: (row.location as { x: number; y: number }).x,
+          area: row.area ?? null,
+        }
+      : null,
     verified: row.verified,
     description: row.description,
     implementer: row.implementer,

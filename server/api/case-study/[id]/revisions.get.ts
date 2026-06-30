@@ -38,6 +38,6 @@ export default defineEventHandler(async (event) => {
   })
 
   return rows
-    .filter(r => canViewRevision(r, viewerIsOwner, viewerId, isAdmin))
+    .filter((r) => canViewRevision(r, viewerIsOwner, viewerId, isAdmin))
     .map(serializeRevision)
 })

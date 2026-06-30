@@ -63,8 +63,16 @@ interface JsonRpcRequest {
   params?: unknown
 }
 
-interface JsonRpcSuccess { jsonrpc: '2.0', id: string | number | null, result: unknown }
-interface JsonRpcFailure { jsonrpc: '2.0', id: string | number | null, error: { code: number, message: string, data?: unknown } }
+interface JsonRpcSuccess {
+  jsonrpc: '2.0'
+  id: string | number | null
+  result: unknown
+}
+interface JsonRpcFailure {
+  jsonrpc: '2.0'
+  id: string | number | null
+  error: { code: number; message: string; data?: unknown }
+}
 
 const ERR = {
   PARSE: -32700,
@@ -77,19 +85,30 @@ const ERR = {
 function ok(id: string | number | null, result: unknown): JsonRpcSuccess {
   return { jsonrpc: '2.0', id, result }
 }
-function fail(id: string | number | null, code: number, message: string, data?: unknown): JsonRpcFailure {
+function fail(
+  id: string | number | null,
+  code: number,
+  message: string,
+  data?: unknown,
+): JsonRpcFailure {
   return { jsonrpc: '2.0', id, error: { code, message, ...(data !== undefined ? { data } : {}) } }
 }
 
 const TOOLS = [
   {
     name: 'search_issues_solutions',
-    description: 'Semantic search across CommunityFix issues and solutions using vector embeddings. Use this for natural-language queries — it understands intent, not just keywords.',
+    description:
+      'Semantic search across CommunityFix issues and solutions using vector embeddings. Use this for natural-language queries — it understands intent, not just keywords.',
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Natural-language description of what to look for.' },
-        type: { type: 'string', enum: ['issue', 'solution', 'any'], default: 'any', description: 'Restrict to issues, to solutions, or search both.' },
+        type: {
+          type: 'string',
+          enum: ['issue', 'solution', 'any'],
+          default: 'any',
+          description: 'Restrict to issues, to solutions, or search both.',
+        },
         limit: { type: 'integer', minimum: 1, maximum: 25, default: 10 },
       },
       required: ['query'],
@@ -106,7 +125,8 @@ const TOOLS = [
   },
   {
     name: 'get_tree',
-    description: 'Return the full descendant tree rooted at the given issue or solution id — sub-issues and solutions recursively, with approved case studies attached as leaves under their parent solutions. Each row carries a `type` of "issue", "solution", or "case-study"; case-study rows expose `parentId` = the solution id and an `outcome` field. Capped at depth 10, 20 children per parent, and 500 nodes total.',
+    description:
+      'Return the full descendant tree rooted at the given issue or solution id — sub-issues and solutions recursively, with approved case studies attached as leaves under their parent solutions. Each row carries a `type` of "issue", "solution", or "case-study"; case-study rows expose `parentId` = the solution id and an `outcome` field. Capped at depth 10, 20 children per parent, and 500 nodes total.',
     inputSchema: {
       type: 'object',
       properties: { id: { type: 'integer', description: 'Root issue or solution id.' } },
@@ -115,14 +135,26 @@ const TOOLS = [
   },
   {
     name: 'create_issue',
-    description: 'Create an issue — either top-level (omit `parentId`) or a sub-issue of an existing node (set `parentId`). A sub-issue is a narrower facet of its parent problem. Goes through AI moderation before becoming visible. To propose a solution to an existing issue, use `create_solution`.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this problem itself. Do not pack sub-problems, alternative framings, or surveys of related work — emit additional `create_issue` calls for sub-problems and `create_solution` calls for proposed approaches.',
+    description:
+      'Create an issue — either top-level (omit `parentId`) or a sub-issue of an existing node (set `parentId`). A sub-issue is a narrower facet of its parent problem. Goes through AI moderation before becoming visible. To propose a solution to an existing issue, use `create_solution`.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this problem itself. Do not pack sub-problems, alternative framings, or surveys of related work — emit additional `create_issue` calls for sub-problems and `create_solution` calls for proposed approaches.',
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'One-line statement of the problem.' },
-        summary: { type: 'string', description: 'Required short plaintext snippet of THIS problem only — the card-level pitch. Stay strictly in scope: no sub-issues, no solutions, no surveys of related work. Trimmed to 280 chars; longer content belongs in `description`.' },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS problem only: background, constraints, references, observed evidence. Do NOT enumerate sub-issues or proposed solutions here — emit additional `create_issue` or `create_solution` calls with `parentId` for those.' },
-        parentId: { type: 'integer', description: 'Parent node id to nest under. Omit for a top-level issue.' },
+        summary: {
+          type: 'string',
+          description:
+            'Required short plaintext snippet of THIS problem only — the card-level pitch. Stay strictly in scope: no sub-issues, no solutions, no surveys of related work. Trimmed to 280 chars; longer content belongs in `description`.',
+        },
+        description: {
+          type: 'string',
+          description:
+            'Optional markdown long-form body for THIS problem only: background, constraints, references, observed evidence. Do NOT enumerate sub-issues or proposed solutions here — emit additional `create_issue` or `create_solution` calls with `parentId` for those.',
+        },
+        parentId: {
+          type: 'integer',
+          description: 'Parent node id to nest under. Omit for a top-level issue.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
@@ -133,21 +165,35 @@ const TOOLS = [
   },
   {
     name: 'create_solution',
-    description: 'Propose a solution to an existing issue. `parentId` is required and must point at an **issue** (not a solution — solutions cannot be nested). Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`. To document a concrete real-world implementation of a solution, attach a case study to it instead of creating a nested solution.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
+    description:
+      'Propose a solution to an existing issue. `parentId` is required and must point at an **issue** (not a solution — solutions cannot be nested). Goes through AI moderation before becoming visible. To create an issue (top-level or sub-issue), use `create_issue`. To document a concrete real-world implementation of a solution, attach a case study to it instead of creating a nested solution.\n\nSCOPE RULE: `summary` and `description` must cover ONLY this proposed approach. Do not list alternative approaches, prior attempts, or comparisons — each alternative is its own `create_solution` call with the same `parentId`.',
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'One-line statement of the proposed approach.' },
-        summary: { type: 'string', description: 'Required short plaintext snippet of THIS proposed approach only — what it does, briefly. Stay strictly in scope: no alternative solutions, no surveys of prior attempts. Trimmed to 280 chars; longer content belongs in `description`.' },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS approach only: mechanism, where it fits, operating profile, evidence. Do NOT survey alternative approaches or list sub-problems — emit additional `create_solution` (siblings) or `create_issue` (sub-problems) calls for those.' },
-        parentId: { type: 'integer', description: 'Id of the issue this solution addresses. Required. Must be an issue, not a solution.' },
+        summary: {
+          type: 'string',
+          description:
+            'Required short plaintext snippet of THIS proposed approach only — what it does, briefly. Stay strictly in scope: no alternative solutions, no surveys of prior attempts. Trimmed to 280 chars; longer content belongs in `description`.',
+        },
+        description: {
+          type: 'string',
+          description:
+            'Optional markdown long-form body for THIS approach only: mechanism, where it fits, operating profile, evidence. Do NOT survey alternative approaches or list sub-problems — emit additional `create_solution` (siblings) or `create_issue` (sub-problems) calls for those.',
+        },
+        parentId: {
+          type: 'integer',
+          description:
+            'Id of the issue this solution addresses. Required. Must be an issue, not a solution.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: ['neighborhood', 'city', 'region', 'national', 'global'] },
         links: {
           type: 'array',
-          description: 'External resources backing this solution (GitHub repos, design docs, demo videos, hosted PDFs). The platform does not store files itself.',
+          description:
+            'External resources backing this solution (GitHub repos, design docs, demo videos, hosted PDFs). The platform does not store files itself.',
           items: {
             type: 'object',
             properties: { url: { type: 'string' }, title: { type: 'string' } },
@@ -160,35 +206,61 @@ const TOOLS = [
   },
   {
     name: 'update_issue',
-    description: 'Edit an existing issue. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or pending `revision`. Editing title/summary/description resends a live-edited node through moderation. To edit a solution, use `update_solution`; the call errors if `id` resolves to a solution.\n\nSCOPE RULE: same as `create_issue`. If an edit would introduce sub-problems or proposed approaches, do not append them here — create child nodes via `create_issue` / `create_solution` instead.',
+    description:
+      'Edit an existing issue. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or pending `revision`. Editing title/summary/description resends a live-edited node through moderation. To edit a solution, use `update_solution`; the call errors if `id` resolves to a solution.\n\nSCOPE RULE: same as `create_issue`. If an edit would introduce sub-problems or proposed approaches, do not append them here — create child nodes via `create_issue` / `create_solution` instead.',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'integer' },
         title: { type: 'string', description: 'One-line statement of the problem.' },
-        summary: { type: 'string', description: 'Short plaintext snippet of THIS problem only. Trimmed to 280 chars.' },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS problem only.' },
+        summary: {
+          type: 'string',
+          description: 'Short plaintext snippet of THIS problem only. Trimmed to 280 chars.',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional markdown long-form body for THIS problem only.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
         scale: { type: 'string', enum: ['neighborhood', 'city', 'region', 'national', 'global'] },
-        parentId: { type: 'integer', description: 'Move this issue under a different parent issue (reparent). A solution cannot be nested under a solution, and a node cannot become its own ancestor.' },
-        note: { type: 'string', description: 'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.' },
+        parentId: {
+          type: 'integer',
+          description:
+            'Move this issue under a different parent issue (reparent). A solution cannot be nested under a solution, and a node cannot become its own ancestor.',
+        },
+        note: {
+          type: 'string',
+          description:
+            'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.',
+        },
       },
       required: ['id'],
     },
   },
   {
     name: 'update_solution',
-    description: 'Edit an existing solution. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or pending `revision`. Editing title/summary/description resends a live-edited node through moderation. To edit an issue, use `update_issue`; the call errors if `id` resolves to an issue.\n\nSCOPE RULE: same as `create_solution`. If an edit would introduce alternative approaches or sub-problems, do not append them here — create sibling/child nodes via `create_solution` / `create_issue` instead.',
+    description:
+      'Edit an existing solution. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or pending `revision`. Editing title/summary/description resends a live-edited node through moderation. To edit an issue, use `update_issue`; the call errors if `id` resolves to an issue.\n\nSCOPE RULE: same as `create_solution`. If an edit would introduce alternative approaches or sub-problems, do not append them here — create sibling/child nodes via `create_solution` / `create_issue` instead.',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'integer' },
         title: { type: 'string', description: 'One-line statement of the proposed approach.' },
-        summary: { type: 'string', description: 'Short plaintext snippet of THIS approach only. Trimmed to 280 chars.' },
-        description: { type: 'string', description: 'Optional markdown long-form body for THIS approach only.' },
-        solutionStatus: { type: 'string', enum: ['plan', 'in-progress', 'done'], description: 'Lifecycle stage of the proposed approach.' },
+        summary: {
+          type: 'string',
+          description: 'Short plaintext snippet of THIS approach only. Trimmed to 280 chars.',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional markdown long-form body for THIS approach only.',
+        },
+        solutionStatus: {
+          type: 'string',
+          enum: ['plan', 'in-progress', 'done'],
+          description: 'Lifecycle stage of the proposed approach.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
@@ -202,15 +274,24 @@ const TOOLS = [
             required: ['url'],
           },
         },
-        parentId: { type: 'integer', description: 'Re-attach this solution under a different parent issue (reparent). The parent must be an issue, not a solution.' },
-        note: { type: 'string', description: 'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.' },
+        parentId: {
+          type: 'integer',
+          description:
+            'Re-attach this solution under a different parent issue (reparent). The parent must be an issue, not a solution.',
+        },
+        note: {
+          type: 'string',
+          description:
+            'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.',
+        },
       },
       required: ['id'],
     },
   },
   {
     name: 'suggest_more',
-    description: 'Suggest related issues/solutions semantically similar to a seed issue or solution. Uses the stored embedding of the seed for nearest-neighbor lookup.',
+    description:
+      'Suggest related issues/solutions semantically similar to a seed issue or solution. Uses the stored embedding of the seed for nearest-neighbor lookup.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -222,12 +303,14 @@ const TOOLS = [
   },
   {
     name: 'whoami',
-    description: 'Return the authenticated user\'s public profile plus private fields (email, provider, ban state) and authored issue/solution counts. Use this when the user asks about "my" profile, credentials, or activity.',
+    description:
+      'Return the authenticated user\'s public profile plus private fields (email, provider, ban state) and authored issue/solution counts. Use this when the user asks about "my" profile, credentials, or activity.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
     name: 'get_user',
-    description: 'Public profile of any user by UUID: name, headline, bio, trust score, qualifications with endorsement counts, and counts of issues/solutions they\'ve authored.',
+    description:
+      "Public profile of any user by UUID: name, headline, bio, trust score, qualifications with endorsement counts, and counts of issues/solutions they've authored.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -238,7 +321,8 @@ const TOOLS = [
   },
   {
     name: 'get_case_study',
-    description: 'Fetch a single case study by numeric id. Case studies document one real-world implementation of a solution (outcome, location, implementer, metrics, sources, lessons learned).',
+    description:
+      'Fetch a single case study by numeric id. Case studies document one real-world implementation of a solution (outcome, location, implementer, metrics, sources, lessons learned).',
     inputSchema: {
       type: 'object',
       properties: { id: { type: 'integer' } },
@@ -247,7 +331,8 @@ const TOOLS = [
   },
   {
     name: 'list_case_studies',
-    description: 'List case studies under a node. Pass a solution id to get that solution\'s own case studies, or an issue id to aggregate case studies across all approved solution children of that issue. Returns rows ordered by verified (admin-marked) then most-recent first.',
+    description:
+      "List case studies under a node. Pass a solution id to get that solution's own case studies, or an issue id to aggregate case studies across all approved solution children of that issue. Returns rows ordered by verified (admin-marked) then most-recent first.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -258,20 +343,49 @@ const TOOLS = [
   },
   {
     name: 'create_case_study',
-    description: 'Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that\'s three separate `create_case_study` calls — do not combine them.',
+    description:
+      "Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that's three separate `create_case_study` calls — do not combine them.",
     inputSchema: {
       type: 'object',
       properties: {
-        solutionId: { type: 'integer', description: 'Id of the solution this case study implements. Required. Must be a solution, not an issue.' },
-        outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES], description: 'What happened: success, partial, failed, inconclusive, or ongoing.' },
-        locationName: { type: 'string', description: 'Human-readable location label (e.g. "Bogotá, Colombia"). Required.' },
+        solutionId: {
+          type: 'integer',
+          description:
+            'Id of the solution this case study implements. Required. Must be a solution, not an issue.',
+        },
+        outcome: {
+          type: 'string',
+          enum: [...CASE_STUDY_OUTCOMES],
+          description: 'What happened: success, partial, failed, inconclusive, or ongoing.',
+        },
+        locationName: {
+          type: 'string',
+          description: 'Human-readable location label (e.g. "Bogotá, Colombia"). Required.',
+        },
         latitude: { type: 'number', description: 'Decimal latitude of the deployment. Required.' },
-        longitude: { type: 'number', description: 'Decimal longitude of the deployment. Required.' },
-        scale: { type: 'string', enum: [...LOCATION_SCALES], description: 'Geographic scope of the deployment.' },
-        description: { type: 'string', description: 'Optional markdown narrative — what was done, context, anything not captured by the structured fields.' },
-        implementer: { type: 'string', description: 'Organization, agency, or person that ran the deployment.' },
+        longitude: {
+          type: 'number',
+          description: 'Decimal longitude of the deployment. Required.',
+        },
+        scale: {
+          type: 'string',
+          enum: [...LOCATION_SCALES],
+          description: 'Geographic scope of the deployment.',
+        },
+        description: {
+          type: 'string',
+          description:
+            'Optional markdown narrative — what was done, context, anything not captured by the structured fields.',
+        },
+        implementer: {
+          type: 'string',
+          description: 'Organization, agency, or person that ran the deployment.',
+        },
         startDate: { type: 'string', description: 'ISO date (YYYY-MM-DD) the deployment started.' },
-        endDate: { type: 'string', description: 'ISO date (YYYY-MM-DD) the deployment ended. Omit if ongoing.' },
+        endDate: {
+          type: 'string',
+          description: 'ISO date (YYYY-MM-DD) the deployment ended. Omit if ongoing.',
+        },
         metrics: {
           type: 'array',
           description: 'Quantitative outcomes — one row per measurement.',
@@ -286,7 +400,10 @@ const TOOLS = [
             required: ['label'],
           },
         },
-        cost: { type: ['number', 'string'], description: 'Total cost as a number or numeric string.' },
+        cost: {
+          type: ['number', 'string'],
+          description: 'Total cost as a number or numeric string.',
+        },
         currency: { type: 'string', description: 'ISO currency code (e.g. "USD", "EUR").' },
         fundingSource: { type: 'string', description: 'Who paid for it.' },
         sources: {
@@ -305,7 +422,8 @@ const TOOLS = [
         },
         links: {
           type: 'array',
-          description: 'External resources documenting the deployment (GitHub repo, hosted PDF report, demo video, photo album). Use `sources` for citations backing claims; use `links` for supplementary artifacts.',
+          description:
+            'External resources documenting the deployment (GitHub repo, hosted PDF report, demo video, photo album). Use `sources` for citations backing claims; use `links` for supplementary artifacts.',
           items: {
             type: 'object',
             properties: { url: { type: 'string' }, title: { type: 'string' } },
@@ -318,7 +436,8 @@ const TOOLS = [
   },
   {
     name: 'update_case_study',
-    description: 'Edit an existing case study. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting case study or pending `revision`. The `verified` flag is admin-only — non-admin callers cannot change it, and it is never part of a proposal. Pass only the fields you want to change.',
+    description:
+      'Edit an existing case study. If you authored it (or are an admin) the edit applies immediately; otherwise it is recorded as a pending revision proposal for the owner/admin to review — you never get a permission error. The response carries `applied` (true = live edit, false = proposal created) and the resulting case study or pending `revision`. The `verified` flag is admin-only — non-admin callers cannot change it, and it is never part of a proposal. Pass only the fields you want to change.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -366,38 +485,78 @@ const TOOLS = [
             required: ['url'],
           },
         },
-        solutionId: { type: 'integer', description: 'Re-attach this case study to a different solution. Must point at a solution, not an issue.' },
-        verified: { type: 'boolean', description: 'Admin-only: mark as independently verified. Ignored when this lands as a proposal.' },
-        note: { type: 'string', description: 'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.' },
+        solutionId: {
+          type: 'integer',
+          description:
+            'Re-attach this case study to a different solution. Must point at a solution, not an issue.',
+        },
+        verified: {
+          type: 'boolean',
+          description:
+            'Admin-only: mark as independently verified. Ignored when this lands as a proposal.',
+        },
+        note: {
+          type: 'string',
+          description:
+            'Optional rationale / changelog for this edit — shown to the reviewer when this lands as a proposal.',
+        },
       },
       required: ['id'],
     },
   },
   {
     name: 'search_tags',
-    description: 'Semantic tag search via embeddings — finds tags by meaning, not just substring. A query like "transportation" will surface "transit". Omit `query` to list all tags alphabetically. Falls back to case-insensitive substring match if the embedding service is unavailable. Useful before create_issue so you can reference existing tags rather than inventing strings.',
+    description:
+      'Semantic tag search via embeddings — finds tags by meaning, not just substring. A query like "transportation" will surface "transit". Omit `query` to list all tags alphabetically. Falls back to case-insensitive substring match if the embedding service is unavailable. Useful before create_issue so you can reference existing tags rather than inventing strings.',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Natural-language description of the tag. Omit for the full list.' },
+        query: {
+          type: 'string',
+          description: 'Natural-language description of the tag. Omit for the full list.',
+        },
         limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
       },
     },
   },
   {
     name: 'propose_edit',
-    description: 'Propose a change to ANY node — an issue, a solution, or a case study — regardless of who authored it. One tool for every kind: set `kind` and `id`, plus only the fields you want to change. If you authored the node (or are an admin) the change applies immediately as a live edit; otherwise it is recorded as a pending revision proposal for the owner/admin to review. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or the pending `revision`. This is equivalent to update_issue / update_solution / update_case_study but unified — prefer it when you do not want to branch on node kind. Issues/solutions also accept `parentId` (reparent), case studies accept `solutionId` (re-attach).',
+    description:
+      'Propose a change to ANY node — an issue, a solution, or a case study — regardless of who authored it. One tool for every kind: set `kind` and `id`, plus only the fields you want to change. If you authored the node (or are an admin) the change applies immediately as a live edit; otherwise it is recorded as a pending revision proposal for the owner/admin to review. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or the pending `revision`. This is equivalent to update_issue / update_solution / update_case_study but unified — prefer it when you do not want to branch on node kind. Issues/solutions also accept `parentId` (reparent), case studies accept `solutionId` (re-attach).',
     inputSchema: {
       type: 'object',
       properties: {
-        kind: { type: 'string', enum: ['issue', 'solution', 'case_study'], description: 'What the target node is. Issues and solutions are both in the issue tree; case studies attach to a solution.' },
+        kind: {
+          type: 'string',
+          enum: ['issue', 'solution', 'case_study'],
+          description:
+            'What the target node is. Issues and solutions are both in the issue tree; case studies attach to a solution.',
+        },
         id: { type: 'integer', description: 'Numeric id of the node to edit.' },
-        note: { type: 'string', description: 'Optional rationale / changelog — shown to the reviewer when this lands as a proposal.' },
+        note: {
+          type: 'string',
+          description:
+            'Optional rationale / changelog — shown to the reviewer when this lands as a proposal.',
+        },
         title: { type: 'string', description: 'Issue/solution only. One-line statement.' },
-        summary: { type: 'string', description: 'Issue/solution only. Short plaintext snippet. Trimmed to 280 chars.' },
-        description: { type: 'string', description: 'Markdown long-form body (issue/solution/case study).' },
-        solutionStatus: { type: 'string', enum: ['plan', 'in-progress', 'done'], description: 'Solution only. Lifecycle stage.' },
-        outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES], description: 'Case study only.' },
+        summary: {
+          type: 'string',
+          description: 'Issue/solution only. Short plaintext snippet. Trimmed to 280 chars.',
+        },
+        description: {
+          type: 'string',
+          description: 'Markdown long-form body (issue/solution/case study).',
+        },
+        solutionStatus: {
+          type: 'string',
+          enum: ['plan', 'in-progress', 'done'],
+          description: 'Solution only. Lifecycle stage.',
+        },
+        outcome: {
+          type: 'string',
+          enum: [...CASE_STUDY_OUTCOMES],
+          description: 'Case study only.',
+        },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
         longitude: { type: 'number' },
@@ -431,7 +590,11 @@ const TOOLS = [
             required: ['url'],
           },
         },
-        lessonsLearned: { type: 'array', description: 'Case study only.', items: { type: 'string' } },
+        lessonsLearned: {
+          type: 'array',
+          description: 'Case study only.',
+          items: { type: 'string' },
+        },
         links: {
           type: 'array',
           description: 'Solution/case study only. External resources. Pass `[]` to clear.',
@@ -441,19 +604,30 @@ const TOOLS = [
             required: ['url'],
           },
         },
-        parentId: { type: 'integer', description: 'Issue/solution only. Move under a different parent issue (reparent).' },
-        solutionId: { type: 'integer', description: 'Case study only. Re-attach to a different solution.' },
+        parentId: {
+          type: 'integer',
+          description: 'Issue/solution only. Move under a different parent issue (reparent).',
+        },
+        solutionId: {
+          type: 'integer',
+          description: 'Case study only. Re-attach to a different solution.',
+        },
       },
       required: ['kind', 'id'],
     },
   },
   {
     name: 'list_revisions',
-    description: 'List the revision history of a node plus any proposals you are allowed to see. Approved revisions are public version history (each carries the field-level diff and the after-snapshot); pending, rejected, withdrawn, and superseded proposals are visible only to the node owner, an admin, or the proposer. Returns rows newest-first.',
+    description:
+      'List the revision history of a node plus any proposals you are allowed to see. Approved revisions are public version history (each carries the field-level diff and the after-snapshot); pending, rejected, withdrawn, and superseded proposals are visible only to the node owner, an admin, or the proposer. Returns rows newest-first.',
     inputSchema: {
       type: 'object',
       properties: {
-        kind: { type: 'string', enum: ['issue', 'solution', 'case_study'], description: 'What the target node is.' },
+        kind: {
+          type: 'string',
+          enum: ['issue', 'solution', 'case_study'],
+          description: 'What the target node is.',
+        },
         id: { type: 'integer', description: 'Numeric id of the node whose revisions to list.' },
       },
       required: ['kind', 'id'],
@@ -461,25 +635,42 @@ const TOOLS = [
   },
   {
     name: 'review_revision',
-    description: 'Approve or reject a pending revision proposal. Only the node owner or an admin may decide. On approval the change is applied to the live node (re-entering moderation if it changed content); on rejection the proposal is closed with the optional reason. The proposer is notified either way. Use list_revisions to find the `revisionId` of a pending proposal.',
+    description:
+      'Approve or reject a pending revision proposal. Only the node owner or an admin may decide. On approval the change is applied to the live node (re-entering moderation if it changed content); on rejection the proposal is closed with the optional reason. The proposer is notified either way. Use list_revisions to find the `revisionId` of a pending proposal.',
     inputSchema: {
       type: 'object',
       properties: {
         revisionId: { type: 'integer', description: 'Id of the pending revision to decide on.' },
-        action: { type: 'string', enum: ['approve', 'reject'], description: 'Whether to apply the proposal or close it.' },
-        reason: { type: 'string', description: 'Optional explanation, surfaced to the proposer (most useful on reject).' },
+        action: {
+          type: 'string',
+          enum: ['approve', 'reject'],
+          description: 'Whether to apply the proposal or close it.',
+        },
+        reason: {
+          type: 'string',
+          description: 'Optional explanation, surfaced to the proposer (most useful on reject).',
+        },
       },
       required: ['revisionId', 'action'],
     },
   },
 ] as const
 
-type ToolName = typeof TOOLS[number]['name']
+type ToolName = (typeof TOOLS)[number]['name']
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- per-case narrowing below guards each tool's contract
-async function callTool(name: string, args: any, userId: string): Promise<{ content: Array<{ type: 'text', text: string }>, isError?: boolean }> {
-  const wrap = (data: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] })
-  const wrapErr = (msg: string) => ({ content: [{ type: 'text' as const, text: msg }], isError: true })
+async function callTool(
+  name: string,
+  args: any,
+  userId: string,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  const wrap = (data: unknown) => ({
+    content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+  })
+  const wrapErr = (msg: string) => ({
+    content: [{ type: 'text' as const, text: msg }],
+    isError: true,
+  })
 
   try {
     switch (name as ToolName) {
@@ -508,7 +699,9 @@ async function callTool(name: string, args: any, userId: string): Promise<{ cont
           return wrapErr('title and summary are required strings')
         }
         if (!Number.isInteger(args?.parentId)) {
-          return wrapErr('parentId is required and must be an integer (the issue this solution addresses)')
+          return wrapErr(
+            'parentId is required and must be an integer (the issue this solution addresses)',
+          )
         }
         return wrap(await createSolutionAs(userId, args))
       }
@@ -548,7 +741,9 @@ async function callTool(name: string, args: any, userId: string): Promise<{ cont
       }
       case 'create_case_study': {
         if (!Number.isInteger(args?.solutionId)) {
-          return wrapErr('solutionId is required and must be an integer (the solution this case study implements)')
+          return wrapErr(
+            'solutionId is required and must be an integer (the solution this case study implements)',
+          )
         }
         return wrap(await createCaseStudyAs(userId, args))
       }
@@ -569,7 +764,9 @@ async function callTool(name: string, args: any, userId: string): Promise<{ cont
         }
         if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
         const result = await listRevisionsFor(userId, args)
-        return result.status === 'not_found' ? wrapErr(`${args.kind} ${args.id} not found`) : wrap(result.revisions)
+        return result.status === 'not_found'
+          ? wrapErr(`${args.kind} ${args.id} not found`)
+          : wrap(result.revisions)
       }
       case 'review_revision': {
         if (!Number.isInteger(args?.revisionId)) return wrapErr('revisionId must be an integer')
@@ -582,17 +779,20 @@ async function callTool(name: string, args: any, userId: string): Promise<{ cont
       default:
         return wrapErr(`Unknown tool: ${name}`)
     }
-  }
-  catch (err) {
-    const message = (err as { statusMessage?: string, message?: string })?.statusMessage
-      ?? (err as { message?: string })?.message
-      ?? 'Tool execution failed'
+  } catch (err) {
+    const message =
+      (err as { statusMessage?: string; message?: string })?.statusMessage ??
+      (err as { message?: string })?.message ??
+      'Tool execution failed'
     console.error(`[mcp.tools/call ${name}]`, err)
     return wrapErr(message)
   }
 }
 
-async function dispatch(req: JsonRpcRequest, userId: string): Promise<JsonRpcSuccess | JsonRpcFailure | null> {
+async function dispatch(
+  req: JsonRpcRequest,
+  userId: string,
+): Promise<JsonRpcSuccess | JsonRpcFailure | null> {
   const id = req.id ?? null
   const isNotification = req.id === undefined
 
@@ -614,7 +814,7 @@ async function dispatch(req: JsonRpcRequest, userId: string): Promise<JsonRpcSuc
     case 'tools/list':
       return isNotification ? null : ok(id, { tools: TOOLS })
     case 'tools/call': {
-      const params = (req.params ?? {}) as { name?: unknown, arguments?: unknown }
+      const params = (req.params ?? {}) as { name?: unknown; arguments?: unknown }
       const toolName = params.name
       const args = (params.arguments ?? {}) as Record<string, unknown>
       if (typeof toolName !== 'string') {
@@ -628,18 +828,27 @@ async function dispatch(req: JsonRpcRequest, userId: string): Promise<JsonRpcSuc
     case 'prompts/list':
       return isNotification ? null : ok(id, { prompts: [] })
     default:
-      return isNotification ? null : fail(id, ERR.METHOD_NOT_FOUND, `Method ${req.method} not found`)
+      return isNotification
+        ? null
+        : fail(id, ERR.METHOD_NOT_FOUND, `Method ${req.method} not found`)
   }
 }
 
 export default defineEventHandler(async (event) => {
   const authed = await authenticateBearer(event)
   if (!authed) {
-    setHeader(event, 'www-authenticate', `Bearer realm="MCP", resource_metadata="${getOrigin(event)}/.well-known/oauth-protected-resource"`)
+    setHeader(
+      event,
+      'www-authenticate',
+      `Bearer realm="MCP", resource_metadata="${getOrigin(event)}/.well-known/oauth-protected-resource"`,
+    )
     throw createError({
       statusCode: 401,
       statusMessage: 'Unauthorized',
-      data: { error: 'invalid_token', error_description: 'A valid OAuth access token is required.' },
+      data: {
+        error: 'invalid_token',
+        error_description: 'A valid OAuth access token is required.',
+      },
     })
   }
 
@@ -649,8 +858,7 @@ export default defineEventHandler(async (event) => {
   let body: unknown
   try {
     body = await readBody(event)
-  }
-  catch {
+  } catch {
     return fail(null, ERR.PARSE, 'Invalid JSON body')
   }
 
@@ -659,8 +867,19 @@ export default defineEventHandler(async (event) => {
 
   const responses: Array<JsonRpcSuccess | JsonRpcFailure> = []
   for (const item of batch) {
-    if (!item || typeof item !== 'object' || (item as JsonRpcRequest).jsonrpc !== '2.0' || typeof (item as JsonRpcRequest).method !== 'string') {
-      responses.push(fail((item as JsonRpcRequest)?.id ?? null, ERR.INVALID_REQUEST, 'Malformed JSON-RPC request'))
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      (item as JsonRpcRequest).jsonrpc !== '2.0' ||
+      typeof (item as JsonRpcRequest).method !== 'string'
+    ) {
+      responses.push(
+        fail(
+          (item as JsonRpcRequest)?.id ?? null,
+          ERR.INVALID_REQUEST,
+          'Malformed JSON-RPC request',
+        ),
+      )
       continue
     }
     const out = await dispatch(item as JsonRpcRequest, authed.user.id)
