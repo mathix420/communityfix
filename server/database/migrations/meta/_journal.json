@@ -127,6 +127,13 @@
       "when": 1780930278811,
       "tag": "0017_gorgeous_winter_soldier",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782810102360,
+      "tag": "0018_resource_audience_binding",
+      "breakpoints": true
     }
   ]
 }

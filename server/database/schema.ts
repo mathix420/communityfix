@@ -399,6 +399,10 @@ export const oauthCodes = pgTable('oauth_codes', {
   codeChallenge: text('code_challenge').notNull(),
   codeChallengeMethod: text('code_challenge_method').notNull().default('S256'),
   scope: text('scope').notNull().default(''),
+  // RFC 8707 resource indicator the client bound the grant to. Carried onto
+  // the issued token so access tokens are audience-restricted to our MCP
+  // endpoint and can't be replayed at another resource trusting this AS.
+  resource: text('resource'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   consumedAt: timestamp('consumed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -507,6 +511,9 @@ export const oauthTokens = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     scope: text('scope').notNull().default(''),
+    // RFC 8707 audience this token is valid for (the MCP resource URL). Bearer
+    // auth rejects the token at any other resource. Null on legacy tokens.
+    resource: text('resource'),
     refreshHash: text('refresh_hash'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),

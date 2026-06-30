@@ -105,11 +105,13 @@ async function createNode(userId: string, input: CreateIssueInput) {
   return transformIssue(hydrated!)
 }
 
-export async function createIssueAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
+type CreateNodeArgs = Omit<CreateIssueInput, 'type'>
+
+export async function createIssueAs(userId: string, input: CreateNodeArgs) {
   return createNode(userId, { ...input, type: 'issue' })
 }
 
-export async function createSolutionAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
+export async function createSolutionAs(userId: string, input: CreateNodeArgs) {
   if (!input.parentId) {
     throw createError({ statusCode: 400, statusMessage: 'parentId is required for a solution' })
   }

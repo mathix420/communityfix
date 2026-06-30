@@ -1,4 +1,4 @@
-import { getClient, OAUTH_SCOPE } from '../../utils/oauth'
+import { getClient, issueConsentToken, mcpResource, OAUTH_SCOPE } from '../../utils/oauth'
 
 const POST_LOGIN_COOKIE = 'mcp_continue'
 
@@ -32,6 +32,9 @@ export default defineEventHandler(async (event) => {
     typeof q.code_challenge_method === 'string' ? q.code_challenge_method : 'S256'
   const state = typeof q.state === 'string' ? q.state : undefined
   const scope = typeof q.scope === 'string' ? q.scope : OAUTH_SCOPE
+  // RFC 8707: bind the grant to the requested resource, defaulting to our own
+  // MCP endpoint so issued tokens are always audience-restricted.
+  const resource = typeof q.resource === 'string' && q.resource ? q.resource : mcpResource(event)
 
   // RFC 6749 §4.1.2.1: only redirect errors to a verified URI. Before that,
   // surface failures as plain 400s.
@@ -83,6 +86,8 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/login')
   }
 
+  const csrf = await issueConsentToken({ userId: session.user.id, clientId, redirectUri })
+
   setHeader(event, 'content-type', 'text/html; charset=utf-8')
   setHeader(event, 'cache-control', 'no-store')
   return `<!doctype html>
@@ -109,12 +114,13 @@ export default defineEventHandler(async (event) => {
 <body>
   <form class="card" method="post" action="/oauth/authorize">
     <h1>Authorize <strong>${escapeHtml(client.name)}</strong></h1>
-    <p>This app wants to act on your CommunityFix account.</p>
-    <div class="scopes">It will be able to:
+    <p>This app wants to act on your CommunityFix account. It will be able to:</p>
+    <div class="scopes">
       <ul>
-        <li>Search issues and solutions on your behalf</li>
-        <li>Create new issues and solutions as you</li>
-        <li>Update issues and solutions you own</li>
+        <li>Search and read issues, solutions, and case studies on your behalf</li>
+        <li>Create new issues, solutions, and case studies as you</li>
+        <li>Update issues, solutions, and case studies you own</li>
+        <li>Read your profile, including your email address and account status</li>
       </ul>
     </div>
     <input type="hidden" name="client_id" value="${escapeHtml(clientId)}">
@@ -122,6 +128,8 @@ export default defineEventHandler(async (event) => {
     <input type="hidden" name="code_challenge" value="${escapeHtml(codeChallenge)}">
     <input type="hidden" name="code_challenge_method" value="${escapeHtml(codeChallengeMethod)}">
     <input type="hidden" name="scope" value="${escapeHtml(scope)}">
+    <input type="hidden" name="resource" value="${escapeHtml(resource)}">
+    <input type="hidden" name="csrf" value="${escapeHtml(csrf)}">
     ${state ? `<input type="hidden" name="state" value="${escapeHtml(state)}">` : ''}
     <div class="actions">
       <button type="submit" name="decision" value="deny" class="deny">Deny</button>
