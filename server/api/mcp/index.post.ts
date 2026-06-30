@@ -35,6 +35,11 @@ const RATE = {
   search: { limit: 60, windowSec: 60 },
 } as const
 
+// The global limiter counts one HTTP request, but a JSON-RPC body may batch
+// many tool calls. Read tools have no per-tool limiter, so an unbounded batch
+// would let a single request bypass the per-minute guard — cap the batch size.
+const MAX_BATCH = 50
+
 const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutions, with case studies attached to solutions. Every node is one of:
 - an **issue** — a problem worth solving, or a more specific facet of a parent issue (a "sub-issue")
 - a **solution** — a proposed way to address its parent issue. Solutions are leaves in the tree: they cannot have sub-solutions.
@@ -776,7 +781,8 @@ async function callTool(
         return wrap(data)
       }
       case 'get_whitepaper': {
-        return wrap(await getWhitepaper(ctx.event))
+        const wp = await getWhitepaper(ctx.event)
+        return wp ? wrap(wp) : wrapErr('The whitepaper is currently unavailable.')
       }
       case 'get_guide': {
         if (args.slug) {
@@ -881,6 +887,9 @@ export default defineEventHandler(async (event) => {
   const ctx: ToolCtx = { userId: authed.user.id, clientId: authed.token.clientId, event }
   const batch = Array.isArray(body) ? body : [body]
   if (batch.length === 0) return fail(null, ERR.INVALID_REQUEST, 'Empty batch')
+  if (batch.length > MAX_BATCH) {
+    return fail(null, ERR.INVALID_REQUEST, `Batch too large (max ${MAX_BATCH} calls per request)`)
+  }
 
   const responses: Array<JsonRpcSuccess | JsonRpcFailure> = []
   for (const item of batch) {

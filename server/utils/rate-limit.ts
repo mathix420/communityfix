@@ -20,8 +20,12 @@ const MIN_TTL_SEC = 60
  *
  * KV has no atomic increment, so the counter is a read-modify-write: under a
  * burst of truly concurrent requests it can slightly under-count (KV is also
- * eventually consistent), which only ever makes the limiter more permissive —
- * acceptable for abuse protection, and the failure mode never wrongly blocks.
+ * eventually consistent), which only ever makes the limiter more permissive.
+ *
+ * This is abuse protection, not authorization, so it **fails open**: if the KV
+ * read/write throws (outage, transient error), we log and allow the request
+ * rather than turning a KV blip into an auth/MCP outage. A bypass during a KV
+ * incident is the lesser evil versus denying every login and tool call.
  */
 export async function rateLimit(opts: {
   bucket: string
@@ -35,9 +39,15 @@ export async function rateLimit(opts: {
   const key = `ratelimit:${bucket}:${identifier}:${windowStart}`
   const resetAt = new Date(windowStart + windowMs)
 
-  const storage = useStorage(KV_NAMESPACE)
-  const count = ((await storage.getItem<number>(key)) ?? 0) + 1
-  await storage.setItem(key, count, { ttl: Math.max(MIN_TTL_SEC, windowSec) })
+  let count: number
+  try {
+    const storage = useStorage(KV_NAMESPACE)
+    count = ((await storage.getItem<number>(key)) ?? 0) + 1
+    await storage.setItem(key, count, { ttl: Math.max(MIN_TTL_SEC, windowSec) })
+  } catch (err) {
+    console.error('[rate-limit] KV unavailable, failing open:', { bucket, key, err })
+    return { allowed: true, limit, remaining: limit, resetAt }
+  }
 
   return {
     allowed: count <= limit,

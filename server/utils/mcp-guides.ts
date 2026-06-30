@@ -1,8 +1,10 @@
 // Serves Nuxt Content markdown through the MCP tools: the authoring guides
 // (content/guide/*.md, the `guides` collection) via `get_guide`, and the
 // whitepaper (content/whitepaper.md, the `content` collection) via
-// `get_whitepaper`. Both are queried at runtime from the bundled content DB, so
-// editing the markdown is a content change — no code change, no tool redeploy.
+// `get_whitepaper`. Both are queried at runtime from the Nuxt Content DB (a D1
+// binding in prod, a local store in dev), so updating a guide or the whitepaper
+// means editing markdown rather than the tool's TypeScript — though the content
+// is still rebuilt and shipped through the normal content/deploy pipeline.
 import type { H3Event } from 'h3'
 // Explicit server-side import: the bare auto-import is ambiguous with the
 // client `queryCollection` (1-arg) and loses the event-first signature.
@@ -43,12 +45,18 @@ export async function getGuide(event: H3Event, slug: string) {
   }
 }
 
-/** The CommunityFix whitepaper (content/whitepaper.md) as raw markdown. */
+/**
+ * The CommunityFix whitepaper (content/whitepaper.md) as raw markdown. Returns
+ * null if the doc is missing or has no body, so the tool surfaces a clear error
+ * instead of handing back an empty whitepaper that reads as success (mirrors
+ * `getGuide`).
+ */
 export async function getWhitepaper(event: H3Event) {
   const doc = await queryCollection(event, 'content').path('/whitepaper').first()
+  if (!doc?.rawbody) return null
   return {
-    title: doc?.title ?? 'CommunityFix Whitepaper',
+    title: doc.title ?? 'CommunityFix Whitepaper',
     url: '/whitepaper',
-    markdown: doc?.rawbody ?? '',
+    markdown: doc.rawbody,
   }
 }
