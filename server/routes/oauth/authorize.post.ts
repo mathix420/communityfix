@@ -22,7 +22,10 @@ export default defineEventHandler(async (event) => {
   const client = await getClient(clientId)
   if (!client) throw createError({ statusCode: 400, statusMessage: 'Unknown client_id' })
   if (!client.redirectUris.includes(redirectUri)) {
-    throw createError({ statusCode: 400, statusMessage: 'redirect_uri does not match a registered URI' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'redirect_uri does not match a registered URI',
+    })
   }
 
   // CSRF: the consent form carries a token bound to this exact
@@ -31,19 +34,25 @@ export default defineEventHandler(async (event) => {
   if (!csrfOk) throw createError({ statusCode: 400, statusMessage: 'Invalid or missing consent token. Restart the authorization flow.' })
 
   if (decision !== 'approve') {
-    return sendRedirect(event, redirectBack(redirectUri, {
-      error: 'access_denied',
-      error_description: 'User denied the authorization request',
-      ...(state ? { state } : {}),
-    }))
+    return sendRedirect(
+      event,
+      redirectBack(redirectUri, {
+        error: 'access_denied',
+        error_description: 'User denied the authorization request',
+        ...(state ? { state } : {}),
+      }),
+    )
   }
 
   if (!codeChallenge || codeChallengeMethod !== 'S256') {
-    return sendRedirect(event, redirectBack(redirectUri, {
-      error: 'invalid_request',
-      error_description: 'Missing or unsupported PKCE parameters',
-      ...(state ? { state } : {}),
-    }))
+    return sendRedirect(
+      event,
+      redirectBack(redirectUri, {
+        error: 'invalid_request',
+        error_description: 'Missing or unsupported PKCE parameters',
+        ...(state ? { state } : {}),
+      }),
+    )
   }
 
   const code = await issueAuthorizationCode({
@@ -56,8 +65,11 @@ export default defineEventHandler(async (event) => {
     resource,
   })
 
-  return sendRedirect(event, redirectBack(redirectUri, {
-    code,
-    ...(state ? { state } : {}),
-  }))
+  return sendRedirect(
+    event,
+    redirectBack(redirectUri, {
+      code,
+      ...(state ? { state } : {}),
+    }),
+  )
 })

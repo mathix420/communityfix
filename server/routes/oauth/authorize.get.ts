@@ -2,7 +2,12 @@ import { getClient, issueConsentToken, mcpResource, OAUTH_SCOPE } from '../../ut
 
 const POST_LOGIN_COOKIE = 'mcp_continue'
 
-function redirectError(redirectUri: string, state: string | undefined, code: string, description: string) {
+function redirectError(
+  redirectUri: string,
+  state: string | undefined,
+  code: string,
+  description: string,
+) {
   const u = new URL(redirectUri)
   u.searchParams.set('error', code)
   u.searchParams.set('error_description', description)
@@ -11,7 +16,10 @@ function redirectError(redirectUri: string, state: string | undefined, code: str
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]!))
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+  )
 }
 
 export default defineEventHandler(async (event) => {
@@ -20,7 +28,8 @@ export default defineEventHandler(async (event) => {
   const redirectUri = typeof q.redirect_uri === 'string' ? q.redirect_uri : ''
   const responseType = typeof q.response_type === 'string' ? q.response_type : ''
   const codeChallenge = typeof q.code_challenge === 'string' ? q.code_challenge : ''
-  const codeChallengeMethod = typeof q.code_challenge_method === 'string' ? q.code_challenge_method : 'S256'
+  const codeChallengeMethod =
+    typeof q.code_challenge_method === 'string' ? q.code_challenge_method : 'S256'
   const state = typeof q.state === 'string' ? q.state : undefined
   const scope = typeof q.scope === 'string' ? q.scope : OAUTH_SCOPE
   // RFC 8707: bind the grant to the requested resource, defaulting to our own
@@ -33,17 +42,34 @@ export default defineEventHandler(async (event) => {
   const client = await getClient(clientId)
   if (!client) throw createError({ statusCode: 400, statusMessage: 'Unknown client_id' })
   if (!redirectUri || !client.redirectUris.includes(redirectUri)) {
-    throw createError({ statusCode: 400, statusMessage: 'redirect_uri does not match a registered URI' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'redirect_uri does not match a registered URI',
+    })
   }
 
   if (responseType !== 'code') {
-    return sendRedirect(event, redirectError(redirectUri, state, 'unsupported_response_type', 'Only response_type=code is supported'))
+    return sendRedirect(
+      event,
+      redirectError(
+        redirectUri,
+        state,
+        'unsupported_response_type',
+        'Only response_type=code is supported',
+      ),
+    )
   }
   if (!codeChallenge) {
-    return sendRedirect(event, redirectError(redirectUri, state, 'invalid_request', 'PKCE code_challenge is required'))
+    return sendRedirect(
+      event,
+      redirectError(redirectUri, state, 'invalid_request', 'PKCE code_challenge is required'),
+    )
   }
   if (codeChallengeMethod !== 'S256') {
-    return sendRedirect(event, redirectError(redirectUri, state, 'invalid_request', 'code_challenge_method must be S256'))
+    return sendRedirect(
+      event,
+      redirectError(redirectUri, state, 'invalid_request', 'code_challenge_method must be S256'),
+    )
   }
 
   const session = await getUserSession(event)

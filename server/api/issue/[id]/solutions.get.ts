@@ -39,9 +39,7 @@ export default defineEventHandler(async (event) => {
   ]
 
   if (searchTerm.trim()) {
-    conditions.push(
-      sql`search_vector @@ plainto_tsquery('english', ${searchTerm.trim()})`,
-    )
+    conditions.push(sql`search_vector @@ plainto_tsquery('english', ${searchTerm.trim()})`)
   }
 
   const results = await db.query.issues.findMany({
@@ -50,5 +48,5 @@ export default defineEventHandler(async (event) => {
     orderBy: orderByClause,
   })
 
-  return results.map(i => transformIssue(i))
+  return results.map((i) => transformIssue(i))
 })

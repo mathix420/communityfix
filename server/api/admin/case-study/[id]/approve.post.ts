@@ -1,5 +1,10 @@
 import { eq, and, sql } from 'drizzle-orm'
-import { caseStudies, auditLogs, type CaseStudyOutcome, CASE_STUDY_OUTCOMES } from '../../../../database/schema'
+import {
+  caseStudies,
+  auditLogs,
+  type CaseStudyOutcome,
+  CASE_STUDY_OUTCOMES,
+} from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
 
 interface CaseStudyEdits {
@@ -13,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
   const db = useDB()
   const id = Number(getRouterParam(event, 'id'))
-  const body = await readBody<{ reason?: string, edits?: CaseStudyEdits }>(event)
+  const body = await readBody<{ reason?: string; edits?: CaseStudyEdits }>(event)
 
   const cs = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, id) })
   if (!cs) {
@@ -54,7 +59,11 @@ export default defineEventHandler(async (event) => {
       editsAfter.implementer = e.implementer
       updates.implementer = e.implementer
     }
-    if (e.locationName !== undefined && e.locationName.trim() && e.locationName !== cs.locationName) {
+    if (
+      e.locationName !== undefined &&
+      e.locationName.trim() &&
+      e.locationName !== cs.locationName
+    ) {
       editsBefore.locationName = cs.locationName
       editsAfter.locationName = e.locationName
       updates.locationName = e.locationName
@@ -79,17 +88,20 @@ export default defineEventHandler(async (event) => {
 
   // Close any open needs_review logs targeting this case study (no FK column —
   // case study ids live in details.caseStudyId).
-  await db.update(auditLogs)
+  await db
+    .update(auditLogs)
     .set({
       status: 'overridden',
       reviewedBy: session.user.id,
       reviewedAt: new Date(),
       reviewNote: body.reason || null,
     })
-    .where(and(
-      eq(auditLogs.status, 'needs_review'),
-      sql`(${auditLogs.details}->>'caseStudyId')::int = ${id}`,
-    ))
+    .where(
+      and(
+        eq(auditLogs.status, 'needs_review'),
+        sql`(${auditLogs.details}->>'caseStudyId')::int = ${id}`,
+      ),
+    )
 
   if (cs.authorId) {
     await updateUserTrustScore(cs.authorId)

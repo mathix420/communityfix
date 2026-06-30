@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
   const db = useDB()
   const id = Number(getRouterParam(event, 'id'))
-  const body = await readBody<{ reason?: string, edits?: IssueEdits }>(event)
+  const body = await readBody<{ reason?: string; edits?: IssueEdits }>(event)
 
   const issue = await db.query.issues.findFirst({ where: eq(issues.id, id) })
   if (!issue) {
@@ -51,7 +51,8 @@ export default defineEventHandler(async (event) => {
     if (e.summary !== undefined) {
       const trimmed = e.summary.trim()
       if (!trimmed) throw createError({ statusCode: 400, message: 'Summary cannot be empty' })
-      if (trimmed.length > 280) throw createError({ statusCode: 400, message: 'Summary must be 280 characters or fewer' })
+      if (trimmed.length > 280)
+        throw createError({ statusCode: 400, message: 'Summary must be 280 characters or fewer' })
       if (trimmed !== issue.summary) {
         editsBefore.summary = issue.summary
         editsAfter.summary = trimmed
@@ -79,12 +80,11 @@ export default defineEventHandler(async (event) => {
 
   if (issue.parentId) {
     const effectiveType = (updates.type as IssueType | undefined) ?? issue.type
-    const counter = effectiveType === 'solution'
-      ? { solutionCount: sql`${issues.solutionCount} + 1` }
-      : { subIssueCount: sql`${issues.subIssueCount} + 1` }
-    await db.update(issues)
-      .set(counter)
-      .where(eq(issues.id, issue.parentId))
+    const counter =
+      effectiveType === 'solution'
+        ? { solutionCount: sql`${issues.solutionCount} + 1` }
+        : { subIssueCount: sql`${issues.subIssueCount} + 1` }
+    await db.update(issues).set(counter).where(eq(issues.id, issue.parentId))
   }
 
   await createAuditLog({
@@ -100,7 +100,8 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  await db.update(auditLogs)
+  await db
+    .update(auditLogs)
     .set({
       status: 'overridden',
       reviewedBy: session.user.id,

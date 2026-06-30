@@ -9,7 +9,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = useDB()
-  const result = await db.delete(qualifications)
+  const result = await db
+    .delete(qualifications)
     .where(and(eq(qualifications.id, id), eq(qualifications.userId, session.user.id)))
     .returning({ id: qualifications.id })
 

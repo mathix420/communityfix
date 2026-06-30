@@ -10,7 +10,9 @@ import {
 
 export default defineWebAuthnAuthenticateEventHandler({
   async allowCredentials(event, userName) {
-    if (!userName) { return [] }
+    if (!userName) {
+      return []
+    }
     const email = normalizeEmail(userName)
     const user = await getUserByEmail(email)
     if (!user) {
@@ -22,7 +24,7 @@ export default defineWebAuthnAuthenticateEventHandler({
       throw createError({ statusCode: 400, message: 'No passkeys registered for this user' })
     }
 
-    return credentials.map(c => ({
+    return credentials.map((c) => ({
       id: c.id,
       transports: c.transports as AuthenticatorTransportFuture[],
     }))

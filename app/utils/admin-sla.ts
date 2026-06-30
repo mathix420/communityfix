@@ -23,9 +23,12 @@ export function slaBorderClass(_tier: SlaTier): string {
 
 export function slaBadgeClass(tier: SlaTier): string {
   switch (tier) {
-    case 'overdue': return 'bg-red-50 text-red-700'
-    case 'aging':   return 'bg-gray-100 text-gray-700'
-    case 'fresh':   return 'bg-gray-50 text-gray-600'
+    case 'overdue':
+      return 'bg-red-50 text-red-700'
+    case 'aging':
+      return 'bg-gray-100 text-gray-700'
+    case 'fresh':
+      return 'bg-gray-50 text-gray-600'
   }
 }
 

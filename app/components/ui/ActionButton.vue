@@ -1,14 +1,17 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
 
-withDefaults(defineProps<{
-  icon?: string
-  to?: string
-  type?: 'button' | 'submit'
-}>(), {
-  icon: 'i-lucide-plus',
-  type: 'button',
-})
+withDefaults(
+  defineProps<{
+    icon?: string
+    to?: string
+    type?: 'button' | 'submit'
+  }>(),
+  {
+    icon: 'i-lucide-plus',
+    type: 'button',
+  },
+)
 
 const base = [
   'group inline-flex items-center justify-center gap-2 whitespace-nowrap',
@@ -23,28 +26,22 @@ const base = [
 </script>
 
 <template>
-  <NuxtLink
-    v-if="to"
-    v-bind="$attrs"
-    :to="to"
-    :class="base"
-  >
+  <NuxtLink v-if="to" v-bind="$attrs" :class="base" :to="to">
     <UIcon
-      :name="icon"
       class="size-4 -ml-0.5 transition-transform duration-300 ease-out group-hover:rotate-90"
+      :name="icon"
     />
-    <span><slot /></span>
+    <span>
+      <slot />
+    </span>
   </NuxtLink>
-  <button
-    v-else
-    v-bind="$attrs"
-    :type="type"
-    :class="base"
-  >
+  <button v-else v-bind="$attrs" :class="base" :type="type">
     <UIcon
-      :name="icon"
       class="size-4 -ml-0.5 transition-transform duration-300 ease-out group-hover:rotate-90"
+      :name="icon"
     />
-    <span><slot /></span>
+    <span>
+      <slot />
+    </span>
   </button>
 </template>

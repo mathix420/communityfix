@@ -12,11 +12,14 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB()
 
-  await db.delete(qualificationEndorsements)
-    .where(and(
-      eq(qualificationEndorsements.qualificationId, id),
-      eq(qualificationEndorsements.endorserId, viewerId),
-    ))
+  await db
+    .delete(qualificationEndorsements)
+    .where(
+      and(
+        eq(qualificationEndorsements.qualificationId, id),
+        eq(qualificationEndorsements.endorserId, viewerId),
+      ),
+    )
 
   const [countRow] = await db
     .select({ n: count(qualificationEndorsements.id).as('n') })

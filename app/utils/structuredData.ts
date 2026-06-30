@@ -23,10 +23,10 @@ export function orgSchema(): JsonLd {
   return {
     '@type': 'Organization',
     '@id': ORG_ID,
-    'name': 'CommunityFix',
-    'url': SITE_URL,
-    'logo': `${SITE_URL}/_og/d/c_Home.png`,
-    'sameAs': ['https://github.com/mathix420/communityfix'],
+    name: 'CommunityFix',
+    url: SITE_URL,
+    logo: `${SITE_URL}/_og/d/c_Home.png`,
+    sameAs: ['https://github.com/mathix420/communityfix'],
   }
 }
 
@@ -34,12 +34,12 @@ export function websiteSchema(): JsonLd {
   return {
     '@type': 'WebSite',
     '@id': WEBSITE_ID,
-    'url': SITE_URL,
-    'name': 'CommunityFix',
-    'publisher': { '@id': ORG_ID },
-    'potentialAction': {
+    url: SITE_URL,
+    name: 'CommunityFix',
+    publisher: { '@id': ORG_ID },
+    potentialAction: {
       '@type': 'SearchAction',
-      'target': `${SITE_URL}/?q={search_term_string}`,
+      target: `${SITE_URL}/?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
   }
@@ -53,11 +53,11 @@ export interface BreadcrumbItem {
 export function breadcrumbSchema(items: BreadcrumbItem[]): JsonLd {
   return {
     '@type': 'BreadcrumbList',
-    'itemListElement': items.map((item, index) => ({
+    itemListElement: items.map((item, index) => ({
       '@type': 'ListItem',
-      'position': index + 1,
-      'name': item.name,
-      'item': item.url,
+      position: index + 1,
+      name: item.name,
+      item: item.url,
     })),
   }
 }
@@ -74,16 +74,14 @@ export interface ArticleSchemaOptions {
 export function articleSchema(opts: ArticleSchemaOptions): JsonLd {
   return compact({
     '@type': 'Article',
-    'headline': opts.title,
-    'description': opts.description,
-    'url': opts.url,
-    'mainEntityOfPage': opts.url,
-    'datePublished': opts.datePublished,
-    'dateModified': opts.dateModified,
-    'author': opts.authorName
-      ? { '@type': 'Person', 'name': opts.authorName }
-      : undefined,
-    'isPartOf': { '@id': WEBSITE_ID },
+    headline: opts.title,
+    description: opts.description,
+    url: opts.url,
+    mainEntityOfPage: opts.url,
+    datePublished: opts.datePublished,
+    dateModified: opts.dateModified,
+    author: opts.authorName ? { '@type': 'Person', name: opts.authorName } : undefined,
+    isPartOf: { '@id': WEBSITE_ID },
   })
 }
 
@@ -108,33 +106,29 @@ export function creativeWorkSchema(opts: CreativeWorkSchemaOptions): JsonLd {
   const spatialCoverage = hasGeo
     ? compact({
         '@type': 'Place',
-        'name': opts.locationName,
-        'geo': {
+        name: opts.locationName,
+        geo: {
           '@type': 'GeoCoordinates',
-          'latitude': opts.latitude,
-          'longitude': opts.longitude,
+          latitude: opts.latitude,
+          longitude: opts.longitude,
         },
       })
     : undefined
 
-  const temporalCoverage = opts.startDate
-    ? `${opts.startDate}/${opts.endDate ?? ''}`
-    : undefined
+  const temporalCoverage = opts.startDate ? `${opts.startDate}/${opts.endDate ?? ''}` : undefined
 
   return compact({
     '@type': 'CreativeWork',
-    'name': opts.title,
-    'description': opts.description,
-    'url': opts.url,
-    'datePublished': opts.datePublished,
-    'dateModified': opts.dateModified,
-    'spatialCoverage': spatialCoverage,
-    'temporalCoverage': temporalCoverage,
-    'creator': opts.implementer
-      ? { '@type': 'Person', 'name': opts.implementer }
-      : undefined,
-    'citation': opts.sources && opts.sources.length > 0 ? opts.sources : undefined,
-    'isPartOf': { '@id': WEBSITE_ID },
+    name: opts.title,
+    description: opts.description,
+    url: opts.url,
+    datePublished: opts.datePublished,
+    dateModified: opts.dateModified,
+    spatialCoverage: spatialCoverage,
+    temporalCoverage: temporalCoverage,
+    creator: opts.implementer ? { '@type': 'Person', name: opts.implementer } : undefined,
+    citation: opts.sources && opts.sources.length > 0 ? opts.sources : undefined,
+    isPartOf: { '@id': WEBSITE_ID },
   })
 }
 
@@ -147,9 +141,9 @@ export interface PersonSchemaOptions {
 export function personSchema(opts: PersonSchemaOptions): JsonLd {
   return compact({
     '@type': 'Person',
-    'name': opts.name,
-    'url': opts.url,
-    'description': opts.description,
+    name: opts.name,
+    url: opts.url,
+    description: opts.description,
   })
 }
 
@@ -163,7 +157,7 @@ export function useJsonLd(node: JsonLd | JsonLd[]): void {
   const bs = String.fromCharCode(92) // literal backslash
   const serialized = JSON.stringify(payload).replace(
     /[<>&]/g,
-    c => bs + 'u' + c.charCodeAt(0).toString(16).padStart(4, '0'),
+    (c) => bs + 'u' + c.charCodeAt(0).toString(16).padStart(4, '0'),
   )
 
   useHead({

@@ -23,19 +23,24 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
   const lines: string[] = [`# ${t.title}`, '']
   if (t.parentId) lines.push(`**Parent:** ${CANONICAL_BASE}/issue/${t.parentId}`, '')
   lines.push(`**${kind} #${t.id}** · by ${t.author} · ${t.date}`, '', t.summary, '')
-  if (t.tags.length) lines.push(`**Tags:** ${t.tags.map(s => `\`${s}\``).join(', ')}`, '')
+  if (t.tags.length) lines.push(`**Tags:** ${t.tags.map((s) => `\`${s}\``).join(', ')}`, '')
   if (t.locationName) {
-    const coords = t.location ? ` (${t.location.latitude.toFixed(4)}, ${t.location.longitude.toFixed(4)})` : ''
+    const coords = t.location
+      ? ` (${t.location.latitude.toFixed(4)}, ${t.location.longitude.toFixed(4)})`
+      : ''
     const scale = t.scale ? ` · scale: ${t.scale}` : ''
     lines.push(`**Location:** ${t.locationName}${coords}${scale}`, '')
   }
   if (t.sustainableDevelopmentGoals.length) {
-    lines.push(`**SDGs:** ${t.sustainableDevelopmentGoals.map(s => s.name).join(', ')}`, '')
+    lines.push(`**SDGs:** ${t.sustainableDevelopmentGoals.map((s) => s.name).join(', ')}`, '')
   }
-  lines.push(`**Votes:** ${t.voteScore} · **Solutions:** ${t.solutionCount} · **Sub-issues:** ${t.subIssueCount}`, '')
+  lines.push(
+    `**Votes:** ${t.voteScore} · **Solutions:** ${t.solutionCount} · **Sub-issues:** ${t.subIssueCount}`,
+    '',
+  )
   if (t.description) lines.push(t.description, '')
   if (t.links?.length) {
-    lines.push('## Links', '', ...t.links.map(l => `- [${l.title ?? l.url}](${l.url})`), '')
+    lines.push('## Links', '', ...t.links.map((l) => `- [${l.title ?? l.url}](${l.url})`), '')
   }
 
   if (t.type === 'issue') {
@@ -44,8 +49,8 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
       columns: { id: true, title: true, summary: true, type: true },
       orderBy: desc(issues.createdAt),
     })
-    const subIssues = children.filter(c => c.type === 'issue')
-    const solutions = children.filter(c => c.type === 'solution')
+    const subIssues = children.filter((c) => c.type === 'issue')
+    const solutions = children.filter((c) => c.type === 'solution')
 
     if (solutions.length) {
       lines.push('', '## Solutions', '')
@@ -63,7 +68,11 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
 
   if (t.type === 'solution') {
     const studies = await db.query.caseStudies.findMany({
-      where: and(eq(caseStudies.solutionId, t.id), eq(caseStudies.status, 'approved'), ne(caseStudies.isSpam, true)),
+      where: and(
+        eq(caseStudies.solutionId, t.id),
+        eq(caseStudies.status, 'approved'),
+        ne(caseStudies.isSpam, true),
+      ),
       columns: { id: true, outcome: true, locationName: true, description: true },
       orderBy: desc(caseStudies.createdAt),
     })
@@ -71,7 +80,9 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
       lines.push('', '## Case studies', '')
       for (const cs of studies) {
         const headline = `${cs.outcome} · ${cs.locationName}`
-        lines.push(`- [#${cs.id} — ${headline}](${CANONICAL_BASE}/case-study/${cs.id}.md)${cs.description ? ` — ${trim(cs.description, 200)}` : ''}`)
+        lines.push(
+          `- [#${cs.id} — ${headline}](${CANONICAL_BASE}/case-study/${cs.id}.md)${cs.description ? ` — ${trim(cs.description, 200)}` : ''}`,
+        )
       }
     }
   }
@@ -88,29 +99,44 @@ export async function renderCaseStudyMarkdown(id: number): Promise<string | null
   })
   if (!row || row.status !== 'approved' || row.isSpam) return null
 
-  const point = row.location as { x: number, y: number } | null
+  const point = row.location as { x: number; y: number } | null
   const lines: string[] = [`# Case study #${row.id}`, '']
-  lines.push(`**Solution:** [${row.solution?.title ?? `#${row.solutionId}`}](${CANONICAL_BASE}/issue/${row.solutionId})`, '')
+  lines.push(
+    `**Solution:** [${row.solution?.title ?? `#${row.solutionId}`}](${CANONICAL_BASE}/issue/${row.solutionId})`,
+    '',
+  )
   lines.push(`**Outcome:** ${row.outcome}${row.verified ? ' · verified' : ''}`)
   const coords = point ? ` (${point.y.toFixed(4)}, ${point.x.toFixed(4)})` : ''
   const scale = row.scale ? ` · scale: ${row.scale}` : ''
   lines.push(`**Location:** ${row.locationName}${coords}${scale}`)
   if (row.implementer) lines.push(`**Implementer:** ${row.implementer}`)
-  if (row.startDate) lines.push(`**Period:** ${row.startDate}${row.endDate ? ` → ${row.endDate}` : ''}`)
-  if (row.cost) lines.push(`**Cost:** ${row.cost}${row.currency ? ` ${row.currency}` : ''}${row.fundingSource ? ` (${row.fundingSource})` : ''}`)
+  if (row.startDate)
+    lines.push(`**Period:** ${row.startDate}${row.endDate ? ` → ${row.endDate}` : ''}`)
+  if (row.cost)
+    lines.push(
+      `**Cost:** ${row.cost}${row.currency ? ` ${row.currency}` : ''}${row.fundingSource ? ` (${row.fundingSource})` : ''}`,
+    )
   lines.push('')
   if (row.description) lines.push(row.description, '')
   if (row.metrics?.length) {
-    lines.push('## Metrics', '', ...row.metrics.map(m => `- **${m.label}**: ${m.baseline ?? '–'} → ${m.result ?? '–'}${m.unit ? ` ${m.unit}` : ''}`), '')
+    lines.push(
+      '## Metrics',
+      '',
+      ...row.metrics.map(
+        (m) =>
+          `- **${m.label}**: ${m.baseline ?? '–'} → ${m.result ?? '–'}${m.unit ? ` ${m.unit}` : ''}`,
+      ),
+      '',
+    )
   }
   if (row.lessonsLearned?.length) {
-    lines.push('## Lessons learned', '', ...row.lessonsLearned.map(l => `- ${l}`), '')
+    lines.push('## Lessons learned', '', ...row.lessonsLearned.map((l) => `- ${l}`), '')
   }
   if (row.sources?.length) {
-    lines.push('## Sources', '', ...row.sources.map(s => `- [${s.title ?? s.url}](${s.url})`), '')
+    lines.push('## Sources', '', ...row.sources.map((s) => `- [${s.title ?? s.url}](${s.url})`), '')
   }
   if (row.links?.length) {
-    lines.push('## Links', '', ...row.links.map(s => `- [${s.title ?? s.url}](${s.url})`), '')
+    lines.push('## Links', '', ...row.links.map((s) => `- [${s.title ?? s.url}](${s.url})`), '')
   }
   lines.push('---', '', `Canonical: ${CANONICAL_BASE}/case-study/${row.id}`)
   return lines.join('\n')

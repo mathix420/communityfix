@@ -11,7 +11,12 @@ const props = defineProps<{
 void props
 
 const localExpanded = ref(props.expanded ?? false)
-watch(() => props.expanded, (v) => { if (v != null) localExpanded.value = v })
+watch(
+  () => props.expanded,
+  (v) => {
+    if (v != null) localExpanded.value = v
+  },
+)
 
 const slots = useSlots()
 const hasActions = computed(() => !!slots.actions)
@@ -24,13 +29,10 @@ const hasPreview = computed(() => !!slots.preview)
       <div class="min-w-0 space-y-1">
         <slot name="header" />
       </div>
-
       <slot name="meta" />
-
       <div v-if="localExpanded && hasPreview" class="bg-gray-50/80 rounded-lg p-3 text-xs space-y-2">
         <slot name="preview" />
       </div>
-
       <div
         v-if="hasActions || hasPreview"
         class="flex items-center justify-between gap-3 flex-wrap pt-1"
@@ -40,13 +42,13 @@ const hasPreview = computed(() => !!slots.preview)
         </div>
         <button
           v-if="hasPreview"
-          type="button"
           class="text-[11px] text-toned hover:text-black inline-flex items-center gap-1 transition-colors ml-auto"
+          type="button"
           @click="localExpanded = !localExpanded"
         >
           <UIcon
-            name="lucide:chevron-right"
             class="size-3 transition-transform"
+            name="lucide:chevron-right"
             :class="{ 'rotate-90': localExpanded }"
           />
           {{ localExpanded ? 'Hide details' : 'Show details' }}

@@ -20,7 +20,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Case study is already rejected' })
   }
 
-  await db.update(caseStudies)
+  await db
+    .update(caseStudies)
     .set({
       status: 'rejected',
       rejectionReason: body.reason.trim(),
@@ -33,7 +34,12 @@ export default defineEventHandler(async (event) => {
     action: 'override_reject',
     userId: cs.authorId,
     reason: body.reason.trim(),
-    details: { adminId: session.user.id, caseStudyId: id, solutionId: cs.solutionId, previousStatus: cs.status },
+    details: {
+      adminId: session.user.id,
+      caseStudyId: id,
+      solutionId: cs.solutionId,
+      previousStatus: cs.status,
+    },
   })
 
   if (cs.authorId) {

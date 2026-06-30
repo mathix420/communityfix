@@ -1,9 +1,12 @@
 <script setup lang="ts">
-const props = withDefaults(defineProps<{
-  mode?: 'login' | 'register'
-}>(), {
-  mode: 'login',
-})
+const props = withDefaults(
+  defineProps<{
+    mode?: 'login' | 'register'
+  }>(),
+  {
+    mode: 'login',
+  },
+)
 
 const { track } = useUmami()
 const route = useRoute()
@@ -33,10 +36,12 @@ const { register: registerPasskey, authenticate } = useWebAuthn({
   authenticateEndpoint: '/api/webauthn/authenticate',
 })
 
-const title = computed(() => props.mode === 'login' ? 'Welcome back' : 'Create account')
-const lead = computed(() => props.mode === 'login'
-  ? 'Sign in to pick up where you left off.'
-  : 'Join thousands fixing their communities. It takes seconds.')
+const title = computed(() => (props.mode === 'login' ? 'Welcome back' : 'Create account'))
+const lead = computed(() =>
+  props.mode === 'login'
+    ? 'Sign in to pick up where you left off.'
+    : 'Join thousands fixing their communities. It takes seconds.',
+)
 
 const trimmedEmail = computed(() => email.value.trim())
 
@@ -45,7 +50,9 @@ function fetchErrorMessage(error: any, fallback: string): string {
 }
 
 function ensureEmail() {
-  if (trimmedEmail.value) { return true }
+  if (trimmedEmail.value) {
+    return true
+  }
   toast.add({
     title: 'Add your email',
     description: 'We need your email to create your account.',
@@ -55,7 +62,9 @@ function ensureEmail() {
 }
 
 async function postLoginNavigate() {
-  const { url: continueUrl } = await $fetch<{ url: string }>('/api/_auth/post-login-redirect').catch(() => ({ url: '' }))
+  const { url: continueUrl } = await $fetch<{ url: string }>(
+    '/api/_auth/post-login-redirect',
+  ).catch(() => ({ url: '' }))
   await navigateTo(continueUrl || (props.mode === 'register' ? '/settings' : '/'))
 }
 
@@ -66,8 +75,7 @@ async function handleLogin() {
     await fetchUserSession()
     track('Sign in with passkey')
     await postLoginNavigate()
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error(error)
     track('Passkey failed', { mode: props.mode })
     toast.add({
@@ -75,8 +83,7 @@ async function handleLogin() {
       description: fetchErrorMessage(error, 'Try again or use social login.'),
       color: 'error',
     })
-  }
-  finally {
+  } finally {
     isPasskeyLoading.value = false
   }
 }
@@ -97,16 +104,14 @@ async function sendCode() {
       description: `We sent a 6-digit code to ${trimmedEmail.value}.`,
       color: 'success',
     })
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error(error)
     toast.add({
       title: 'Could not send code',
       description: fetchErrorMessage(error, 'Try again in a moment.'),
       color: 'error',
     })
-  }
-  finally {
+  } finally {
     isSendingCode.value = false
   }
 }
@@ -130,8 +135,7 @@ async function verifyAndRegister() {
     await fetchUserSession()
     track('Register with passkey')
     await postLoginNavigate()
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error(error)
     track('Passkey register failed')
     toast.add({
@@ -139,8 +143,7 @@ async function verifyAndRegister() {
       description: fetchErrorMessage(error, 'Try again or use Google.'),
       color: 'error',
     })
-  }
-  finally {
+  } finally {
     isVerifying.value = false
   }
 }
@@ -161,140 +164,109 @@ function startOAuth(provider: 'google') {
 
 <template>
   <section class="w-full max-w-md mx-auto">
-    <UiPageHeader
-      :title="title"
-      :description="lead"
-      center
-    />
-
-    <UiCard
-      padding="lg"
-      class="flex flex-col gap-5"
-    >
+    <UiPageHeader center :description="lead" :title="title" />
+    <UiCard class="flex flex-col gap-5" padding="lg">
       <!-- Login: single-button passkey -->
-      <form
-        v-if="props.mode === 'login'"
-        class="grid gap-4"
-        @submit.prevent="handleLogin"
-      >
+      <form v-if="props.mode === 'login'" class="grid gap-4" @submit.prevent="handleLogin">
         <UButton
-          type="submit"
           block
-          size="lg"
           color="primary"
           icon="i-lucide-key-round"
+          size="lg"
+          type="submit"
           :loading="isPasskeyLoading"
         >
           Sign in with passkey
         </UButton>
       </form>
-
       <!-- Register step 1: collect email, send PIN -->
-      <form
-        v-else-if="step === 'email'"
-        class="grid gap-4"
-        @submit.prevent="sendCode"
-      >
+      <form v-else-if="step === 'email'" class="grid gap-4" @submit.prevent="sendCode">
         <UFormField label="Email" name="email">
           <UInput
             v-model="email"
-            type="email"
-            placeholder="you@example.com"
             autocomplete="email"
-            size="lg"
             class="w-full"
+            placeholder="you@example.com"
             required
+            size="lg"
+            type="email"
           />
         </UFormField>
-
         <UButton
-          type="submit"
           block
-          size="lg"
           color="primary"
           icon="i-lucide-mail"
+          size="lg"
+          type="submit"
           :loading="isSendingCode"
         >
           Send verification code
         </UButton>
       </form>
-
       <!-- Register step 2: enter PIN, verify, then register passkey -->
-      <form
-        v-else
-        class="grid gap-4"
-        @submit.prevent="verifyAndRegister"
-      >
+      <form v-else class="grid gap-4" @submit.prevent="verifyAndRegister">
         <div class="text-sm text-gray-600">
           We sent a 6-digit code to
-          <span class="font-mono">{{ trimmedEmail }}</span>.
-          <button
-            type="button"
-            class="text-primary-600 hover:underline ml-1"
-            @click="changeEmail"
-          >
+          <span class="font-mono">
+            {{ trimmedEmail }}
+          </span>
+          .
+          <button class="text-primary-600 hover:underline ml-1" type="button" @click="changeEmail">
             Change
           </button>
         </div>
-
         <UFormField label="Verification code" name="code">
           <UInput
             v-model="code"
-            type="text"
-            inputmode="numeric"
             autocomplete="one-time-code"
-            placeholder="123456"
-            maxlength="6"
-            size="lg"
             class="w-full font-mono tracking-widest"
+            inputmode="numeric"
+            maxlength="6"
+            placeholder="123456"
             required
+            size="lg"
+            type="text"
           />
         </UFormField>
-
         <UButton
-          type="submit"
           block
-          size="lg"
           color="primary"
           icon="i-lucide-key-round"
+          size="lg"
+          type="submit"
           :loading="isVerifying"
         >
           Verify and create passkey
         </UButton>
-
         <button
-          type="button"
           class="text-xs text-center text-gray-500 hover:text-gray-700"
+          type="button"
           :disabled="isSendingCode"
           @click="sendCode"
         >
           {{ isSendingCode ? 'Resending…' : 'Resend code' }}
         </button>
       </form>
-
       <UiDivider text="or continue with" />
-
       <UButton
         block
-        variant="soft"
         color="neutral"
         icon="i-fa6-brands-google"
+        variant="soft"
         :loading="activeProvider === 'google'"
         @click="startOAuth('google')"
       >
         Google
       </UButton>
-
       <p class="text-xs text-center text-gray-400 font-mono">
         Passwordless by design
       </p>
     </UiCard>
-
     <p class="mt-6 text-center text-sm text-gray-500">
       {{ props.mode === 'login' ? "Don't have an account?" : 'Already have an account?' }}
       <NuxtLink
-        :to="props.mode === 'login' ? '/register' : '/login'"
         class="text-primary-600 hover:underline font-medium"
+        :to="props.mode === 'login' ? '/register' : '/login'"
         @click="track(props.mode === 'login' ? 'Switch to register' : 'Switch to login')"
       >
         {{ props.mode === 'login' ? 'Create one' : 'Sign in' }}

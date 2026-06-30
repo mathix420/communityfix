@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Issue is no longer pending' })
   }
 
-  await db.update(issues)
+  await db
+    .update(issues)
     .set({
       infoResponse: body.response.trim(),
       infoRespondedAt: new Date(),

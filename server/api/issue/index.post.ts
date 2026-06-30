@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     latitude?: number
     longitude?: number
     scale?: LocationScale
-    links?: Array<{ url: string, title?: string }>
+    links?: Array<{ url: string; title?: string }>
   }>(event)
 
   const created = await createIssue(session.user.id, {

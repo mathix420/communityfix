@@ -22,15 +22,15 @@ export default defineEventHandler(async (event) => {
   }
 
   if (issue.parentId && issue.status === 'approved') {
-    const counter = issue.type === 'solution'
-      ? { solutionCount: sql`GREATEST(${issues.solutionCount} - 1, 0)` }
-      : { subIssueCount: sql`GREATEST(${issues.subIssueCount} - 1, 0)` }
-    await db.update(issues)
-      .set(counter)
-      .where(eq(issues.id, issue.parentId))
+    const counter =
+      issue.type === 'solution'
+        ? { solutionCount: sql`GREATEST(${issues.solutionCount} - 1, 0)` }
+        : { subIssueCount: sql`GREATEST(${issues.subIssueCount} - 1, 0)` }
+    await db.update(issues).set(counter).where(eq(issues.id, issue.parentId))
   }
 
-  await db.update(issues)
+  await db
+    .update(issues)
     .set({
       status: 'rejected',
       rejectionReason: body.reason,

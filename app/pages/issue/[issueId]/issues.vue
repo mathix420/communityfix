@@ -27,43 +27,28 @@ const { data: subIssues } = await useFetch(() => `/api/issue/${issueId.value}/is
 
 <template>
   <div class="mt-4 flex flex-col max-w-3xl mx-auto gap-4">
-    <div
-      v-if="(subIssues?.length ?? 0) > 0 || search.trim()"
-      class="flex items-stretch gap-3"
-    >
+    <div v-if="(subIssues?.length ?? 0) > 0 || search.trim()" class="flex items-stretch gap-3">
       <UiSearchAndSortBar
         v-model:search="search"
         v-model:sort="sort"
-        :sort-options="sortOptions"
         placeholder="Search sub-issues..."
+        :sort-options="sortOptions"
       />
-      <UiActionButton
-        :to="`/new?parent=${issueId}&type=issue`"
-        @click="track('Open sub-issue form')"
-      >
+      <UiActionButton :to="`/new?parent=${issueId}&type=issue`" @click="track('Open sub-issue form')">
         Propose a sub-issue
       </UiActionButton>
     </div>
-
-    <CardIssue
-      v-for="issue in subIssues"
-      :key="issue.id"
-      :issue="issue"
-    />
-
+    <CardIssue v-for="issue in subIssues" :key="issue.id" :issue="issue" />
     <UiEmptyState
       v-if="subIssues?.length === 0 && !search.trim()"
+      cta-event="Empty state cta sub-issues"
+      cta-label="Add a sub-issue"
+      description="Each sub-issue gives the community a sharper target to rally around."
       icon="lucide:circle-alert"
       title="Help break this problem down"
-      description="Each sub-issue gives the community a sharper target to rally around."
-      cta-label="Add a sub-issue"
       :cta-to="`/new?parent=${issueId}&type=issue`"
-      cta-event="Empty state cta sub-issues"
     />
-    <p
-      v-else-if="subIssues?.length === 0"
-      class="text-toned text-center py-8"
-    >
+    <p v-else-if="subIssues?.length === 0" class="text-toned text-center py-8">
       No sub-issues match your search.
     </p>
   </div>

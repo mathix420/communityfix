@@ -16,7 +16,9 @@ export const issueWithRelations = {
 
 export function transformIssue(issue: DbIssue, { includeModeration = false } = {}) {
   if (!issue.createdAt) {
-    throw new Error(`[transformIssue] Issue ${issue.id} has no createdAt — refusing to serialize a corrupt row`)
+    throw new Error(
+      `[transformIssue] Issue ${issue.id} has no createdAt — refusing to serialize a corrupt row`,
+    )
   }
   return {
     id: issue.id,
@@ -33,19 +35,21 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
     status: issue.status,
     type: issue.type,
     solutionStatus: issue.solutionStatus,
-    tags: issue.issueTags.map(it => it.tag.slug),
-    sustainableDevelopmentGoals: issue.issueSdgs.map(is => ({
+    tags: issue.issueTags.map((it) => it.tag.slug),
+    sustainableDevelopmentGoals: issue.issueSdgs.map((is) => ({
       id: is.sdg.id,
       name: is.sdg.name,
       iconUrl: is.sdg.iconUrl,
       link: is.sdg.link,
     })),
     locationName: issue.locationName,
-    location: issue.location ? {
-      latitude: (issue.location as { x: number, y: number }).y,
-      longitude: (issue.location as { x: number, y: number }).x,
-      area: issue.area ?? null,
-    } : null,
+    location: issue.location
+      ? {
+          latitude: (issue.location as { x: number; y: number }).y,
+          longitude: (issue.location as { x: number; y: number }).x,
+          area: issue.area ?? null,
+        }
+      : null,
     scale: issue.scale,
     links: issue.links ?? null,
     ...(includeModeration && {

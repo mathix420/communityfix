@@ -14,12 +14,13 @@ export default defineEventHandler(async (event) => {
   const id = parseInt(issueId, 10)
 
   await db.transaction(async (tx) => {
-    await tx.delete(votes).where(
-      and(eq(votes.userId, session.user.id), eq(votes.issueId, id)),
-    )
+    await tx.delete(votes).where(and(eq(votes.userId, session.user.id), eq(votes.issueId, id)))
 
-    await tx.update(issues)
-      .set({ voteScore: sql`(SELECT COALESCE(SUM(value * weight), 0) FROM votes WHERE issue_id = ${id})` })
+    await tx
+      .update(issues)
+      .set({
+        voteScore: sql`(SELECT COALESCE(SUM(value * weight), 0) FROM votes WHERE issue_id = ${id})`,
+      })
       .where(eq(issues.id, id))
   })
 
@@ -32,8 +33,9 @@ export default defineEventHandler(async (event) => {
   // waitUntil so the recompute survives past the response being returned.
   if (updated?.authorId) {
     const authorId = updated.authorId
-    const trustPromise = updateUserTrustScore(authorId).catch(err =>
-      console.error(`[vote.delete] Trust score update failed for author ${authorId}:`, err))
+    const trustPromise = updateUserTrustScore(authorId).catch((err) =>
+      console.error(`[vote.delete] Trust score update failed for author ${authorId}:`, err),
+    )
     ;(event.context as any).cloudflare?.context?.waitUntil?.(trustPromise)
   }
 

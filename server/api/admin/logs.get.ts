@@ -33,7 +33,10 @@ export default defineEventHandler(async (event) => {
       limit,
       offset: (page - 1) * limit,
     }),
-    db.select({ count: sql<number>`COUNT(*)` }).from(auditLogs).where(where),
+    db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(auditLogs)
+      .where(where),
   ])
 
   return {
