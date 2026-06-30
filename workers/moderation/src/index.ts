@@ -19,6 +19,10 @@ import {
   finalizeCaseStudy,
   resolveLocation,
   applyLocationFix,
+  prepareRevision,
+  prescreenRevision,
+  applyRevisionPrescreen,
+  CASE_STUDY_DUPLICATE_THRESHOLD,
   type IssuePrep,
   type ModerationResult,
   type TagResult,
@@ -37,7 +41,7 @@ interface Env {
   NUXT_ADMIN_EMAILS: string
 }
 
-export type ModerationKind = 'issue' | 'case-study' | 'structure'
+export type ModerationKind = 'issue' | 'case-study' | 'structure' | 'revision'
 export interface ModerationParams {
   kind: ModerationKind
   id: number
@@ -64,7 +68,16 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
       await this.reviewCaseStudy(ctx, step, id)
     } else if (kind === 'structure') {
       await this.reviewStructure(ctx, step, id)
+    } else if (kind === 'revision') {
+      await this.reviewRevision(ctx, step, id)
     }
+  }
+
+  private async reviewRevision(ctx: Ctx, step: WorkflowStep, id: number) {
+    const prep = await step.do('prepare', STEP, () => prepareRevision(ctx, id))
+    if (!prep) return
+    const result = await step.do('prescreen', STEP, () => prescreenRevision(ctx, prep))
+    await step.do('apply', STEP, () => applyRevisionPrescreen(ctx, prep, result))
   }
 
   private async reviewIssue(ctx: Ctx, step: WorkflowStep, id: number) {
@@ -175,6 +188,22 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
   private async reviewCaseStudy(ctx: Ctx, step: WorkflowStep, id: number) {
     const prep = await step.do('prepare', STEP, () => prepareCaseStudy(ctx, id))
     if (!prep) return
+
+    // Reject a near-duplicate before spending a moderation call: a case study that
+    // re-records an approved deployment under the same solution is a duplicate, not
+    // a fresh submission. Mirrors the issue/solution dedup hard-check.
+    const duplicate = prep.similar.find((s) => s.similarity >= CASE_STUDY_DUPLICATE_THRESHOLD)
+    if (duplicate) {
+      await step.do('reject', STEP, () =>
+        rejectCaseStudy(ctx, prep.cs, {
+          approved: false,
+          isSpam: false,
+          reason: `Near-duplicate of existing case study #${duplicate.id} (${(duplicate.similarity * 100).toFixed(0)}% similarity)`,
+          duplicateOfId: duplicate.id,
+        }),
+      )
+      return
+    }
 
     const moderation = await step.do('moderate', STEP, () =>
       runStep<CaseStudyModeration>(

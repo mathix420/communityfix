@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   const db = useDB()
   const query = getQuery(event)
   const tagFilter = query.tag as string | undefined
-  const sortBy = (query.sort as string) || 'newest'
+  const sortBy = (query.sort as string) || 'most_voted'
   const searchTerm = (query.search as string) || ''
   const lat = query.lat ? parseFloat(query.lat as string) : undefined
   const lng = query.lng ? parseFloat(query.lng as string) : undefined
@@ -77,5 +77,8 @@ export default defineEventHandler(async (event) => {
     with: issueWithRelations,
     orderBy: orderByClause,
   })
-  return results.map((i) => transformIssue(i))
+  return withMembers(
+    'issue',
+    results.map((i) => transformIssue(i)),
+  )
 })

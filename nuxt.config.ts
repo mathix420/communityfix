@@ -67,6 +67,8 @@ export default defineNuxtConfig({
 
   routeRules: {
     '/umami/**': { proxy: 'https://cloud.umami.is/**' },
+    // The revision inbox folded into the broader dashboard.
+    '/inbox': { redirect: '/dashboard' },
   },
 
   future: {
@@ -87,6 +89,8 @@ export default defineNuxtConfig({
     scheduledTasks: {
       // Recompute all trust scores daily at 3am UTC
       '0 3 * * *': ['compute:trust-scores'],
+      // Reap expired OAuth codes/tokens + stale rate-limit windows at 3:15am UTC
+      '15 3 * * *': ['oauth:purge'],
     },
     // Mount the `auth` namespace on the Cloudflare KV binding so the WebAuthn
     // challenge round-trip survives across requests / isolates. The default

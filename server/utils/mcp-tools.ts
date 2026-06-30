@@ -4,10 +4,11 @@ import {
   issues,
   qualificationEndorsements,
   qualifications,
+  revisions,
   tags,
   users,
 } from '../database/schema'
-import type { IssueType } from '../database/schema'
+import type { IssueType, RevisionTargetKind } from '../database/schema'
 import { generateEmbedding, findSimilar } from './embeddings'
 import { isAdminEmail } from './admin'
 import { issueWithRelations, transformIssue } from './transform-issue'
@@ -17,6 +18,20 @@ import { createCaseStudy, transformCaseStudy, updateCaseStudy } from './case-stu
 import type { CreateCaseStudyInput, UpdateCaseStudyInput } from './case-study-write'
 import { getIssueTree } from './issue-tree'
 import { triggerModeration } from './moderation-trigger'
+import { getIsAdmin } from './is-admin'
+import {
+  canViewRevision,
+  decideRevision,
+  diffSnapshots,
+  editableCaseStudySnapshot,
+  editableIssueSnapshot,
+  proposeRevision,
+  recordRevision,
+  serializeRevision,
+  type DecideAction,
+  type Snapshot,
+} from './revision-write'
+import { resolveDecideRole, isNodeOwner } from './node-members'
 
 const SEARCH_SIMILARITY_THRESHOLD = 0.25
 const SUGGEST_LIMIT = 8
@@ -90,38 +105,134 @@ async function createNode(userId: string, input: CreateIssueInput) {
   return transformIssue(hydrated!)
 }
 
-export async function createIssueAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
+type CreateNodeArgs = Omit<CreateIssueInput, 'type'>
+
+export async function createIssueAs(userId: string, input: CreateNodeArgs) {
   return createNode(userId, { ...input, type: 'issue' })
 }
 
-export async function createSolutionAs(userId: string, input: Omit<CreateIssueInput, 'type'>) {
+export async function createSolutionAs(userId: string, input: CreateNodeArgs) {
   if (!input.parentId) {
     throw createError({ statusCode: 400, statusMessage: 'parentId is required for a solution' })
   }
   return createNode(userId, { ...input, type: 'solution' })
 }
 
-async function updateNode(userId: string, input: UpdateIssueInput, expectedType: IssueType) {
-  const { issue: updated, contentChanged } = await updateIssue(userId, input, expectedType)
-  if (contentChanged) {
-    await triggerModeration('issue', updated.id)
+// The shape an MCP update / propose tool returns: either the owner/admin direct
+// edit (the live, re-hydrated node) or the pending proposal that was recorded
+// for a non-owner. `applied` lets the client tell the two apart.
+type AppliedNode = { applied: true; node: ReturnType<typeof transformIssue> }
+type ProposedNode = { applied: false; revision: ReturnType<typeof serializeRevision> }
+type AppliedCaseStudy = {
+  applied: true
+  caseStudy: NonNullable<Awaited<ReturnType<typeof hydrateCaseStudy>>>
+}
+type ProposedRevision = { applied: false; revision: ReturnType<typeof serializeRevision> }
+
+async function updateNode(
+  userId: string,
+  input: UpdateIssueInput & { note?: string | null },
+  expectedType: IssueType,
+): Promise<AppliedNode | ProposedNode> {
+  const db = useDB()
+  const { note, ...patch } = input
+  const node = await db.query.issues.findFirst({ where: eq(issues.id, patch.id) })
+  if (!node) throw createError({ statusCode: 404, statusMessage: `Issue ${patch.id} not found` })
+  if (node.type !== expectedType) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Node ${patch.id} is a ${node.type} — use update_${node.type} instead`,
+    })
   }
-  const hydrated = await useDB().query.issues.findFirst({
+
+  const isAdmin = await getIsAdmin(userId)
+  const role = await resolveDecideRole(userId, 'issue', node.id, isAdmin)
+
+  // Non-owner / non-admin: record a pending proposal instead of mutating,
+  // mirroring the REST PATCH routing. No H3 event here, so the owner email is
+  // skipped (best-effort) — the AI pre-screen + in-app inbox still cover it.
+  if (!role) {
+    const { id, ...fields } = patch
+    const changes = issueChangesFromInput(fields, editableIssueSnapshot(node))
+    const revision = await proposeRevision(userId, {
+      targetKind: 'issue',
+      targetId: id,
+      changes,
+      note: note ?? null,
+    })
+    return { applied: false, revision: serializeRevision(revision) }
+  }
+
+  // Owner/admin: apply immediately via the single write path, then record a
+  // born-approved revision and fire re-moderation as needed.
+  const {
+    issue: updated,
+    before,
+    contentChanged,
+    parentChanged,
+  } = await updateIssue(userId, patch, expectedType)
+  const after = editableIssueSnapshot(updated)
+  const changes = diffSnapshots(before, after)
+  if (Object.keys(changes).length > 0) {
+    await recordRevision({
+      targetKind: 'issue',
+      issueId: updated.id,
+      caseStudyId: null,
+      proposerId: userId,
+      status: 'approved',
+      changes,
+      baseSnapshot: before,
+      appliedSnapshot: after,
+      note: note ?? null,
+      decidedById: userId,
+      decidedByRole: role,
+    })
+  }
+  if (contentChanged) await triggerModeration('issue', updated.id)
+  if (parentChanged) await triggerModeration('structure', updated.id)
+
+  const hydrated = await db.query.issues.findFirst({
     where: eq(issues.id, updated.id),
     with: issueWithRelations,
   })
-  return transformIssue(hydrated!)
+  return { applied: true, node: transformIssue(hydrated!) }
 }
 
 export async function updateIssueAs(
   userId: string,
-  input: Omit<UpdateIssueInput, 'solutionStatus'>,
+  input: Omit<UpdateIssueInput, 'solutionStatus'> & { note?: string | null },
 ) {
   return updateNode(userId, input, 'issue')
 }
 
-export async function updateSolutionAs(userId: string, input: UpdateIssueInput) {
+export async function updateSolutionAs(
+  userId: string,
+  input: UpdateIssueInput & { note?: string | null },
+) {
   return updateNode(userId, input, 'solution')
+}
+
+// Map an UpdateIssueInput (latitude/longitude pair) onto the snapshot-keyed
+// `changes` map proposeRevision expects (location collapses to {latitude,
+// longitude}, merging with the current value so a one-axis edit keeps the
+// other). Only fields the caller actually supplied are forwarded.
+function issueChangesFromInput(fields: Omit<UpdateIssueInput, 'id'>, base: Snapshot): Snapshot {
+  const changes: Snapshot = {}
+  if (fields.title !== undefined) changes.title = fields.title
+  if (fields.summary !== undefined) changes.summary = fields.summary
+  if (fields.description !== undefined) changes.description = fields.description ?? null
+  if (fields.solutionStatus !== undefined) changes.solutionStatus = fields.solutionStatus ?? null
+  if (fields.locationName !== undefined) changes.locationName = fields.locationName ?? null
+  if (fields.scale !== undefined) changes.scale = fields.scale ?? null
+  if (fields.links !== undefined) changes.links = fields.links ?? null
+  if (fields.parentId !== undefined) changes.parentId = fields.parentId ?? null
+  if (fields.latitude !== undefined || fields.longitude !== undefined) {
+    const baseLoc = base.location as { latitude: number; longitude: number } | null
+    const lat = fields.latitude ?? baseLoc?.latitude ?? null
+    const lng = fields.longitude ?? baseLoc?.longitude ?? null
+    changes.location = lat != null && lng != null ? { latitude: lat, longitude: lng } : null
+  }
+  return changes
 }
 
 async function hydrateCaseStudy(id: number) {
@@ -137,9 +248,170 @@ export async function createCaseStudyAs(userId: string, input: CreateCaseStudyIn
   return (await hydrateCaseStudy(created.id))!
 }
 
-export async function updateCaseStudyAs(userId: string, input: UpdateCaseStudyInput) {
-  const updated = await updateCaseStudy(userId, input)
-  return (await hydrateCaseStudy(updated.id))!
+export async function updateCaseStudyAs(
+  userId: string,
+  input: UpdateCaseStudyInput & { note?: string | null },
+): Promise<AppliedCaseStudy | ProposedRevision> {
+  const db = useDB()
+  const { note, ...patch } = input
+  const node = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, patch.id) })
+  if (!node)
+    throw createError({ statusCode: 404, statusMessage: `Case study ${patch.id} not found` })
+
+  const isAdmin = await getIsAdmin(userId)
+  const role = await resolveDecideRole(userId, 'case_study', node.id, isAdmin)
+
+  // Non-owner / non-admin: record a pending proposal instead of mutating. The
+  // admin-only `verified` flag is never proposable, so it's dropped here.
+  if (!role) {
+    const { id, verified: _verified, ...fields } = patch
+    const changes = caseStudyChangesFromInput(fields, editableCaseStudySnapshot(node))
+    const revision = await proposeRevision(userId, {
+      targetKind: 'case_study',
+      targetId: id,
+      changes,
+      note: note ?? null,
+    })
+    return { applied: false, revision: serializeRevision(revision) }
+  }
+
+  // Owner/admin: apply immediately, then record a born-approved revision.
+  // updateCaseStudy self-triggers re-moderation on content change.
+  const { caseStudy: updated, before } = await updateCaseStudy(userId, patch)
+  const after = editableCaseStudySnapshot(updated)
+  const changes = diffSnapshots(before, after)
+  if (Object.keys(changes).length > 0) {
+    await recordRevision({
+      targetKind: 'case_study',
+      issueId: null,
+      caseStudyId: updated.id,
+      proposerId: userId,
+      status: 'approved',
+      changes,
+      baseSnapshot: before,
+      appliedSnapshot: after,
+      note: note ?? null,
+      decidedById: userId,
+      decidedByRole: role,
+    })
+  }
+  return { applied: true, caseStudy: (await hydrateCaseStudy(updated.id))! }
+}
+
+// Map an UpdateCaseStudyInput onto the snapshot-keyed `changes` map. Every
+// editable field forwards as-is; latitude/longitude collapse to the snapshot's
+// `location: {latitude, longitude}` shape (merging with the current value).
+function caseStudyChangesFromInput(
+  fields: Omit<UpdateCaseStudyInput, 'id' | 'verified'>,
+  base: Snapshot,
+): Snapshot {
+  const changes: Snapshot = {}
+  const body = fields as Record<string, unknown>
+  for (const key of Object.keys(base)) {
+    if (key === 'location') continue
+    if (key in body) changes[key] = body[key]
+  }
+  if ('latitude' in body || 'longitude' in body) {
+    const baseLoc = base.location as { latitude: number; longitude: number } | null
+    const lat = (body.latitude as number | null | undefined) ?? baseLoc?.latitude ?? null
+    const lng = (body.longitude as number | null | undefined) ?? baseLoc?.longitude ?? null
+    changes.location = lat != null && lng != null ? { latitude: lat, longitude: lng } : null
+  }
+  return changes
+}
+
+// ---------------------------------------------------------------------------
+// Revisions (propose / list / review) — the collaborative-edit layer over MCP.
+// All three route through server/utils/revision-write.ts, so the same
+// owner/admin-apply-vs-propose routing, visibility rules, and version-history
+// ledger as the REST endpoints apply. There is no H3 event on the MCP path, so
+// `proposeRevision`/`decideRevision` are called without one — the owner/proposer
+// emails degrade to skipped (best-effort), exactly like the dev `triggerModeration`.
+// ---------------------------------------------------------------------------
+
+// `kind` over MCP distinguishes issue/solution/case_study; both issues and
+// solutions live in the `issues` table, so they map to the 'issue' target kind.
+type ProposeEditKind = 'issue' | 'solution' | 'case_study'
+
+/**
+ * Propose (or, for the owner/admin, directly apply) an edit to any node. Routes
+ * through the same logic as `update_issue`/`update_solution`/`update_case_study`
+ * — owner/admin → applied born-approved revision; anyone else → pending proposal.
+ */
+export async function proposeEditAs(
+  userId: string,
+  input: { kind: ProposeEditKind; id: number; note?: string | null } & Record<string, unknown>,
+): Promise<AppliedNode | ProposedNode | AppliedCaseStudy | ProposedRevision> {
+  const { kind, id, note, ...fields } = input
+  if (kind === 'case_study') {
+    return updateCaseStudyAs(userId, { id, note, ...(fields as Omit<UpdateCaseStudyInput, 'id'>) })
+  }
+  const expectedType: IssueType = kind === 'solution' ? 'solution' : 'issue'
+  return updateNode(userId, { id, note, ...(fields as Omit<UpdateIssueInput, 'id'>) }, expectedType)
+}
+
+/**
+ * Version history + viewer-visible proposals for a node. Approved revisions are
+ * public; pending/rejected/withdrawn/superseded are visible only to the node
+ * owner, an admin, or the proposer (same visibility rules as the REST list).
+ * `kind` selects the table; `id` is the issue/solution or case-study id.
+ */
+export async function listRevisionsFor(
+  userId: string,
+  input: { kind: ProposeEditKind; id: number },
+): Promise<
+  { status: 'ok'; revisions: ReturnType<typeof serializeRevision>[] } | { status: 'not_found' }
+> {
+  const db = useDB()
+  const targetKind: RevisionTargetKind = input.kind === 'case_study' ? 'case_study' : 'issue'
+
+  if (targetKind === 'issue') {
+    const node = await db.query.issues.findFirst({
+      where: eq(issues.id, input.id),
+      columns: { id: true },
+    })
+    if (!node) return { status: 'not_found' }
+  } else {
+    const node = await db.query.caseStudies.findFirst({
+      where: eq(caseStudies.id, input.id),
+      columns: { id: true },
+    })
+    if (!node) return { status: 'not_found' }
+  }
+
+  const isAdmin = await getIsAdmin(userId)
+  const viewerIsOwner = await isNodeOwner(userId, targetKind, input.id)
+  const rows = await db.query.revisions.findMany({
+    where:
+      targetKind === 'issue'
+        ? eq(revisions.issueId, input.id)
+        : eq(revisions.caseStudyId, input.id),
+    with: {
+      proposer: { columns: { id: true, name: true } },
+      decidedBy: { columns: { id: true, name: true } },
+    },
+    orderBy: desc(revisions.createdAt),
+  })
+
+  return {
+    status: 'ok',
+    revisions: rows
+      .filter((r) => canViewRevision(r, viewerIsOwner, userId, isAdmin))
+      .map(serializeRevision),
+  }
+}
+
+/**
+ * Owner/admin approves or rejects a pending proposal. Permission (owner/admin),
+ * the 404/409 guards, the apply-on-approve, and trust-score recompute all live
+ * in `decideRevision`. No event is passed, so the proposer email is skipped.
+ */
+export async function reviewRevisionAs(
+  userId: string,
+  input: { revisionId: number; action: DecideAction; reason?: string | null },
+) {
+  const updated = await decideRevision(userId, input.revisionId, input.action, input.reason ?? null)
+  return updated ? serializeRevision(updated) : null
 }
 
 export async function getCaseStudyById(id: number) {

@@ -1,5 +1,12 @@
-import { eq, sql, and, ne } from 'drizzle-orm'
-import { users, issues, votes, qualifications, qualificationEndorsements } from '../database/schema'
+import { eq, sql, and, ne, isNotNull } from 'drizzle-orm'
+import {
+  users,
+  issues,
+  votes,
+  qualifications,
+  qualificationEndorsements,
+  revisions,
+} from '../database/schema'
 import { isAdminEmail } from './admin'
 import { createAuditLog } from './audit-log'
 
@@ -16,6 +23,11 @@ export interface TrustScoreFactors {
   // for the credential). Each verified credential is a heavy positive
   // signal — far more reliable than peer endorsements.
   verifiedCredentials: number
+  // Number of the user's collaborative-edit proposals that someone ELSE
+  // approved (status='approved' AND decided_by_id <> proposer_id). Born-approved
+  // self-edits are excluded by that filter. A small, capped positive signal —
+  // accepted proposals show the user contributes good edits to others' content.
+  proposalsApproved: number
   wasBanned: boolean
 }
 
@@ -55,6 +67,14 @@ export function computeScore(factors: TrustScoreFactors): number {
   const verifiedPts =
     factors.verifiedCredentials > 0 ? Math.min(30, 20 + (factors.verifiedCredentials - 1) * 5) : 0
 
+  // Accepted proposals: up to 8 pts (logarithmic). Genuine collaborative edits
+  // accepted by other owners/admins. Kept small so it nudges scores without
+  // materially moving existing users who've never proposed an edit.
+  const proposalPts =
+    factors.proposalsApproved > 0
+      ? Math.min(8, (8 * Math.log1p(factors.proposalsApproved)) / Math.log1p(20))
+      : 0
+
   // Ban penalty: -20 pts
   const banPenalty = factors.wasBanned ? -20 : 0
 
@@ -66,6 +86,7 @@ export function computeScore(factors: TrustScoreFactors): number {
     solutionPts +
     engagementPts +
     verifiedPts +
+    proposalPts +
     banPenalty
   return Math.round(Math.max(0, Math.min(100, raw)))
 }
@@ -73,7 +94,7 @@ export function computeScore(factors: TrustScoreFactors): number {
 export async function computeUserTrustScore(userId: string): Promise<number> {
   const db = useDB()
 
-  const [stats, voteStats, engagementStats, verifiedStats] = await Promise.all([
+  const [stats, voteStats, engagementStats, verifiedStats, proposalStats] = await Promise.all([
     // Contribution stats + account info
     db
       .select({
@@ -138,6 +159,23 @@ export async function computeUserTrustScore(userId: string): Promise<number> {
         ),
       )
       .where(eq(qualifications.userId, userId)),
+
+    // Genuine accepted proposals: this user's revisions that were approved by
+    // someone else. The `decided_by_id <> proposer_id` filter naturally drops
+    // born-approved self-edits (owner/admin direct edits, where decider = proposer).
+    db
+      .select({
+        approvedProposals: sql<number>`COUNT(*)`.as('approved_proposals'),
+      })
+      .from(revisions)
+      .where(
+        and(
+          eq(revisions.proposerId, userId),
+          eq(revisions.status, 'approved'),
+          isNotNull(revisions.decidedById),
+          ne(revisions.decidedById, userId),
+        ),
+      ),
   ])
 
   if (!stats[0]) return 0
@@ -157,6 +195,7 @@ export async function computeUserTrustScore(userId: string): Promise<number> {
     totalVotesReceived: Number(voteStats[0]?.totalVotes ?? 0),
     votesCast: Number(engagementStats[0]?.votesCast ?? 0),
     verifiedCredentials: Number(verifiedStats[0]?.verifiedCount ?? 0),
+    proposalsApproved: Number(proposalStats[0]?.approvedProposals ?? 0),
     wasBanned,
   })
 }

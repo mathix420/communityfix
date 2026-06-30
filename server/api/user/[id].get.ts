@@ -176,10 +176,14 @@ export default defineEventHandler(async (event) => {
       isAdmin: viewerIsAdmin,
       isAuthenticated: !!viewerId,
     },
-    issues: filterSpam(userIssues).map((i) => transformIssue(i, { includeModeration: isOwner })),
-    solutions: filterSpam(userSolutions).map((i) =>
-      transformIssue(i, { includeModeration: isOwner }),
+    issues: await withMembers(
+      'issue',
+      filterSpam(userIssues).map((i) => transformIssue(i, { includeModeration: isOwner })),
     ),
-    caseStudies: userCaseStudies.map(transformCaseStudy),
+    solutions: await withMembers(
+      'issue',
+      filterSpam(userSolutions).map((i) => transformIssue(i, { includeModeration: isOwner })),
+    ),
+    caseStudies: await withMembers('case_study', userCaseStudies.map(transformCaseStudy)),
   }
 })

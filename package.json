@@ -11,6 +11,7 @@
     "postinstall": "nuxt prepare",
     "db:generate": "doppler run -- drizzle-kit generate",
     "db:migrate": "doppler run -- bun run server/database/migrate.ts",
+    "db:backfill-areas": "doppler run -- bun run server/database/backfill-areas.ts",
     "db:push": "doppler run -- drizzle-kit push",
     "db:seed": "doppler run -- bash -c 'for f in server/database/seed/*.sql; do psql $NUXT_DATABASE_URL -f $f; done'",
     "db:studio": "doppler run -- drizzle-kit studio",

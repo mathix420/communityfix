@@ -15,7 +15,7 @@ const sortOptions = [
 
 const queryParams = computed(() => {
   const params: Record<string, string> = { tag: tagSlug.value as string }
-  if (sort.value && sort.value !== 'newest') params.sort = sort.value
+  if (sort.value) params.sort = sort.value
   if (search.value.trim()) params.search = search.value.trim()
   return params
 })

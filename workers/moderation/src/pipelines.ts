@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   caseStudies,
   issues,
+  revisions,
   sdgs,
   tags,
   issueTags,
@@ -17,10 +18,16 @@ import {
   updateUserTrustScore,
   checkAndApplyBan,
 } from './lib'
-import { STEPS, runAgent } from './steps'
+import { STEPS, runAgent, runStep } from './steps'
 import { createGeocodeTool, bboxToPolygon } from './geocode'
+import { areaSimplifyTolerance, simplifyAreaGeometry } from '../../../server/utils/simplify-geo'
 
 const DUPLICATE_THRESHOLD = 0.92
+// Case studies sit under a single solution and are thematically close by
+// construction, so a true duplicate (the same deployment re-created) scores very
+// high (~0.95+) while genuinely distinct deployments of the same intervention
+// stay well below. A slightly stricter bar than issues keeps false positives down.
+export const CASE_STUDY_DUPLICATE_THRESHOLD = 0.93
 const CONFIDENCE_THRESHOLD = 0.7
 
 interface IssueRef {
@@ -33,6 +40,11 @@ interface SimilarIssue {
   id: number
   title: string
   summary: string
+  similarity: number
+}
+interface SimilarCaseStudy {
+  id: number
+  locationName: string | null
   similarity: number
 }
 interface RefItem {
@@ -209,13 +221,13 @@ export async function finalizeIssue(
         isSpam: moderation.isSpam ?? false,
       })
       .where(eq(issues.id, issueId))
+    let action: 'flag_spam' | 'flag_duplicate' | 'reject' = 'reject'
+    if (moderation.isSpam) action = 'flag_spam'
+    else if (moderation.duplicateOfId) action = 'flag_duplicate'
+
     await createAuditLog(db, {
       type: 'moderation',
-      action: moderation.isSpam
-        ? 'flag_spam'
-        : moderation.duplicateOfId
-          ? 'flag_duplicate'
-          : 'reject',
+      action,
       issueId,
       userId: issue.authorId,
       reason: moderation.reason,
@@ -456,6 +468,7 @@ export interface CaseStudyModeration {
   approved: boolean
   reason: string
   isSpam: boolean
+  duplicateOfId?: number | null
 }
 export interface CurationResult {
   description: string | null
@@ -481,6 +494,7 @@ export interface CaseStudyPrep {
   caseStudyText: string
   parentContext: string
   originalJson: string
+  similar: SimilarCaseStudy[]
 }
 
 export async function prepareCaseStudy(
@@ -539,12 +553,30 @@ export async function prepareCaseStudy(
     .filter(Boolean)
     .join('\n')
 
+  // Duplicate guard: case studies had no dedup, so re-creating the same deployment
+  // under a solution slipped straight through (e.g. a seed script run twice).
+  // Mirror the issue/solution path — compare this case study's embedding against
+  // approved siblings under the SAME solution; finalize rejects a near-duplicate.
+  let similar: SimilarCaseStudy[] = []
+  const embedding = cs.embedding as number[] | null
+  if (embedding) {
+    similar = await findSimilar<SimilarCaseStudy>(db, {
+      table: 'case_studies',
+      columns: 'id, location_name AS "locationName"',
+      embedding,
+      where: sql`status = 'approved' AND id <> ${cs.id} AND solution_id = ${cs.solutionId}`,
+      limit: 5,
+      threshold: 0.8,
+    })
+  }
+
   return {
     cs,
     solution,
     caseStudyText,
     parentContext,
     originalJson: JSON.stringify(original, null, 2),
+    similar,
   }
 }
 
@@ -619,8 +651,11 @@ export async function resolveLocation(
   const candidate = geocode.byPlaceId.get(out.chosenPlaceId)
   if (!candidate) return keep
 
-  const area =
+  const rawArea =
     candidate.geojson ?? (candidate.boundingbox ? bboxToPolygon(candidate.boundingbox) : null)
+  // Geocoder polygons (a country/state/biome) can carry thousands of vertices;
+  // simplify before persisting so the stored `area` stays small enough to serve.
+  const area = rawArea ? simplifyAreaGeometry(rawArea, areaSimplifyTolerance(target.scale)) : null
   return {
     action: 'relocate',
     confidence: out.confidence,
@@ -777,15 +812,20 @@ export async function rejectCaseStudy(
       isSpam: moderation.isSpam ?? false,
     })
     .where(eq(caseStudies.id, cs.id))
+  let action: 'flag_spam' | 'flag_duplicate' | 'reject' = 'reject'
+  if (moderation.isSpam) action = 'flag_spam'
+  else if (moderation.duplicateOfId) action = 'flag_duplicate'
+
   await createAuditLog(db, {
     type: 'moderation',
-    action: moderation.isSpam ? 'flag_spam' : 'reject',
+    action,
     userId: cs.authorId,
     reason: moderation.reason,
     details: {
       caseStudyId: cs.id,
       solutionId: cs.solutionId,
       isSpam: moderation.isSpam,
+      duplicateOfId: moderation.duplicateOfId ?? null,
       promptVersion: STEPS['case-study.moderate'].version,
     },
   })
@@ -897,4 +937,174 @@ export async function finalizeCaseStudy(
     },
   })
   if (cs.authorId) await updateUserTrustScore(ctx, cs.authorId)
+}
+
+// ── Revision pre-screen ────────────────────────────────────────────────────
+// A lightweight, single-shot triage of a *proposed* collaborative edit (the
+// `revisions` table) before its node owner reviews it. It does NOT moderate the
+// resulting content — accepted edits re-enter the normal issue/case-study gate
+// via `updateIssue`/`updateCaseStudy`. It only filters obvious spam/vandalism so
+// owners aren't pestered. Auto-reject only on a high-confidence spam/vandalism
+// verdict; everything else stays `pending` for the human.
+
+type Snapshot = Record<string, unknown>
+
+// A serializable subset of the revision row — `RevisionPrep` crosses a Workflow
+// `step.do` boundary, so (like `IssueRef`) it must hold only plain primitives,
+// not the raw row with its jsonb `changes`/`baseSnapshot` columns.
+interface RevisionRef {
+  id: number
+  targetKind: 'issue' | 'case_study'
+  issueId: number | null
+  caseStudyId: number | null
+  proposerId: string | null
+}
+
+export interface RevisionPrep {
+  revision: RevisionRef
+  originalText: string
+  proposedText: string
+  note: string
+}
+
+export interface RevisionPrescreen {
+  classification: 'spam' | 'vandalism' | 'ok'
+  confidence: number
+  reason: string
+}
+
+const PRESCREEN_AUTO_REJECT_CONFIDENCE = 0.8
+
+// Render an editable-field snapshot (see `editableIssueSnapshot` /
+// `editableCaseStudySnapshot` in server/utils/revision-write.ts) into a stable,
+// human-readable block so the model compares like with like. Empty/null fields
+// are dropped; arrays/objects (links, metrics, location) are JSON-serialized.
+function snapshotToText(snapshot: Snapshot): string {
+  const lines: string[] = []
+  for (const [key, value] of Object.entries(snapshot)) {
+    if (value == null) continue
+    if (Array.isArray(value)) {
+      if (value.length === 0) continue
+      lines.push(`${key}: ${JSON.stringify(value)}`)
+    } else if (typeof value === 'object') {
+      lines.push(`${key}: ${JSON.stringify(value)}`)
+    } else {
+      const str = String(value)
+      if (str === '') continue
+      lines.push(`${key}: ${str}`)
+    }
+  }
+  return lines.join('\n') || '(empty)'
+}
+
+export async function prepareRevision(ctx: Ctx, revisionId: number): Promise<RevisionPrep | null> {
+  const { db } = ctx
+  const revision = await db.query.revisions.findFirst({ where: eq(revisions.id, revisionId) })
+  if (!revision) {
+    console.error(`[review-revision] Revision ${revisionId} not found`)
+    return null
+  }
+  if (revision.status !== 'pending') return null
+
+  const base = (revision.baseSnapshot ?? {}) as Snapshot
+  const changes = (revision.changes ?? {}) as Snapshot
+  const proposed: Snapshot = { ...base, ...changes }
+
+  return {
+    revision: {
+      id: revision.id,
+      targetKind: revision.targetKind,
+      issueId: revision.issueId,
+      caseStudyId: revision.caseStudyId,
+      proposerId: revision.proposerId,
+    },
+    originalText: snapshotToText(base),
+    proposedText: snapshotToText(proposed),
+    note: revision.note?.trim() || 'none',
+  }
+}
+
+export function prescreenRevision(ctx: Ctx, prep: RevisionPrep): Promise<RevisionPrescreen> {
+  return runStep<RevisionPrescreen>(
+    ctx.anthropic,
+    'revision.prescreen',
+    {
+      originalText: prep.originalText,
+      proposedText: prep.proposedText,
+      note: prep.note,
+    },
+    `revision ${prep.revision.id}`,
+  )
+}
+
+export async function applyRevisionPrescreen(
+  ctx: Ctx,
+  prep: RevisionPrep,
+  result: RevisionPrescreen,
+): Promise<void> {
+  const { db } = ctx
+  const { revision } = prep
+  const revisionId = revision.id
+  const promptVersion = STEPS['revision.prescreen'].version
+
+  const verdict = result.classification === 'ok' ? 'ok' : result.classification
+  const confidence = result.confidence ?? 0
+  const autoReject =
+    (result.classification === 'spam' || result.classification === 'vandalism') &&
+    confidence >= PRESCREEN_AUTO_REJECT_CONFIDENCE
+
+  // Re-read defensively: a human owner may already have decided in the gap.
+  const current = await db.query.revisions.findFirst({
+    where: eq(revisions.id, revisionId),
+    columns: { status: true },
+  })
+  if (!current || current.status !== 'pending') return
+
+  if (autoReject) {
+    await db
+      .update(revisions)
+      .set({
+        aiVerdict: verdict,
+        aiConfidence: String(confidence),
+        aiReason: result.reason,
+        status: 'rejected',
+        decisionReason: result.reason,
+        decidedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(revisions.id, revisionId))
+    await createAuditLog(db, {
+      type: 'moderation',
+      action: result.classification === 'spam' ? 'flag_spam' : 'reject',
+      issueId: revision.issueId,
+      userId: revision.proposerId,
+      reason: result.reason,
+      details: {
+        revisionId,
+        targetKind: revision.targetKind,
+        caseStudyId: revision.caseStudyId,
+        classification: result.classification,
+        confidence,
+        promptVersion,
+      },
+    })
+    console.log(
+      `[review-revision] Revision ${revisionId} auto-rejected (${result.classification}, confidence: ${confidence}).`,
+    )
+    return
+  }
+
+  // ok / low-confidence → leave pending; just record the AI verdict for the owner.
+  await db
+    .update(revisions)
+    .set({
+      aiVerdict: verdict,
+      aiConfidence: String(confidence),
+      aiReason: result.reason,
+      updatedAt: new Date(),
+    })
+    .where(eq(revisions.id, revisionId))
+  console.log(
+    `[review-revision] Revision ${revisionId} pre-screened (${result.classification}, confidence: ${confidence}). Awaiting owner review.`,
+  )
 }

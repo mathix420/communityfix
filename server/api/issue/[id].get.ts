@@ -14,15 +14,17 @@ export default defineEventHandler(async (event) => {
   if (!result) return null
 
   const session = await getUserSession(event)
+  const viewerId = session.user?.id ?? null
+  // Ownership now lives in node_members (the creator is seeded as an owner).
+  const viewerIsOwner = viewerId ? await isNodeOwner(viewerId, 'issue', result.id) : false
 
-  // Rejected issues: only visible to the author (and never if spam)
+  // Rejected issues: only visible to an owner (and never if spam)
   if (result.status === 'rejected') {
     if (result.isSpam) return null
-    if (!session.user || session.user.id !== result.authorId) return null
+    if (!viewerIsOwner) return null
   }
 
-  // Only expose moderation fields to the author. Anonymous viewers never
+  // Only expose moderation fields to an owner. Anonymous/other viewers never
   // see appealStatus, isSpam, rejectionReason, etc., even on pending issues.
-  const isAuthor = session.user?.id === result.authorId
-  return transformIssue(result, { includeModeration: isAuthor })
+  return { ...transformIssue(result, { includeModeration: viewerIsOwner }), viewerIsOwner }
 })

@@ -1,6 +1,7 @@
 // RFC 7591 — Dynamic Client Registration. Public clients only (PKCE-only, no secret).
 import { oauthClients } from '../../database/schema'
 import { randomToken } from '../../utils/oauth'
+import { assertRateLimit, clientIp } from '../../utils/rate-limit'
 
 interface RegistrationBody {
   client_name?: string
@@ -9,6 +10,15 @@ interface RegistrationBody {
 }
 
 export default defineEventHandler(async (event) => {
+  // Open registration is unauthenticated, so throttle hard by IP to stop a
+  // single source from flooding the clients table.
+  await assertRateLimit(event, {
+    bucket: 'oauth_register',
+    identifier: clientIp(event),
+    limit: 10,
+    windowSec: 3600,
+  })
+
   const body = await readBody<RegistrationBody>(event)
   const redirectUris = Array.isArray(body?.redirect_uris)
     ? body.redirect_uris.filter((u) => typeof u === 'string')
