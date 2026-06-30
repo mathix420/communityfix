@@ -38,7 +38,9 @@ export interface TreeNode {
 // The CTE walks the issues table top-down. Case studies aren't in the
 // issues recursion (they reference solutions by `solution_id`, not the
 // shared `parent_id` chain), so they're tacked on as a second UNION
-// branch keyed on the collected solution rows. `parentId` on a returned
+// branch keyed on the collected solution rows — plus the root itself, so a
+// solution page lists its own case studies (the recursion excludes the root,
+// so its case studies would otherwise be dropped). `parentId` on a returned
 // case-study row is the solution's id, so the client-side tree builder
 // can attach them like any other child.
 export async function getIssueTree(rootId: number): Promise<TreeNode[]> {
@@ -66,15 +68,24 @@ export async function getIssueTree(rootId: number): Promise<TreeNode[]> {
       INNER JOIN tree t ON i.parent_id = t.id
       WHERE t.depth < ${MAX_DEPTH} AND i.sibling_rank <= ${MAX_PER_PARENT}
     ),
+    solution_depths AS (
+      -- Solutions found in the descendant walk, plus the root itself at depth
+      -- 0 so a solution page surfaces its own case studies at depth 1. When
+      -- the root is an issue, no case study references it, so the extra row is
+      -- inert.
+      SELECT id, depth FROM tree WHERE type = 'solution'
+      UNION ALL
+      SELECT ${rootId}::int, 0
+    ),
     case_study_children AS (
       SELECT
         cs.id, cs.solution_id AS parent_id, cs.location_name AS title,
         'case-study'::text AS type, NULL::text AS solution_status,
         cs.outcome, 0 AS vote_score, 0 AS solution_count, 0 AS sub_issue_count,
-        u.name AS author_name, t.depth + 1 AS depth,
+        u.name AS author_name, sd.depth + 1 AS depth,
         ROW_NUMBER() OVER (PARTITION BY cs.solution_id ORDER BY cs.created_at DESC, cs.id ASC) AS sibling_rank
       FROM case_studies cs
-      INNER JOIN tree t ON t.id = cs.solution_id AND t.type = 'solution'
+      INNER JOIN solution_depths sd ON sd.id = cs.solution_id
       LEFT JOIN users u ON u.id = cs.author_id
       WHERE cs.status = 'approved'
     )
