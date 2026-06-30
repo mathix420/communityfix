@@ -56,7 +56,9 @@ async function runAutoMod() {
         icon="lucide:sparkles"
         size="sm"
         variant="soft"
-        @click="autoModOpen = true"
+        @click="() => {
+          autoModOpen = true
+        }"
       >
         Run auto-mod
       </UButton>
@@ -95,7 +97,13 @@ async function runAutoMod() {
             {{ autoModError }}
           </p>
           <div class="flex justify-end gap-2">
-            <UButton color="neutral" variant="ghost" @click="autoModOpen = false">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              @click="() => {
+                autoModOpen = false
+              }"
+            >
               Cancel
             </UButton>
             <UButton

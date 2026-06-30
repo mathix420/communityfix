@@ -30,7 +30,7 @@ defineOgImage('Editorial', {
 <template>
   <AppContainer>
     <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
-    <ContentRenderer v-if="privacy" class="prose" :value="privacy" />
+    <ContentRenderer v-if="privacy" class="prose-doc" :value="privacy" />
     <div v-else>
       Not found
     </div>
