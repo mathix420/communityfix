@@ -8,6 +8,17 @@ This document outlines the design system used throughout the CommunityFix platfo
 - **Tagline:** "Let's put our skills to work."
 - **Description:** Community-Driven Solutions Platform
 
+## Golden Rules
+
+Non-negotiables. When in doubt, these win.
+
+1. **Sharp lines, rounded cards.** Decorative *lines, bars and underlines* are **always sharp** (square ends, no `border-radius`, no pill shapes). *Cards, surfaces and chips* (`UiCard`, code blocks, tables, callouts, tags, inputs) **keep their rounded corners** — that softness is part of the brand. The distinction is line vs. container, never "round everything" or "sharpen everything". See [Corners & Shape Language](#corners--shape-language).
+2. **Oswald for headings, Inter for body, real monospace for code.** `--font-mono` is **Oswald — a display font, not a typewriter font.** Never use it for code; code uses `--font-code`. See [Typography](#typography).
+3. **Blue is the only accent.** `primary` = blue. Use it for links, CTAs, focus, markers and the title underline. Don't introduce other accent hues.
+4. **Title underline = the logo underline.** Page titles get a thick, solid, *sharp* blue underline that runs under the whole word (matches the `communityfix.org` logo), not a short stub bar.
+5. **High contrast, light, textured.** Near-black text on the grainy off-white background; glassmorphic white surfaces float on top.
+6. **Track events with `useUmami()`, never `data-umami-event*` attributes.** (See the analytics section in `CLAUDE.md`.)
+
 ## Colors
 
 ### Primary Palette
@@ -39,14 +50,17 @@ This document outlines the design system used throughout the CommunityFix platfo
 | Variable | Font | Usage |
 |----------|------|-------|
 | `--font-sans` | Inter | Body text, UI elements |
-| `--font-mono` | Oswald | Headings, titles, display text |
+| `--font-mono` | Oswald | Headings, titles, display text, form labels |
+| `--font-code` | `ui-monospace` system stack | Code blocks, inline code, anything literal/typewriter |
+
+> ⚠️ **`--font-mono` is Oswald — a condensed *display* font, not a real monospace.** It is named "mono" for historical reasons. **Never render code with `font-mono`.** Code must use `--font-code` (the `font-code` utility), otherwise URLs and snippets render in condensed Oswald and look broken. Only weights **400 and 500** of Oswald are loaded (and 400 of Inter), so prefer `font-medium` over `font-bold` for headings to avoid faux-bold.
 
 ### Font Classes
 
 ```css
-font-sans    /* Inter - body text */
-font-mono    /* Oswald - headings and display */
-font-title   /* Serif - subheadings */
+font-sans    /* Inter — body text, UI */
+font-mono    /* Oswald — headings, titles, display, labels */
+font-code    /* monospace — code only */
 ```
 
 ### Heading Patterns
@@ -297,6 +311,36 @@ Combining components for a typical page:
 </template>
 ```
 
+## Long-form Content (Markdown / Prose)
+
+The content pages — **Whitepaper, MCP docs, Privacy, Terms, Guides** — render markdown from `@nuxt/content`. Their look is centrally themed; **don't restyle these pages individually.**
+
+### How it's wired
+
+- Markdown renders through **Nuxt UI v4 prose components** (`ProseH1`, `ProseP`, `ProsePre`, `ProseTable`, …), *not* the Tailwind Typography `prose` class. The same components also back `<UiMarkdown>` in issue/case-study cards.
+- **Element styling is global**, in `app/app.config.ts` under `ui.prose.*`. Each key extends the Nuxt UI default, so you only specify what changes:
+  - headings → Oswald (`font-mono font-medium`)
+  - inline code & code blocks → `font-code` (real monospace)
+  - links, list markers, table headers, blockquote accent → `primary`
+  - code/table/blockquote/image surfaces stay **rounded**
+- **Page-level chrome** (the sharp title underline, the hairline section dividers between `h2`s) is scoped to the `.prose-doc` class in `app/assets/css/main.css`, and applied as `class="prose-doc"` on the `<ContentRenderer>`. Keep it off card markdown so cards stay compact.
+- **Do not** add the Tailwind `prose` class next to `prose-doc` — its link styles underline heading anchors.
+
+### Headings in content
+
+- `h2`/`h3` show a plain blue underline **on hover** — never the floating `#` anchor chip (it's hidden via the `leading` slot).
+- Section `h2`s are separated by a sharp hairline divider (top border), not a boxed card.
+
+### Code highlighting
+
+Syntax highlighting uses **Shiki with the `github-light` theme**, set in `nuxt.config.ts` → `mdc.highlight.theme`. The site is light-only (`ui.colorMode: false`); don't reintroduce the washed-out `material-theme` default. Code blocks sit on a light `bg-gray-50` surface with a rounded border.
+
+### Adding a new content page
+
+1. Author markdown in `content/` (or `content/guide/` for guides).
+2. Add a page that renders `<ContentRenderer class="prose-doc" :value="page" />` inside `<AppContainer>`.
+3. Don't add bespoke prose CSS — extend `ui.prose` in `app.config.ts` if a global tweak is genuinely needed.
+
 ## Layout
 
 ### App Structure
@@ -326,6 +370,32 @@ Combining components for a typical page:
 - MIT License attribution
 
 ## Effects
+
+### Corners & Shape Language
+
+This is the rule people get wrong most often, so it gets its own section.
+
+| Element type | Corners | Examples |
+|--------------|---------|----------|
+| **Decorative lines / bars / underlines** | **Sharp** — no radius, square ends | Title underline, section dividers, heading hover underline, accent bars |
+| **Cards / surfaces / containers** | **Rounded** | `UiCard` (`rounded-2xl` / `rounded-lg`), code blocks (`rounded-xl`), tables (`rounded-md`), callouts, the pending-review banner |
+| **Chips / pills / badges / inputs** | **Rounded** | `UiTag`, `UiBadge`, inline code, form fields, tabs |
+
+✅ Title underline — sharp blue line under the whole word:
+
+```css
+.title-underline {
+  text-decoration-line: underline;
+  text-decoration-color: var(--ui-primary);
+  text-decoration-thickness: 4px;
+  text-underline-offset: 0.5rem;
+  text-decoration-skip-ink: none; /* solid bar through descenders, like the logo */
+}
+```
+
+(The reusable `underlinedTitle` constant in `composables/ui.ts` is the Tailwind equivalent for `<h1>` page titles outside of markdown.)
+
+❌ Never give a line a `border-radius` (no `rounded-full` pill bars). ✅ Never strip the radius off a card to make it "sharper".
 
 ### Grainy Background
 
@@ -392,10 +462,12 @@ Common patterns:
 
 | File | Purpose |
 |------|---------|
-| `app/app.config.ts` | UI color configuration |
+| `app/app.config.ts` | UI colors **and the global `ui.prose` markdown theme** |
 | `app/app.vue` | Root layout |
-| `app/assets/css/main.css` | CSS theme, custom utilities |
-| `app/composables/ui.ts` | Reusable style constants |
+| `app/assets/css/main.css` | CSS theme, fonts (`--font-code`), custom utilities, `.prose-doc` content chrome |
+| `nuxt.config.ts` | `mdc.highlight.theme` (Shiki `github-light`), fonts, modules |
+| `app/composables/ui.ts` | Reusable style constants (`underlinedTitle`, `prose`) |
+| `app/components/ui/Markdown.vue` | Inline markdown renderer for cards (`<UiMarkdown>`) |
 | `app/components/app/Header.vue` | Header component |
 | `app/components/app/Footer.vue` | Footer component |
 | `app/components/ui/PageTitle.vue` | Underlined page title |

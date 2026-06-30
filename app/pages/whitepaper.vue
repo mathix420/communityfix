@@ -31,7 +31,7 @@ defineOgImage('Editorial', {
 <template>
   <AppContainer>
     <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
-    <ContentRenderer v-if="whitepaper" class="prose" :value="whitepaper" />
+    <ContentRenderer v-if="whitepaper" class="prose-doc" :value="whitepaper" />
     <div v-else>
       Not found
     </div>

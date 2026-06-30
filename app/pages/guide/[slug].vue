@@ -56,7 +56,7 @@ useJsonLd([
 <template>
   <AppContainer>
     <!-- @vue-ignore Nuxt Content's ContentRenderer infers slot props as never; suppressed until upstream types are fixed -->
-    <ContentRenderer v-if="page" class="prose" :value="page" />
+    <ContentRenderer v-if="page" class="prose-doc" :value="page" />
     <div v-else>
       Not found
     </div>
