@@ -1,132 +1,153 @@
-import { eq, and, desc, sql, isNotNull, isNull, or, inArray } from 'drizzle-orm'
-import { issues, auditLogs, users, caseStudies } from '../../database/schema'
+import { eq, and, desc, sql, isNotNull, or, inArray } from 'drizzle-orm'
+import { issues, auditLogs, users, caseStudies, revisions } from '../../database/schema'
+import { serializeRevision } from '../../utils/revision-write'
 
 export default defineEventHandler(async () => {
   const db = useDB()
 
-  const [uncertain, pendingAppeals, infoReceived, banAppeals, pendingCaseStudies] =
-    await Promise.all([
-      db.query.auditLogs.findMany({
-        where: and(
-          eq(auditLogs.status, 'needs_review'),
-          or(
-            eq(auditLogs.action, 'flag_uncertain'),
-            eq(auditLogs.action, 'reparent'),
-            eq(auditLogs.action, 'convert_to_case_study'),
-          ),
+  const [
+    uncertain,
+    pendingAppeals,
+    infoReceived,
+    banAppeals,
+    pendingCaseStudies,
+    pendingRevisions,
+  ] = await Promise.all([
+    db.query.auditLogs.findMany({
+      where: and(
+        eq(auditLogs.status, 'needs_review'),
+        or(
+          eq(auditLogs.action, 'flag_uncertain'),
+          eq(auditLogs.action, 'reparent'),
+          eq(auditLogs.action, 'convert_to_case_study'),
         ),
-        with: {
-          issue: {
-            columns: {
-              id: true,
-              title: true,
-              summary: true,
-              description: true,
-              type: true,
-              status: true,
-              parentId: true,
-              createdAt: true,
-              infoRequest: true,
-              infoResponse: true,
-              infoRequestedAt: true,
-            },
-          },
-          user: {
-            columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
+      ),
+      with: {
+        issue: {
+          columns: {
+            id: true,
+            title: true,
+            summary: true,
+            description: true,
+            type: true,
+            status: true,
+            parentId: true,
+            createdAt: true,
+            infoRequest: true,
+            infoResponse: true,
+            infoRequestedAt: true,
           },
         },
-        orderBy: desc(auditLogs.createdAt),
-        limit: 50,
-      }),
+        user: { columns: { id: true, name: true, email: true, trustScore: true, createdAt: true } },
+      },
+      orderBy: desc(auditLogs.createdAt),
+      limit: 50,
+    }),
 
-      db.query.issues.findMany({
-        where: eq(issues.appealStatus, 'pending'),
-        with: {
-          author: {
-            columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
-          },
+    db.query.issues.findMany({
+      where: eq(issues.appealStatus, 'pending'),
+      with: {
+        author: {
+          columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
         },
-        columns: {
-          id: true,
-          title: true,
-          summary: true,
-          description: true,
-          type: true,
-          status: true,
-          rejectionReason: true,
-          appealReason: true,
-          appealedAt: true,
-          createdAt: true,
-        },
-        orderBy: desc(issues.appealedAt),
-        limit: 50,
-      }),
+      },
+      columns: {
+        id: true,
+        title: true,
+        summary: true,
+        description: true,
+        type: true,
+        status: true,
+        rejectionReason: true,
+        appealReason: true,
+        appealedAt: true,
+        createdAt: true,
+      },
+      orderBy: desc(issues.appealedAt),
+      limit: 50,
+    }),
 
-      db.query.issues.findMany({
-        where: and(
-          eq(issues.status, 'pending'),
-          isNotNull(issues.infoRequest),
-          isNotNull(issues.infoResponse),
-        ),
-        with: {
-          author: {
-            columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
-          },
+    db.query.issues.findMany({
+      where: and(
+        eq(issues.status, 'pending'),
+        isNotNull(issues.infoRequest),
+        isNotNull(issues.infoResponse),
+      ),
+      with: {
+        author: {
+          columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
         },
-        columns: {
-          id: true,
-          title: true,
-          summary: true,
-          description: true,
-          type: true,
-          status: true,
-          infoRequest: true,
-          infoResponse: true,
-          infoRespondedAt: true,
-          createdAt: true,
-        },
-        orderBy: desc(issues.infoRespondedAt),
-        limit: 50,
-      }),
+      },
+      columns: {
+        id: true,
+        title: true,
+        summary: true,
+        description: true,
+        type: true,
+        status: true,
+        infoRequest: true,
+        infoResponse: true,
+        infoRespondedAt: true,
+        createdAt: true,
+      },
+      orderBy: desc(issues.infoRespondedAt),
+      limit: 50,
+    }),
 
-      db.query.users.findMany({
-        where: eq(users.banAppealStatus, 'pending'),
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-          trustScore: true,
-          createdAt: true,
-          banReason: true,
-          banAppealReason: true,
-          banAppealedAt: true,
-          bannedUntil: true,
-        },
-        limit: 50,
-      }),
+    db.query.users.findMany({
+      where: eq(users.banAppealStatus, 'pending'),
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        trustScore: true,
+        createdAt: true,
+        banReason: true,
+        banAppealReason: true,
+        banAppealedAt: true,
+        bannedUntil: true,
+      },
+      limit: 50,
+    }),
 
-      db.query.caseStudies.findMany({
-        where: eq(caseStudies.status, 'pending'),
-        with: {
-          author: {
-            columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
-          },
-          solution: { columns: { id: true, title: true } },
+    db.query.caseStudies.findMany({
+      where: eq(caseStudies.status, 'pending'),
+      with: {
+        author: {
+          columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
         },
-        columns: {
-          id: true,
-          solutionId: true,
-          status: true,
-          outcome: true,
-          description: true,
-          locationName: true,
-          implementer: true,
-          createdAt: true,
-        },
-        orderBy: desc(caseStudies.createdAt),
-        limit: 50,
-      }),
-    ])
+        solution: { columns: { id: true, title: true } },
+      },
+      columns: {
+        id: true,
+        solutionId: true,
+        status: true,
+        outcome: true,
+        description: true,
+        locationName: true,
+        implementer: true,
+        createdAt: true,
+      },
+      orderBy: desc(caseStudies.createdAt),
+      limit: 50,
+    }),
+
+    // Global pending proposals (collaborative edits) so admins see every
+    // suggestion regardless of which node it targets. Hydrated with the node
+    // (title) and proposer name; serialized to the same shape as the other
+    // revisions endpoints.
+    db.query.revisions.findMany({
+      where: eq(revisions.status, 'pending'),
+      with: {
+        proposer: { columns: { id: true, name: true } },
+        decidedBy: { columns: { id: true, name: true } },
+        issue: { columns: { id: true, title: true } },
+        caseStudy: { columns: { id: true }, with: { solution: { columns: { title: true } } } },
+      },
+      orderBy: desc(revisions.createdAt),
+      limit: 50,
+    }),
+  ])
 
   // Hydrate per-author rejection counts for everyone we're surfacing. One
   // grouped query beats N round-trips and lets the UI flag repeat-offenders
@@ -176,5 +197,23 @@ export default defineEventHandler(async () => {
     infoReceived: infoReceived.map((r) => ({ ...r, author: attachStats(r.author) })),
     pendingCaseStudies: pendingCaseStudies.map((c) => ({ ...c, author: attachStats(c.author) })),
     banAppeals,
+    pendingRevisions: pendingRevisions.map((r) => ({
+      ...serializeRevision(r),
+      node: r.issue
+        ? {
+            targetKind: 'issue' as const,
+            issueId: r.issue.id,
+            caseStudyId: null,
+            label: r.issue.title,
+          }
+        : {
+            targetKind: 'case_study' as const,
+            issueId: null,
+            caseStudyId: r.caseStudy?.id ?? r.caseStudyId,
+            label: r.caseStudy?.solution?.title
+              ? `Case study — ${r.caseStudy.solution.title}`
+              : `Case study #${r.caseStudyId}`,
+          },
+    })),
   }
 })

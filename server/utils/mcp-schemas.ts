@@ -6,6 +6,7 @@ import { CASE_STUDY_OUTCOMES, LOCATION_SCALES } from '../database/schema'
 
 const scale = z.enum(LOCATION_SCALES as unknown as [string, ...string[]])
 const outcome = z.enum(CASE_STUDY_OUTCOMES as unknown as [string, ...string[]])
+const proposeKind = z.enum(['issue', 'solution', 'case_study'])
 const latitude = z.number().min(-90).max(90)
 const longitude = z.number().min(-180).max(180)
 const id = z.number().int().positive()
@@ -110,6 +111,41 @@ export const mcpToolInputSchemas = {
     lessonsLearned: z.array(z.string()).nullish(),
     links: z.array(link).nullish(),
     verified: z.boolean().optional(),
+  }),
+  // Unified edit across kinds. Only `kind` + `id` are required; the remaining
+  // fields are the union of the per-kind edit fields and are validated when
+  // present. The handler routes to the right update_* path by `kind`.
+  propose_edit: z.object({
+    kind: proposeKind,
+    id,
+    note: z.string().nullish(),
+    title: z.string().min(1).optional(),
+    summary: z.string().min(1).optional(),
+    description: z.string().nullish(),
+    solutionStatus: z.enum(['plan', 'in-progress', 'done']).optional(),
+    outcome: outcome.optional(),
+    locationName: z.string().nullish(),
+    latitude: latitude.optional(),
+    longitude: longitude.optional(),
+    scale: scale.optional(),
+    implementer: z.string().nullish(),
+    startDate: z.string().nullish(),
+    endDate: z.string().nullish(),
+    metrics: z.array(metric).nullish(),
+    cost: z.union([z.number(), z.string()]).nullish(),
+    currency: z.string().nullish(),
+    fundingSource: z.string().nullish(),
+    sources: z.array(link).nullish(),
+    lessonsLearned: z.array(z.string()).nullish(),
+    links: z.array(link).nullish(),
+    parentId: id.optional(),
+    solutionId: id.optional(),
+  }),
+  list_revisions: z.object({ kind: proposeKind, id }),
+  review_revision: z.object({
+    revisionId: id,
+    action: z.enum(['approve', 'reject']),
+    reason: z.string().nullish(),
   }),
   get_whitepaper: z.object({}),
   get_guide: z.object({ slug: z.string().optional() }),

@@ -85,6 +85,22 @@ Also fix the location text: set \`locationName\` to a corrected, concise, human-
 Be conservative: only relocate when a geocoded candidate is clearly a better match AND you are confident, and only rename when the new name is clearly more accurate. If geocoding returns nothing usable, or the place is ambiguous, choose "keep" and leave locationName null. Never invent a place_id — only use one returned by the geocode tool. Set confidence to your certainty (0 to 1) and give a one-sentence reason."
 `;
 
+exports[`rendered prompts (golden) > revision.prescreen lays out the original/proposed text and note 1`] = `
+"You triage proposed edits to content on a community problem-solving platform, before the node's owner reviews them. A user has suggested changing the text of an existing issue, solution, or case study. Decide whether the proposal is made in good faith.
+
+Classify the proposal as one of:
+- "spam" — advertising, links to unrelated products/services, gibberish, SEO keyword stuffing, or bot-generated filler.
+- "vandalism" — a clearly destructive or bad-faith edit: blanking the content, replacing it with nonsense or insults, hate speech, or defacing text that is unrelated to a genuine improvement.
+- "ok" — a plausible good-faith edit. This is the default. Disagreeing with the change, mediocre writing, or a minor/debatable improvement is still "ok" — the owner decides those; you only filter obvious abuse.
+
+Set "confidence" between 0 and 1 for how certain you are:
+- 0.9-1.0: Clear-cut (blatant spam, obvious vandalism, or an obviously legitimate edit).
+- 0.7-0.9: Fairly confident but some ambiguity.
+- Below 0.7: Uncertain — lean towards "ok" and let the owner review.
+
+Give a one-sentence "reason". When in doubt, classify as "ok"."
+`;
+
 exports[`rendered prompts (golden) > structure.verdict interpolates the item header and context lines 1`] = `
 "You are a structural reviewer for a community problem-solving platform that organizes issues and solutions in a tree.
 

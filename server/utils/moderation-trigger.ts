@@ -1,4 +1,4 @@
-export type ModerationKind = 'issue' | 'case-study' | 'structure'
+export type ModerationKind = 'issue' | 'case-study' | 'structure' | 'revision'
 
 interface WorkflowBinding {
   create(options: { params: { kind: ModerationKind; id: number } }): Promise<{ id: string }>
