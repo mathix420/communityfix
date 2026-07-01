@@ -907,7 +907,9 @@ export async function finalizeCaseStudy(
 // treats absent metric/source/link fields). `Metric`/`Source`/`LinkRow` carry
 // only a required key plus optional ones, so stripping nulls === the old explicit
 // per-field reconstruction.
-function compact<T extends Record<string, unknown>>(obj: T): { [K in keyof T]: Exclude<T[K], null> } {
+function compact<T extends Record<string, unknown>>(
+  obj: T,
+): { [K in keyof T]: Exclude<T[K], null> } {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null)) as {
     [K in keyof T]: Exclude<T[K], null>
   }
