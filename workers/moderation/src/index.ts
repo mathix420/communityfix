@@ -17,6 +17,7 @@ import {
   prepareCaseStudy,
   rejectCaseStudy,
   finalizeCaseStudy,
+  applyCaseStudyCurate,
   resolveLocation,
   applyLocationFix,
   prepareRevision,
@@ -28,6 +29,7 @@ import {
   type TagResult,
   type SdgResult,
   type StructureVerdict,
+  type CaseStudyPrep,
   type CaseStudyModeration,
   type CurationResult,
   type IssueCurationResult,
@@ -218,6 +220,33 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
       return
     }
 
+    // Commit the approval BEFORE the best-effort enrichment pass, so a curate or
+    // location failure can never roll the case study back to `pending` (which is
+    // what used to strand approved case studies awaiting a manual re-moderation).
+    await step.do('finalize', STEP, () => finalizeCaseStudy(ctx, prep, moderation))
+
+    await this.enrichCaseStudy(ctx, step, prep)
+  }
+
+  private async enrichCaseStudy(ctx: Ctx, step: WorkflowStep, prep: CaseStudyPrep) {
+    const id = prep.cs.id
+
+    const curateArm = step
+      .do('curate', STEP, () =>
+        runStep<CurationResult>(
+          ctx.anthropic,
+          'case-study.curate',
+          { parentContext: prep.parentContext, originalJson: prep.originalJson },
+          `case-study ${id}`,
+        ),
+      )
+      .then((curated) =>
+        step.do('apply-curate', STEP, () => applyCaseStudyCurate(ctx, prep, curated)),
+      )
+      .catch((err) =>
+        console.error(`[review-case-study] curation failed for case study ${id}:`, err),
+      )
+
     let locationArm: Promise<unknown> = Promise.resolve()
     const loc = prep.cs.location as { x: number; y: number } | null
     if (loc) {
@@ -239,20 +268,7 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
         )
     }
 
-    const [curated] = await Promise.all([
-      step.do('curate', STEP, () =>
-        runStep<CurationResult>(
-          ctx.anthropic,
-          'case-study.curate',
-          { parentContext: prep.parentContext, originalJson: prep.originalJson },
-          `case-study ${id}`,
-        ),
-      ),
-      locationArm,
-    ])
-    await step.do('finalize', STEP, () =>
-      finalizeCaseStudy(ctx, prep.cs, prep.solution, moderation, curated),
-    )
+    await Promise.all([curateArm, locationArm])
   }
 }
 
