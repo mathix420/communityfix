@@ -14,6 +14,18 @@ import { getOrigin } from '../utils/oauth'
 export default defineEventHandler((event) => {
   const origin = getOrigin(event)
 
+  // Inlined per operation rather than a components/parameters $ref: the ChatGPT
+  // GPT Actions importer does not resolve parameter $refs and drops the whole
+  // operation ("missing or non-string name"). Shared as a JS constant so the
+  // serialized JSON inlines a full copy at each use site.
+  const nodeIdParam = {
+    name: 'id',
+    in: 'path',
+    required: true,
+    description: 'Numeric node id.',
+    schema: { type: 'integer' },
+  }
+
   return {
     openapi: '3.1.0',
     info: {
@@ -98,7 +110,7 @@ export default defineEventHandler((event) => {
           operationId: 'searchCatalog',
           summary: 'Semantic search across issues and solutions',
           description:
-            'Natural-language vector search over BOTH issues (problems) and solutions (proposed approaches), ranked by meaning rather than keywords. This is the primary discovery entry point: pass a conversational question (e.g. "what can I do to make my city greener?") and get the most relevant nodes back. Prefer this over listIssues for free-text questions. Returns status "too_short" if the query is under 3 characters and "embeddings_unavailable" if the vector backend is down.',
+            'Natural-language vector search over both issues and solutions, ranked by meaning not keywords — the primary discovery entry point; prefer it over listIssues for free-text questions. Status is "too_short" if the query is under 3 characters, "embeddings_unavailable" if the vector backend is down.',
           parameters: [
             {
               name: 'query',
@@ -139,7 +151,7 @@ export default defineEventHandler((event) => {
           operationId: 'listNearby',
           summary: 'Find issues, solutions and case studies near a place',
           description:
-            'Geographic discovery: return approved issues, solutions, and case studies within `radius` kilometres of a point, merged into one list ordered nearest-first. Each item is tagged with its `kind` and the `distanceKm` from the query point. Use this for "what has been documented / tried near <place>" questions — geocode the place to lat/lng first.',
+            'Geographic discovery: approved issues, solutions, and case studies within `radius` km of a point, merged nearest-first. Each item carries its `kind` and `distanceKm`. Use for "what has been documented near <place>" questions — geocode the place to lat/lng first.',
           parameters: [
             {
               name: 'lat',
@@ -198,7 +210,7 @@ export default defineEventHandler((event) => {
           operationId: 'discoverCaseStudies',
           summary: 'Search and filter case studies across the whole catalog',
           description:
-            'Discover documented real-world deployments ("what has actually worked") across all solutions — not scoped to one node. Pass a natural-language `query` for semantic ranking (each result then carries `similarity`), and/or filter by `outcome`, `scale`, and `verified`. Without a query, results are verified-first then most recent. Only approved case studies are returned. To list case studies for one specific solution or issue use listCaseStudies instead.',
+            'Discover documented real-world deployments ("what actually worked") across all solutions. Pass a `query` for semantic ranking (results carry `similarity`), and/or filter by `outcome`, `scale`, `verified`. No query: verified-first, then recent. Approved only; for one node use listCaseStudies.',
           parameters: [
             {
               name: 'query',
@@ -259,7 +271,7 @@ export default defineEventHandler((event) => {
           operationId: 'listNodes',
           summary: 'List issues and solutions by tag or SDG',
           description:
-            'Browse issues and solutions (including sub-issues) filtered by a tag slug and/or a Sustainable Development Goal id. At least one of `tag` or `sdg` is required. Use listTags and listSdgs to resolve human names to a `tag` slug / `sdg` id first. When both filters are supplied they intersect. Only approved nodes are returned.',
+            'Browse issues and solutions (incl. sub-issues) filtered by a `tag` slug and/or an `sdg` id; at least one is required. Use listTags / listSdgs to resolve names to a slug / id. When both are given they intersect. Only approved nodes are returned.',
           parameters: [
             {
               name: 'tag',
@@ -319,7 +331,7 @@ export default defineEventHandler((event) => {
           summary: 'Get one issue or solution by id',
           description:
             'Fetch a single node by numeric id. Issues (type "issue") and solutions (type "solution") share the same shape — inspect the `type` field. Returns null if the id does not exist or the node is hidden.',
-          parameters: [{ $ref: '#/components/parameters/NodeId' }],
+          parameters: [nodeIdParam],
           responses: {
             '200': {
               description: 'The issue or solution, or null if not found.',
@@ -335,8 +347,8 @@ export default defineEventHandler((event) => {
           operationId: 'getNodeTree',
           summary: 'Get the descendant tree of a node',
           description:
-            'Return the full descendant tree rooted at the given issue/solution id: sub-issues and solutions recursively, with approved case studies attached as leaf rows under their parent solution (a case-study row carries `parentId` = the solution id and an `outcome`). Capped at depth 10, 20 children per parent, and 500 nodes total.',
-          parameters: [{ $ref: '#/components/parameters/NodeId' }],
+            'Full descendant tree rooted at the given id: sub-issues and solutions recursively, plus approved case studies as leaf rows under their parent solution (each carries `parentId` = solution id and an `outcome`). Capped at depth 10, 20 children per parent, 500 nodes total.',
+          parameters: [nodeIdParam],
           responses: {
             '200': {
               description: 'Flat list of descendant nodes; reconstruct the tree via parentId.',
@@ -355,7 +367,7 @@ export default defineEventHandler((event) => {
           summary: 'List proposed solutions for an issue',
           description: 'Return the proposed solutions whose parent is the given issue id.',
           parameters: [
-            { $ref: '#/components/parameters/NodeId' },
+            nodeIdParam,
             {
               name: 'sort',
               in: 'query',
@@ -392,7 +404,7 @@ export default defineEventHandler((event) => {
           summary: 'List case studies under a node',
           description:
             'Return approved case studies. Pass a solution id to get that solution’s own case studies; pass an issue id to aggregate case studies across all of its approved solution children. Ordered verified-first, then most recent.',
-          parameters: [{ $ref: '#/components/parameters/NodeId' }],
+          parameters: [nodeIdParam],
           responses: {
             '200': {
               description: 'Approved case studies.',
@@ -411,7 +423,7 @@ export default defineEventHandler((event) => {
           summary: 'Get one case study by id',
           description:
             'Fetch a single case study (one real-world deployment of a solution) by numeric id. Returns null if not found.',
-          parameters: [{ $ref: '#/components/parameters/NodeId' }],
+          parameters: [nodeIdParam],
           responses: {
             '200': {
               description: 'The case study, or null if not found.',
@@ -460,15 +472,6 @@ export default defineEventHandler((event) => {
       },
     },
     components: {
-      parameters: {
-        NodeId: {
-          name: 'id',
-          in: 'path',
-          required: true,
-          description: 'Numeric node id.',
-          schema: { type: 'integer' },
-        },
-      },
       schemas: {
         Location: {
           type: 'object',
