@@ -857,32 +857,25 @@ function diffStripped(before: CaseStudyRow, after: CurationResult): string[] {
   return stripped
 }
 
+// Commit the approval. This must NOT depend on the curate step: a curation
+// failure used to abort the whole run *before* this write (curate + finalize ran
+// together under one Promise.all), stranding an already-approved case study back
+// at `pending`. Finalize now runs first and curation is a separate best-effort
+// enrichment pass (see `applyCaseStudyCurate`), mirroring the issue pipeline.
 export async function finalizeCaseStudy(
   ctx: Ctx,
-  cs: CaseStudyRow,
-  solution: SolutionRef,
+  prep: CaseStudyPrep,
   moderation: CaseStudyModeration,
-  curated: CurationResult,
 ): Promise<void> {
   const { db } = ctx
+  const { cs } = prep
   const caseStudyId = cs.id
 
-  const cleanedText = [
-    solution ? `Solution: ${solution.title}` : '',
-    solution?.summary ?? '',
-    `Location: ${cs.locationName}`,
-    curated.implementer ? `Implementer: ${curated.implementer}` : '',
-    `Outcome: ${cs.outcome}`,
-    curated.description ?? '',
-    curated.lessonsLearned?.join('\n') ?? '',
-  ]
-    .filter(Boolean)
-    .join('\n')
-    .trim()
-
+  // Embed from the approved original text. If curation runs it re-embeds from the
+  // tightened version; if it fails we still have a usable embedding here.
   let newEmbedding: number[] | null = null
   try {
-    newEmbedding = await embed(ctx.openai, cleanedText)
+    newEmbedding = await embed(ctx.openai, prep.caseStudyText)
   } catch (err) {
     console.error(
       `[review-case-study] Embedding regeneration failed for case study ${caseStudyId}:`,
@@ -890,38 +883,9 @@ export async function finalizeCaseStudy(
     )
   }
 
-  const cleanedMetrics =
-    curated.metrics?.map((m) => ({
-      label: m.label,
-      ...(m.baseline != null ? { baseline: m.baseline } : {}),
-      ...(m.result != null ? { result: m.result } : {}),
-      ...(m.unit != null ? { unit: m.unit } : {}),
-    })) ?? null
-  const cleanedSources =
-    curated.sources?.map((s) => ({ url: s.url, ...(s.title != null ? { title: s.title } : {}) })) ??
-    null
-  const cleanedLinks =
-    curated.links?.map((l) => ({ url: l.url, ...(l.title != null ? { title: l.title } : {}) })) ??
-    null
-
   await db
     .update(caseStudies)
-    .set({
-      status: 'approved',
-      description: curated.description,
-      lessonsLearned: curated.lessonsLearned,
-      implementer: curated.implementer,
-      fundingSource: curated.fundingSource,
-      cost: curated.cost,
-      currency: curated.currency,
-      scale: curated.scale,
-      startDate: curated.startDate,
-      endDate: curated.endDate,
-      metrics: cleanedMetrics,
-      sources: cleanedSources,
-      links: cleanedLinks,
-      ...(newEmbedding ? { embedding: newEmbedding } : {}),
-    })
+    .set({ status: 'approved', ...(newEmbedding ? { embedding: newEmbedding } : {}) })
     .where(eq(caseStudies.id, caseStudyId))
 
   await createAuditLog(db, {
@@ -932,11 +896,104 @@ export async function finalizeCaseStudy(
     details: {
       caseStudyId,
       solutionId: cs.solutionId,
-      curation: { notes: curated.notes, strippedFields: diffStripped(cs, curated) },
       promptVersion: STEPS['case-study.moderate'].version,
     },
   })
   if (cs.authorId) await updateUserTrustScore(ctx, cs.authorId)
+}
+
+// Drop null/undefined entries so optional case-study fields are omitted from the
+// jsonb columns rather than persisted as explicit nulls (matches how the schema
+// treats absent metric/source/link fields). `Metric`/`Source`/`LinkRow` carry
+// only a required key plus optional ones, so stripping nulls === the old explicit
+// per-field reconstruction.
+function compact<T extends Record<string, unknown>>(
+  obj: T,
+): { [K in keyof T]: Exclude<T[K], null> } {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null)) as {
+    [K in keyof T]: Exclude<T[K], null>
+  }
+}
+function cleanRows<T extends Record<string, unknown>>(
+  rows: T[] | null | undefined,
+): Array<{ [K in keyof T]: Exclude<T[K], null> }> | null {
+  return rows ? rows.map(compact) : null
+}
+
+// The text an approved+curated case study is re-embedded from.
+function curatedCaseStudyText(
+  cs: CaseStudyRow,
+  solution: SolutionRef,
+  curated: CurationResult,
+): string {
+  return [
+    ...(solution ? [`Solution: ${solution.title}`, solution.summary] : []),
+    `Location: ${cs.locationName}`,
+    curated.implementer && `Implementer: ${curated.implementer}`,
+    `Outcome: ${cs.outcome}`,
+    curated.description,
+    curated.lessonsLearned?.join('\n'),
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .trim()
+}
+
+// Best-effort tightening of an already-approved case study (the issue-side
+// `applyIssueCurate` analogue). Runs after `finalizeCaseStudy`, so a failure here
+// only forfeits the cleanup — it can never revoke the approval.
+export async function applyCaseStudyCurate(
+  ctx: Ctx,
+  prep: CaseStudyPrep,
+  curated: CurationResult,
+): Promise<void> {
+  const { db } = ctx
+  const { cs, solution } = prep
+  const caseStudyId = cs.id
+
+  let newEmbedding: number[] | null = null
+  try {
+    newEmbedding = await embed(ctx.openai, curatedCaseStudyText(cs, solution, curated))
+  } catch (err) {
+    console.error(
+      `[review-case-study] Re-embedding after curation failed for case study ${caseStudyId}:`,
+      err,
+    )
+  }
+
+  await db
+    .update(caseStudies)
+    .set({
+      description: curated.description,
+      lessonsLearned: curated.lessonsLearned,
+      implementer: curated.implementer,
+      fundingSource: curated.fundingSource,
+      cost: curated.cost,
+      currency: curated.currency,
+      scale: curated.scale,
+      startDate: curated.startDate,
+      endDate: curated.endDate,
+      metrics: cleanRows(curated.metrics),
+      sources: cleanRows(curated.sources),
+      links: cleanRows(curated.links),
+      ...(newEmbedding ? { embedding: newEmbedding } : {}),
+    })
+    .where(eq(caseStudies.id, caseStudyId))
+
+  await createAuditLog(db, {
+    type: 'moderation',
+    action: 'curate',
+    userId: cs.authorId,
+    reason: curated.notes,
+    details: {
+      caseStudyId,
+      solutionId: cs.solutionId,
+      strippedFields: diffStripped(cs, curated),
+      notes: curated.notes,
+      promptVersion: STEPS['case-study.curate'].version,
+    },
+  })
+  console.log(`[review-case-study] Case study ${caseStudyId} curated`)
 }
 
 // ── Revision pre-screen ────────────────────────────────────────────────────
