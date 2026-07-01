@@ -902,6 +902,41 @@ export async function finalizeCaseStudy(
   if (cs.authorId) await updateUserTrustScore(ctx, cs.authorId)
 }
 
+// Drop null/undefined entries so optional case-study fields are omitted from the
+// jsonb columns rather than persisted as explicit nulls (matches how the schema
+// treats absent metric/source/link fields). `Metric`/`Source`/`LinkRow` carry
+// only a required key plus optional ones, so stripping nulls === the old explicit
+// per-field reconstruction.
+function compact<T extends Record<string, unknown>>(obj: T): { [K in keyof T]: Exclude<T[K], null> } {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null)) as {
+    [K in keyof T]: Exclude<T[K], null>
+  }
+}
+function cleanRows<T extends Record<string, unknown>>(
+  rows: T[] | null | undefined,
+): Array<{ [K in keyof T]: Exclude<T[K], null> }> | null {
+  return rows ? rows.map(compact) : null
+}
+
+// The text an approved+curated case study is re-embedded from.
+function curatedCaseStudyText(
+  cs: CaseStudyRow,
+  solution: SolutionRef,
+  curated: CurationResult,
+): string {
+  return [
+    ...(solution ? [`Solution: ${solution.title}`, solution.summary] : []),
+    `Location: ${cs.locationName}`,
+    curated.implementer && `Implementer: ${curated.implementer}`,
+    `Outcome: ${cs.outcome}`,
+    curated.description,
+    curated.lessonsLearned?.join('\n'),
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .trim()
+}
+
 // Best-effort tightening of an already-approved case study (the issue-side
 // `applyIssueCurate` analogue). Runs after `finalizeCaseStudy`, so a failure here
 // only forfeits the cleanup — it can never revoke the approval.
@@ -914,42 +949,15 @@ export async function applyCaseStudyCurate(
   const { cs, solution } = prep
   const caseStudyId = cs.id
 
-  const cleanedText = [
-    solution ? `Solution: ${solution.title}` : '',
-    solution?.summary ?? '',
-    `Location: ${cs.locationName}`,
-    curated.implementer ? `Implementer: ${curated.implementer}` : '',
-    `Outcome: ${cs.outcome}`,
-    curated.description ?? '',
-    curated.lessonsLearned?.join('\n') ?? '',
-  ]
-    .filter(Boolean)
-    .join('\n')
-    .trim()
-
   let newEmbedding: number[] | null = null
   try {
-    newEmbedding = await embed(ctx.openai, cleanedText)
+    newEmbedding = await embed(ctx.openai, curatedCaseStudyText(cs, solution, curated))
   } catch (err) {
     console.error(
       `[review-case-study] Re-embedding after curation failed for case study ${caseStudyId}:`,
       err,
     )
   }
-
-  const cleanedMetrics =
-    curated.metrics?.map((m) => ({
-      label: m.label,
-      ...(m.baseline != null ? { baseline: m.baseline } : {}),
-      ...(m.result != null ? { result: m.result } : {}),
-      ...(m.unit != null ? { unit: m.unit } : {}),
-    })) ?? null
-  const cleanedSources =
-    curated.sources?.map((s) => ({ url: s.url, ...(s.title != null ? { title: s.title } : {}) })) ??
-    null
-  const cleanedLinks =
-    curated.links?.map((l) => ({ url: l.url, ...(l.title != null ? { title: l.title } : {}) })) ??
-    null
 
   await db
     .update(caseStudies)
@@ -963,9 +971,9 @@ export async function applyCaseStudyCurate(
       scale: curated.scale,
       startDate: curated.startDate,
       endDate: curated.endDate,
-      metrics: cleanedMetrics,
-      sources: cleanedSources,
-      links: cleanedLinks,
+      metrics: cleanRows(curated.metrics),
+      sources: cleanRows(curated.sources),
+      links: cleanRows(curated.links),
       ...(newEmbedding ? { embedding: newEmbedding } : {}),
     })
     .where(eq(caseStudies.id, caseStudyId))
