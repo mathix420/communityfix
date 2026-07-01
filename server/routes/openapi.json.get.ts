@@ -19,7 +19,7 @@ export default defineEventHandler((event) => {
     info: {
       title: 'CommunityFix (read-only)',
       description:
-        'Read-only access to the CommunityFix catalog — a public tree of issues (problems), solutions (proposed approaches, which are leaves), and case studies (real-world deployments of a solution). Use these endpoints to search, browse, and explain what the community has documented. All endpoints are anonymous and side-effect-free; nothing here creates or modifies data.',
+        'Read-only access to the CommunityFix catalog — a public tree of issues (problems), solutions (proposed approaches, which are leaves), and case studies (real-world deployments of a solution). Built for discovery: start from searchCatalog for natural-language questions over issues and solutions, discoverCaseStudies for "what has actually worked", and listNearby for "what has been documented near a place". All endpoints are anonymous and side-effect-free; nothing here creates or modifies data.',
       version: '1.0.0',
     },
     servers: [{ url: origin }],
@@ -29,7 +29,7 @@ export default defineEventHandler((event) => {
           operationId: 'listIssues',
           summary: 'List or full-text-search top-level issues',
           description:
-            'Browse top-level issues (problems). Supports keyword full-text search, tag filtering, geographic radius filtering, and sorting. Excludes rejected issues. For natural-language / meaning-based matching (e.g. duplicate detection) prefer searchSimilarIssues.',
+            'Browse top-level issues (problems). Supports keyword full-text search, tag filtering, geographic radius filtering, and sorting. Excludes rejected issues. For natural-language / meaning-based questions across both issues and solutions, prefer searchCatalog.',
           parameters: [
             {
               name: 'search',
@@ -93,34 +93,220 @@ export default defineEventHandler((event) => {
           },
         },
       },
-      '/api/issues/similar': {
+      '/api/search': {
         get: {
-          operationId: 'searchSimilarIssues',
-          summary: 'Semantic (vector) search for similar issues',
+          operationId: 'searchCatalog',
+          summary: 'Semantic search across issues and solutions',
           description:
-            'Given a candidate problem title and summary, return the most semantically similar existing top-level issues using vector embeddings. Use this to detect duplicates or surface related problems by meaning rather than keywords. Returns status "too_short" if title < 5 chars or summary < 10 chars, and "unavailable" if embeddings cannot be computed.',
+            'Natural-language vector search over BOTH issues (problems) and solutions (proposed approaches), ranked by meaning rather than keywords. This is the primary discovery entry point: pass a conversational question (e.g. "what can I do to make my city greener?") and get the most relevant nodes back. Prefer this over listIssues for free-text questions. Returns status "too_short" if the query is under 3 characters and "embeddings_unavailable" if the vector backend is down.',
           parameters: [
             {
-              name: 'title',
+              name: 'query',
               in: 'query',
               required: true,
-              description: 'Candidate issue title (minimum 5 characters).',
+              description: 'Natural-language search query (minimum 3 characters).',
               schema: { type: 'string' },
             },
             {
-              name: 'summary',
+              name: 'type',
               in: 'query',
-              required: true,
-              description: 'Candidate issue summary (minimum 10 characters).',
-              schema: { type: 'string' },
+              required: false,
+              description: 'Restrict results to one node kind, or "any" for both.',
+              schema: { type: 'string', enum: ['issue', 'solution', 'any'], default: 'any' },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              required: false,
+              description: 'Maximum results to return (1–25).',
+              schema: { type: 'integer', default: 10, minimum: 1, maximum: 25 },
             },
           ],
           responses: {
             '200': {
-              description: 'Semantic matches, ordered most-similar first.',
+              description: 'Semantic matches, ordered most-relevant first.',
               content: {
                 'application/json': {
-                  schema: { $ref: '#/components/schemas/SimilarResponse' },
+                  schema: { $ref: '#/components/schemas/SearchResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/nearby': {
+        get: {
+          operationId: 'listNearby',
+          summary: 'Find issues, solutions and case studies near a place',
+          description:
+            'Geographic discovery: return approved issues, solutions, and case studies within `radius` kilometres of a point, merged into one list ordered nearest-first. Each item is tagged with its `kind` and the `distanceKm` from the query point. Use this for "what has been documented / tried near <place>" questions — geocode the place to lat/lng first.',
+          parameters: [
+            {
+              name: 'lat',
+              in: 'query',
+              required: true,
+              description: 'Latitude of the place of interest.',
+              schema: { type: 'number' },
+            },
+            {
+              name: 'lng',
+              in: 'query',
+              required: true,
+              description: 'Longitude of the place of interest.',
+              schema: { type: 'number' },
+            },
+            {
+              name: 'radius',
+              in: 'query',
+              required: false,
+              description: 'Search radius in kilometres (default 25, max 2000).',
+              schema: { type: 'number', default: 25 },
+            },
+            {
+              name: 'kind',
+              in: 'query',
+              required: false,
+              description: 'Restrict to one kind, or "any" for all three.',
+              schema: {
+                type: 'string',
+                enum: ['issue', 'solution', 'case-study', 'any'],
+                default: 'any',
+              },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              required: false,
+              description: 'Maximum results to return (1–50).',
+              schema: { type: 'integer', default: 20, minimum: 1, maximum: 50 },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Nearby nodes and case studies, nearest first.',
+              content: {
+                'application/json': {
+                  schema: { type: 'array', items: { $ref: '#/components/schemas/NearbyItem' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/case-studies': {
+        get: {
+          operationId: 'discoverCaseStudies',
+          summary: 'Search and filter case studies across the whole catalog',
+          description:
+            'Discover documented real-world deployments ("what has actually worked") across all solutions — not scoped to one node. Pass a natural-language `query` for semantic ranking (each result then carries `similarity`), and/or filter by `outcome`, `scale`, and `verified`. Without a query, results are verified-first then most recent. Only approved case studies are returned. To list case studies for one specific solution or issue use listCaseStudies instead.',
+          parameters: [
+            {
+              name: 'query',
+              in: 'query',
+              required: false,
+              description: 'Natural-language query for semantic ranking (minimum 3 characters).',
+              schema: { type: 'string' },
+            },
+            {
+              name: 'outcome',
+              in: 'query',
+              required: false,
+              description: 'Filter by reported outcome.',
+              schema: {
+                type: 'string',
+                enum: ['success', 'partial', 'failed', 'inconclusive', 'ongoing'],
+              },
+            },
+            {
+              name: 'scale',
+              in: 'query',
+              required: false,
+              description: 'Filter by geographic scale of the deployment.',
+              schema: {
+                type: 'string',
+                enum: ['neighborhood', 'city', 'region', 'national', 'global'],
+              },
+            },
+            {
+              name: 'verified',
+              in: 'query',
+              required: false,
+              description: 'Restrict to (true) or exclude (false) admin-verified case studies.',
+              schema: { type: 'boolean' },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              required: false,
+              description: 'Maximum results to return (1–25).',
+              schema: { type: 'integer', default: 10, minimum: 1, maximum: 25 },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Matching case studies.',
+              content: {
+                'application/json': {
+                  schema: { type: 'array', items: { $ref: '#/components/schemas/CaseStudy' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/api/nodes': {
+        get: {
+          operationId: 'listNodes',
+          summary: 'List issues and solutions by tag or SDG',
+          description:
+            'Browse issues and solutions (including sub-issues) filtered by a tag slug and/or a Sustainable Development Goal id. At least one of `tag` or `sdg` is required. Use listTags and listSdgs to resolve human names to a `tag` slug / `sdg` id first. When both filters are supplied they intersect. Only approved nodes are returned.',
+          parameters: [
+            {
+              name: 'tag',
+              in: 'query',
+              required: false,
+              description: 'Tag slug to filter by (see listTags).',
+              schema: { type: 'string' },
+            },
+            {
+              name: 'sdg',
+              in: 'query',
+              required: false,
+              description: 'Sustainable Development Goal id to filter by (see listSdgs).',
+              schema: { type: 'integer' },
+            },
+            {
+              name: 'type',
+              in: 'query',
+              required: false,
+              description: 'Restrict to one node kind, or omit for both.',
+              schema: { type: 'string', enum: ['issue', 'solution'] },
+            },
+            {
+              name: 'sort',
+              in: 'query',
+              required: false,
+              description: 'Ordering of results.',
+              schema: {
+                type: 'string',
+                enum: ['most_voted', 'trending', 'newest', 'oldest'],
+                default: 'most_voted',
+              },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              required: false,
+              description: 'Maximum results to return (1–50).',
+              schema: { type: 'integer', default: 20, minimum: 1, maximum: 50 },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Matching issues and solutions.',
+              content: {
+                'application/json': {
+                  schema: { type: 'array', items: { $ref: '#/components/schemas/Node' } },
                 },
               },
             },
@@ -240,7 +426,8 @@ export default defineEventHandler((event) => {
         get: {
           operationId: 'listTags',
           summary: 'List all tags',
-          description: 'Return every tag (slug + display name) usable to filter issues.',
+          description:
+            'Return every tag (slug + display name). Use a tag `slug` with the `tag` filter on listNodes or listIssues.',
           responses: {
             '200': {
               description: 'All tags.',
@@ -258,7 +445,7 @@ export default defineEventHandler((event) => {
           operationId: 'listSdgs',
           summary: 'List UN Sustainable Development Goals',
           description:
-            'Return the catalog of UN Sustainable Development Goals that issues can be mapped to.',
+            'Return the catalog of UN Sustainable Development Goals nodes can be mapped to. Use an SDG `id` with the `sdg` filter on listNodes.',
           responses: {
             '200': {
               description: 'All SDGs.',
@@ -266,31 +453,6 @@ export default defineEventHandler((event) => {
                 'application/json': {
                   schema: { type: 'array', items: { $ref: '#/components/schemas/Sdg' } },
                 },
-              },
-            },
-          },
-        },
-      },
-      '/api/user/{id}': {
-        get: {
-          operationId: 'getUserProfile',
-          summary: 'Get a public user profile by UUID',
-          description:
-            'Return a user’s public profile: name, headline, bio, trust score, qualifications with endorsement counts, and the issues, solutions, and case studies they have authored. The `id` is the UUID found on a node’s authorId field.',
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              required: true,
-              description: 'User UUID (the authorId of an issue/solution/case study).',
-              schema: { type: 'string', format: 'uuid' },
-            },
-          ],
-          responses: {
-            '200': {
-              description: 'The public profile.',
-              content: {
-                'application/json': { schema: { $ref: '#/components/schemas/UserProfile' } },
               },
             },
           },
@@ -485,6 +647,11 @@ export default defineEventHandler((event) => {
               description: 'External resources documenting the deployment.',
               items: { $ref: '#/components/schemas/Link' },
             },
+            similarity: {
+              type: 'integer',
+              description:
+                'Cosine similarity as a 0–100 percentage. Present only on semantic discoverCaseStudies results.',
+            },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -502,7 +669,7 @@ export default defineEventHandler((event) => {
         Sdg: {
           type: 'object',
           properties: {
-            id: { type: 'integer' },
+            id: { type: 'integer', description: 'Stable identifier used by the `sdg` filter.' },
             name: { type: 'string' },
             iconUrl: { type: 'string' },
             link: { type: 'string' },
@@ -510,69 +677,50 @@ export default defineEventHandler((event) => {
             updatedAt: { type: 'string', format: 'date-time' },
           },
         },
-        SimilarResponse: {
+        SearchResponse: {
           type: 'object',
           properties: {
-            status: { type: 'string', enum: ['ok', 'unavailable', 'too_short'] },
+            status: {
+              type: 'string',
+              enum: ['ok', 'too_short', 'embeddings_unavailable'],
+            },
             results: {
               type: 'array',
+              description:
+                'Matching nodes, each with a similarity score; empty unless status is "ok".',
               items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'integer' },
-                  title: { type: 'string' },
-                  summary: { type: 'string' },
-                  similarity: {
-                    type: 'integer',
-                    description: 'Cosine similarity as a 0–100 percentage.',
+                allOf: [
+                  { $ref: '#/components/schemas/Node' },
+                  {
+                    type: 'object',
+                    properties: {
+                      similarity: {
+                        type: 'integer',
+                        description: 'Cosine similarity as a 0–100 percentage.',
+                      },
+                    },
                   },
-                },
+                ],
               },
             },
           },
         },
-        UserProfile: {
+        NearbyItem: {
           type: 'object',
+          description:
+            'One catalog entry near the query point. Inspect `kind`; `item` is a Node for issues/solutions or a CaseStudy for case studies.',
           properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-            headline: { type: 'string' },
-            bio: { type: 'string' },
-            location: { type: 'string' },
-            trustScore: { type: 'number' },
-            createdAt: { type: 'string', format: 'date-time' },
-            qualifications: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'integer' },
-                  title: { type: 'string' },
-                  area: { type: 'string' },
-                  detail: { type: 'string' },
-                  createdAt: { type: 'string', format: 'date-time' },
-                  endorsementCount: { type: 'integer' },
-                  isVerified: { type: 'boolean' },
-                  viewerHasEndorsed: { type: 'boolean' },
-                },
-              },
+            kind: { type: 'string', enum: ['issue', 'solution', 'case-study'] },
+            distanceKm: {
+              type: 'number',
+              description: 'Distance from the query point in kilometres (rounded to 1 decimal).',
             },
-            isAdmin: { type: 'boolean' },
-            endorsementsReceived: { type: 'integer' },
-            viewer: {
-              type: 'object',
-              description:
-                'Flags about the requester relative to this profile (anonymous via this action).',
-              properties: {
-                isOwner: { type: 'boolean' },
-                canEndorse: { type: 'boolean' },
-                isAdmin: { type: 'boolean' },
-                isAuthenticated: { type: 'boolean' },
-              },
+            item: {
+              oneOf: [
+                { $ref: '#/components/schemas/Node' },
+                { $ref: '#/components/schemas/CaseStudy' },
+              ],
             },
-            issues: { type: 'array', items: { $ref: '#/components/schemas/Node' } },
-            solutions: { type: 'array', items: { $ref: '#/components/schemas/Node' } },
-            caseStudies: { type: 'array', items: { $ref: '#/components/schemas/CaseStudy' } },
           },
         },
       },
