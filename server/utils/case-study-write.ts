@@ -121,7 +121,7 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
       cost: input.cost != null ? String(input.cost) : null,
       currency: input.currency?.toString().trim() || null,
       fundingSource: input.fundingSource?.toString().trim() || null,
-      sources: input.sources ?? null,
+      sources: sanitizeLinks(input.sources),
       lessonsLearned: input.lessonsLearned?.length ? input.lessonsLearned : null,
       links: sanitizeLinks(input.links),
       ...(embedding ? { embedding } : {}),
@@ -220,7 +220,7 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
   if (input.currency !== undefined) patch.currency = input.currency?.toString().trim() || null
   if (input.fundingSource !== undefined)
     patch.fundingSource = input.fundingSource?.toString().trim() || null
-  if (input.sources !== undefined) patch.sources = input.sources
+  if (input.sources !== undefined) patch.sources = sanitizeLinks(input.sources)
   if (input.lessonsLearned !== undefined)
     patch.lessonsLearned = input.lessonsLearned?.length ? input.lessonsLearned : null
   if (input.links !== undefined) patch.links = sanitizeLinks(input.links)
