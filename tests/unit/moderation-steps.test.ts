@@ -55,9 +55,11 @@ describe('render', () => {
 // safety net against silent prompt drift when the YAML is edited: a change to
 // wording shows up here (or in the snapshot) and must be reviewed deliberately.
 describe('rendered prompts (golden)', () => {
-  it('issue.moderate concatenates issueText + duplicateContext verbatim', () => {
+  it('issue.moderate fences issueText and appends duplicateContext', () => {
     const step = STEPS['issue.moderate']
-    expect(render(step.user, { issueText: 'TEXT', duplicateContext: 'DUP' })).toBe('TEXTDUP')
+    expect(render(step.user, { issueText: 'TEXT', duplicateContext: 'DUP' })).toBe(
+      '<submission>\nTEXT\n</submission>DUP',
+    )
     expect(render(step.system, {})).toMatchSnapshot()
   })
 
@@ -80,46 +82,75 @@ describe('rendered prompts (golden)', () => {
 
   it('structure.verdict interpolates the item header and context lines', () => {
     const step = STEPS['structure.verdict']
-    expect(render(step.user, { issueId: '42', issueType: 'solution', parentId: 'none', issueText: 'BODY', contextLines: '- #1 x' }))
-      .toBe('New item (id: 42, type: solution, parentId: none):\nBODY\n\nExisting similar items:\n- #1 x')
+    expect(
+      render(step.user, {
+        issueId: '42',
+        issueType: 'solution',
+        parentId: 'none',
+        issueText: 'BODY',
+        contextLines: '- #1 x',
+      }),
+    ).toBe(
+      'New item (id: 42, type: solution, parentId: none):\nBODY\n\nExisting similar items:\n- #1 x',
+    )
     expect(render(step.system, {})).toMatchSnapshot()
   })
 
-  it('case-study.moderate uses the case study text as the user message', () => {
+  it('case-study.moderate fences the case study text as the user message', () => {
     const step = STEPS['case-study.moderate']
-    expect(render(step.user, { caseStudyText: 'CS' })).toBe('CS')
+    expect(render(step.user, { caseStudyText: 'CS' })).toBe('<submission>\nCS\n</submission>')
     expect(render(step.system, {})).toMatchSnapshot()
   })
 
   it('case-study.curate keeps the parentContext + original JSON layout', () => {
     const step = STEPS['case-study.curate']
-    expect(render(step.user, { parentContext: 'PC', originalJson: '{JSON}' }))
-      .toBe('PC\n\nCase study (original fields):\n{JSON}')
+    expect(render(step.user, { parentContext: 'PC', originalJson: '{JSON}' })).toBe(
+      'PC\n\nCase study (original fields):\n{JSON}',
+    )
     // No parent solution → empty parentContext still yields the leading blank lines.
-    expect(render(step.user, { parentContext: '', originalJson: '{JSON}' }))
-      .toBe('\n\nCase study (original fields):\n{JSON}')
+    expect(render(step.user, { parentContext: '', originalJson: '{JSON}' })).toBe(
+      '\n\nCase study (original fields):\n{JSON}',
+    )
     expect(render(step.system, {})).toMatchSnapshot()
   })
 
   it('location.resolve lays out the agent inputs and declares the geocode tool', () => {
     const step = STEPS['location.resolve']
     expect(step.tools).toEqual(['geocode'])
-    expect(render(step.user, { locationName: 'Brazil (national; Amazon biome)', scale: 'national', latitude: '-15.7939', longitude: '-47.8828', document: 'A reforestation project in the Amazon rainforest.' }))
-      .toBe('Stated location name: Brazil (national; Amazon biome)\nScale: national\nCurrent coordinates (latitude, longitude): -15.7939, -47.8828\n\nDocument:\nA reforestation project in the Amazon rainforest.')
+    expect(
+      render(step.user, {
+        locationName: 'Brazil (national; Amazon biome)',
+        scale: 'national',
+        latitude: '-15.7939',
+        longitude: '-47.8828',
+        document: 'A reforestation project in the Amazon rainforest.',
+      }),
+    ).toBe(
+      'Stated location name: Brazil (national; Amazon biome)\nScale: national\nCurrent coordinates (latitude, longitude): -15.7939, -47.8828\n\nDocument:\nA reforestation project in the Amazon rainforest.',
+    )
     expect(render(step.system, {})).toMatchSnapshot()
   })
 
   it('issue.curate interpolates the node fields', () => {
     const step = STEPS['issue.curate']
-    expect(render(step.user, { kind: 'solution', title: 'Rain gardens', summary: 'Build rain gardens', description: 'Long body.' }))
-      .toBe('Type: solution\nTitle: Rain gardens\n\nCurrent summary:\nBuild rain gardens\n\nCurrent description:\nLong body.')
+    expect(
+      render(step.user, {
+        kind: 'solution',
+        title: 'Rain gardens',
+        summary: 'Build rain gardens',
+        description: 'Long body.',
+      }),
+    ).toBe(
+      'Type: solution\nTitle: Rain gardens\n\nCurrent summary:\nBuild rain gardens\n\nCurrent description:\nLong body.',
+    )
     expect(render(step.system, { kind: 'solution' })).toMatchSnapshot()
   })
 
   it('revision.prescreen lays out the original/proposed text and note', () => {
     const step = STEPS['revision.prescreen']
-    expect(render(step.user, { originalText: 'BEFORE', proposedText: 'AFTER', note: 'fixed a typo' }))
-      .toBe('Original text:\nBEFORE\n\nProposed text:\nAFTER\n\nProposer\'s note: fixed a typo')
+    expect(
+      render(step.user, { originalText: 'BEFORE', proposedText: 'AFTER', note: 'fixed a typo' }),
+    ).toBe("Original text:\nBEFORE\n\nProposed text:\nAFTER\n\nProposer's note: fixed a typo")
     expect(render(step.system, {})).toMatchSnapshot()
   })
 })

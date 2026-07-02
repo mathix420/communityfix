@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { safeUrl } from '~/utils/safeUrl'
+
 const { track } = useUmami()
 const route = useRoute()
 const issueId = route.params.issueId as string
@@ -362,7 +364,7 @@ async function submitAppeal() {
               class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
               rel="nofollow noopener noreferrer"
               target="_blank"
-              :href="l.url"
+              :href="safeUrl(l.url)"
               @click="track('Solution link click', { issueId: Number(issueId) })"
             >
               <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:external-link" />

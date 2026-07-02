@@ -41,13 +41,28 @@ export function sanitizeSummary(input: string): string {
 
 export type Link = { url: string; title?: string }
 
+// Schemes allowed for user-provided link/source URLs. Anything else — notably
+// javascript:, data:, vbscript: — is dropped so a stored link can't execute
+// script when later rendered as an <a href> (these fields bypass the markdown
+// sanitizer; they're bound straight onto :href). Relative/scheme-less strings
+// fail `new URL()` and are dropped too: external references must be absolute.
+const SAFE_LINK_SCHEMES = new Set(['http:', 'https:', 'mailto:'])
+
+export function isSafeLinkUrl(url: string): boolean {
+  try {
+    return SAFE_LINK_SCHEMES.has(new URL(url).protocol)
+  } catch {
+    return false
+  }
+}
+
 export function sanitizeLinks(input: unknown): Link[] | null {
   if (!Array.isArray(input)) return null
   const cleaned = input
     .map((raw) => {
       if (!raw || typeof raw !== 'object') return null
       const url = String((raw as { url?: unknown }).url ?? '').trim()
-      if (!url) return null
+      if (!url || !isSafeLinkUrl(url)) return null
       const title = String((raw as { title?: unknown }).title ?? '').trim()
       return title ? { url, title } : { url }
     })
