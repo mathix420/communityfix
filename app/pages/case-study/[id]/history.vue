@@ -28,13 +28,7 @@ async function onChanged() {
 
 <template>
   <div class="mt-3 space-y-4">
-    <NuxtLink
-      class="inline-flex items-center gap-1.5 text-xs font-mono text-gray-400 hover:text-gray-600 transition-colors"
-      :to="`/case-study/${id}`"
-    >
-      <UIcon class="size-3.5" name="lucide:arrow-left" />
-      Back to case study
-    </NuxtLink>
+    <NodeBackLink :to="`/case-study/${id}`" label="Back to case study" />
     <div class="flex items-baseline gap-3">
       <UiSectionTitle>
         History

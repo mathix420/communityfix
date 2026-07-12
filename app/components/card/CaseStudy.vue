@@ -37,29 +37,6 @@ interface CaseStudy {
 
 const props = defineProps<{ study: CaseStudy }>()
 
-const outcomeVariant: Record<CaseStudy['outcome'], 'success' | 'default' | 'error' | 'warning'> = {
-  success: 'success',
-  partial: 'default',
-  failed: 'error',
-  inconclusive: 'default',
-  ongoing: 'warning',
-}
-const outcomeLabel: Record<CaseStudy['outcome'], string> = {
-  success: 'Success',
-  partial: 'Partial',
-  failed: 'Failed',
-  inconclusive: 'Inconclusive',
-  ongoing: 'Ongoing',
-}
-
-const scaleLabel: Record<string, string> = {
-  neighborhood: 'Neighborhood',
-  city: 'City',
-  region: 'Region',
-  national: 'National',
-  global: 'Global',
-}
-
 function yearOf(s?: string | null): string | null {
   if (!s) return null
   const m = /^(\d{4})/.exec(s)
@@ -130,8 +107,8 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
             title="Verified"
           />
         </NuxtLink>
-        <UiBadge class="shrink-0" :variant="outcomeVariant[study.outcome]">
-          {{ outcomeLabel[study.outcome] }}
+        <UiBadge class="shrink-0" :variant="outcomeBadgeVariant(study.outcome)">
+          {{ outcomeBadgeLabel(study.outcome) }}
         </UiBadge>
       </div>
       <!-- Meta line: implementer · dates · scale, single greyscale row -->
@@ -157,7 +134,7 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
         </span>
         <span v-if="study.scale" class="inline-flex items-center gap-1.5">
           <UIcon class="size-3.5 text-gray-400" name="lucide:globe" />
-          {{ scaleLabel[study.scale] ?? study.scale }}
+          {{ scaleBadgeLabel(study.scale) }}
         </span>
       </div>
       <UiMarkdown

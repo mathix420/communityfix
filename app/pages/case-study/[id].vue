@@ -11,34 +11,14 @@ const { data: parent } = await useFetch(() => `/api/issue/${study.value?.solutio
   watch: false,
 })
 
-const outcomeVariant: Record<string, 'success' | 'default' | 'error' | 'warning'> = {
-  success: 'success',
-  partial: 'default',
-  failed: 'error',
-  inconclusive: 'default',
-  ongoing: 'warning',
-}
-const outcomeLabel: Record<string, string> = {
-  success: 'Success',
-  partial: 'Partial',
-  failed: 'Failed',
-  inconclusive: 'Inconclusive',
-  ongoing: 'Ongoing',
-}
-// OG image eyebrow: outcome phrased as a "fix" verb.
+// OG image eyebrow: outcome phrased as a "fix" verb (unique to this page; the
+// on-page badge labels/variants come from the shared case-study helpers).
 const ogOutcomeLabel: Record<string, string> = {
   success: 'Fixed',
   partial: 'Partially fixed',
   failed: 'Failed to fix',
   inconclusive: 'Inconclusive',
   ongoing: 'Fixing',
-}
-const scaleLabel: Record<string, string> = {
-  neighborhood: 'Neighborhood',
-  city: 'City',
-  region: 'Region',
-  national: 'National',
-  global: 'Global',
 }
 
 // Make the loaded row available to nested route children (index renders the
@@ -172,15 +152,15 @@ if (study.value) {
         </UButton>
       </div>
       <div class="flex items-center gap-2 flex-wrap mb-6">
-        <UiBadge :variant="outcomeVariant[study.outcome] ?? 'default'">
-          {{ outcomeLabel[study.outcome] ?? study.outcome }}
+        <UiBadge :variant="outcomeBadgeVariant(study.outcome)">
+          {{ outcomeBadgeLabel(study.outcome) }}
         </UiBadge>
         <UiBadge v-if="study.verified" class="inline-flex items-center gap-1" variant="success">
           <UIcon class="size-3.5" name="lucide:badge-check" />
           Verified
         </UiBadge>
         <UiBadge v-if="study.scale">
-          {{ scaleLabel[study.scale] ?? study.scale }}
+          {{ scaleBadgeLabel(study.scale) }}
         </UiBadge>
       </div>
       <IssueParentCallout

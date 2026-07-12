@@ -45,20 +45,6 @@ const nodeIconClass = computed(() => {
   return 'text-gray-400'
 })
 
-const outcomeVariant: Record<string, 'success' | 'default' | 'error' | 'warning'> = {
-  success: 'success',
-  partial: 'default',
-  failed: 'error',
-  inconclusive: 'default',
-  ongoing: 'warning',
-}
-const outcomeLabel: Record<string, string> = {
-  success: 'Success',
-  partial: 'Partial',
-  failed: 'Failed',
-  inconclusive: 'Inconclusive',
-  ongoing: 'Ongoing',
-}
 </script>
 
 <template>
@@ -92,9 +78,9 @@ const outcomeLabel: Record<string, string> = {
       </UiBadge>
       <UiBadge
         v-if="isCaseStudy && node.outcome"
-        :variant="outcomeVariant[node.outcome] ?? 'default'"
+        :variant="outcomeBadgeVariant(node.outcome)"
       >
-        {{ outcomeLabel[node.outcome] ?? node.outcome }}
+        {{ outcomeBadgeLabel(node.outcome) }}
       </UiBadge>
       <div
         v-if="!isCaseStudy"
