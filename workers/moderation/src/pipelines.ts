@@ -30,6 +30,23 @@ const DUPLICATE_THRESHOLD = 0.92
 export const CASE_STUDY_DUPLICATE_THRESHOLD = 0.93
 const CONFIDENCE_THRESHOLD = 0.7
 
+// Prompt-injection hardening. User-controlled submission text is fenced inside
+// <submission>…</submission> tags in the moderation prompts so the model treats
+// it as untrusted data. Strip any fence markers from the text itself so a
+// submission can't forge the boundary (inject a fake </submission> followed by
+// attacker "instructions"). Applied to every block composed from user fields
+// before it reaches a prompt.
+const FENCE_TOKENS = /<\/?(submission|similar_issues)>/gi
+function stripFenceTokens(text: string): string {
+  return text.replace(FENCE_TOKENS, '')
+}
+
+// Bounds on model-suggested new tags. Classify-tags runs on the same untrusted
+// text, so injection could otherwise mint arbitrary, oversized, or many
+// platform-wide taxonomy entries.
+const MAX_NEW_TAGS_PER_SUBMISSION = 3
+const MAX_TAG_NAME_LENGTH = 40
+
 interface IssueRef {
   id: number
   type: 'issue' | 'solution'
@@ -95,16 +112,18 @@ export async function prepareIssue(ctx: Ctx, issueId: number): Promise<IssuePrep
   }
   if (issue.status !== 'pending') return null
 
-  const issueText = [
-    `Title: ${issue.title}`,
-    `Summary: ${issue.summary}`,
-    issue.description ? `Description: ${issue.description}` : '',
-    issue.infoRequest && issue.infoResponse
-      ? `\n--- Additional context (author responded to reviewer questions) ---\nQuestions asked: ${issue.infoRequest}\nAuthor response: ${issue.infoResponse}`
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n')
+  const issueText = stripFenceTokens(
+    [
+      `Title: ${issue.title}`,
+      `Summary: ${issue.summary}`,
+      issue.description ? `Description: ${issue.description}` : '',
+      issue.infoRequest && issue.infoResponse
+        ? `\n--- Additional context (author responded to reviewer questions) ---\nQuestions asked: ${issue.infoRequest}\nAuthor response: ${issue.infoResponse}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  )
 
   let embedding: number[] | null = null
   try {
@@ -132,7 +151,14 @@ export async function prepareIssue(ctx: Ctx, issueId: number): Promise<IssuePrep
 
   const duplicateContext =
     similar.length > 0
-      ? `\n\nExisting similar issues (high similarity may indicate a duplicate):\n${similar.map((s) => `- [id:${s.id}, similarity:${(s.similarity * 100).toFixed(0)}%] "${s.title}" — ${s.summary}`).join('\n')}`
+      ? `\n\n<similar_issues>\nExisting similar issues (high similarity may indicate a duplicate):\n${stripFenceTokens(
+          similar
+            .map(
+              (s) =>
+                `- [id:${s.id}, similarity:${(s.similarity * 100).toFixed(0)}%] "${s.title}" — ${s.summary}`,
+            )
+            .join('\n'),
+        )}\n</similar_issues>`
       : ''
 
   return {
@@ -247,11 +273,16 @@ export async function finalizeIssue(
   }
 
   const newTagIds: number[] = []
-  for (const name of tagResult.newTagNames ?? []) {
+  const proposedNewTags = (tagResult.newTagNames ?? [])
+    .map((n) => n.trim())
+    .filter((n) => n.length > 0 && n.length <= MAX_TAG_NAME_LENGTH)
+    .slice(0, MAX_NEW_TAGS_PER_SUBMISSION)
+  for (const name of proposedNewTags) {
     const slug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
+    if (!slug) continue // name had no alphanumerics — skip rather than mint an empty-slug tag
     const [newTag] = await db
       .insert(tags)
       .values({ name, slug })
@@ -515,20 +546,22 @@ export async function prepareCaseStudy(
       columns: { title: true, summary: true },
     })) ?? null
 
-  const caseStudyText = [
-    solution ? `Parent solution: ${solution.title}` : '',
-    `Location: ${cs.locationName}`,
-    `Outcome: ${cs.outcome}`,
-    cs.scale ? `Scale: ${cs.scale}` : '',
-    cs.implementer ? `Implementer: ${cs.implementer}` : '',
-    cs.description ? `Description: ${cs.description}` : '',
-    cs.fundingSource ? `Funding source: ${cs.fundingSource}` : '',
-    Array.isArray(cs.lessonsLearned) && cs.lessonsLearned.length
-      ? `Lessons learned: ${(cs.lessonsLearned as string[]).join('; ')}`
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n')
+  const caseStudyText = stripFenceTokens(
+    [
+      solution ? `Parent solution: ${solution.title}` : '',
+      `Location: ${cs.locationName}`,
+      `Outcome: ${cs.outcome}`,
+      cs.scale ? `Scale: ${cs.scale}` : '',
+      cs.implementer ? `Implementer: ${cs.implementer}` : '',
+      cs.description ? `Description: ${cs.description}` : '',
+      cs.fundingSource ? `Funding source: ${cs.fundingSource}` : '',
+      Array.isArray(cs.lessonsLearned) && cs.lessonsLearned.length
+        ? `Lessons learned: ${(cs.lessonsLearned as string[]).join('; ')}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  )
 
   const original = {
     outcome: cs.outcome,

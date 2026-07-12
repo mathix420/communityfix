@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { safeUrl } from '~/utils/safeUrl'
 // A labeled card listing external links ({ url, title }) — the Sources and
 // Links sections of a case study render identically apart from icon + label, so
 // they share this. Renders nothing when there are no items.
@@ -26,7 +27,7 @@ defineProps<{
           class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
           rel="nofollow noopener noreferrer"
           target="_blank"
-          :href="item.url"
+          :href="safeUrl(item.url)"
         >
           <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:external-link" />
           <span class="truncate text-sm text-primary-700">

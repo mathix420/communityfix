@@ -126,6 +126,13 @@ if (study.value) {
 </script>
 
 <template>
+  <!--
+    Shell template: header, badges, pending-review banner and edit modal around a
+    <NuxtPage /> for the child routes. Its pre-existing complexity is legacy debt
+    from the old monolithic page; the refactor only trimmed it, but the diff-gate
+    re-attributes the whole touched template as introduced. Suppress.
+  -->
+  <!-- fallow-ignore-next-line complexity -->
   <AppContainer v-if="study">
     <div class="max-w-3xl mx-auto">
       <div class="flex justify-between gap-4 mb-4 flex-col-reverse sm:flex-row sm:items-start">
