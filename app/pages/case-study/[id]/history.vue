@@ -21,6 +21,11 @@ const { data: revisions, refresh } = await useFetch<SerializedRevision[]>(
   { default: () => [] },
 )
 
+// Derived values kept in script so the template stays flat (no inline ternaries
+// / optional chains for the complexity budget to trip over).
+const revisionCount = computed(() => revisions.value.length)
+const viewerId = computed(() => (loggedIn.value ? (user.value?.id ?? null) : null))
+
 async function onChanged() {
   await Promise.all([refresh(), onEdited()])
 }
@@ -28,19 +33,19 @@ async function onChanged() {
 
 <template>
   <div class="mt-3 space-y-4">
-    <NodeBackLink :to="`/case-study/${id}`" label="Back to case study" />
+    <NodeBackLink label="Back to case study" :to="`/case-study/${id}`" />
     <div class="flex items-baseline gap-3">
       <UiSectionTitle>
         History
       </UiSectionTitle>
-      <span v-if="revisions?.length" class="font-mono text-[10px] text-gray-400 tracking-widest">
-        · {{ revisions.length }}
+      <span v-if="revisionCount" class="font-mono text-[10px] text-gray-400 tracking-widest">
+        · {{ revisionCount }}
       </span>
     </div>
     <RevisionTimeline
       :can-decide="canApply"
-      :revisions="revisions ?? []"
-      :viewer-id="loggedIn ? user?.id : null"
+      :revisions="revisions"
+      :viewer-id="viewerId"
       @changed="onChanged"
     />
   </div>

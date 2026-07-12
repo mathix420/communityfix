@@ -44,7 +44,6 @@ const nodeIconClass = computed(() => {
   if (isSolution.value) return 'text-primary-600'
   return 'text-gray-400'
 })
-
 </script>
 
 <template>
@@ -76,10 +75,7 @@ const nodeIconClass = computed(() => {
       <UiBadge v-else-if="node.solutionStatus === 'done'" variant="success">
         Done
       </UiBadge>
-      <UiBadge
-        v-if="isCaseStudy && node.outcome"
-        :variant="outcomeBadgeVariant(node.outcome)"
-      >
+      <UiBadge v-if="isCaseStudy && node.outcome" :variant="outcomeBadgeVariant(node.outcome)">
         {{ outcomeBadgeLabel(node.outcome) }}
       </UiBadge>
       <div

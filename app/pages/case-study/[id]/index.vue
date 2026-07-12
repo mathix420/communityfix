@@ -9,42 +9,8 @@ const id = computed(() => route.params.id as string)
 // The parent [id].vue shell already loaded the study and provided it.
 const study = inject<Ref<any>>('caseStudy')
 
-function formatDay(s?: string | null): string | null {
-  if (!s) return null
-  const d = new Date(s)
-  if (Number.isNaN(d.getTime())) return s
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-const dateRange = computed(() => {
-  const start = formatDay(study?.value?.startDate)
-  const end = formatDay(study?.value?.endDate)
-  if (!start && !end) return null
-  if (start && end) return start === end ? start : `${start} – ${end}`
-  if (start) return `Since ${start}`
-  return `Until ${end}`
-})
-
-const costDisplay = computed(() => {
-  const cost = study?.value?.cost
-  if (cost == null) return null
-  const num = Number(cost)
-  if (!Number.isFinite(num)) return String(cost)
-  const currency = study?.value?.currency?.trim()
-  if (currency && /^[A-Za-z]{3}$/.test(currency)) {
-    try {
-      return new Intl.NumberFormat('en', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-        maximumFractionDigits: 0,
-      }).format(num)
-    } catch {
-      /* fall through */
-    }
-  }
-  const formatted = new Intl.NumberFormat('en').format(num)
-  return currency ? `${formatted} ${currency}` : formatted
-})
+const dateRange = computed(() => caseStudyDateRange(study?.value?.startDate, study?.value?.endDate))
+const costDisplay = computed(() => caseStudyCost(study?.value?.cost, study?.value?.currency))
 
 const mapVisible = ref(false)
 onMounted(() => {
@@ -55,10 +21,7 @@ onMounted(() => {
 <template>
   <div v-if="study" class="mt-3 space-y-3">
     <div v-if="study.implementer || dateRange" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div
-        v-if="study.implementer"
-        class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
-      >
+      <div v-if="study.implementer" class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
         <div class="flex items-center gap-2 mb-2.5">
           <UIcon class="size-4 text-gray-400" name="lucide:users" />
           <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
@@ -81,10 +44,7 @@ onMounted(() => {
         </p>
       </div>
     </div>
-    <div
-      v-if="study.location"
-      class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
-    >
+    <div v-if="study.location" class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
       <div class="flex items-center gap-3 p-4 sm:p-6 border-b border-gray-200">
         <UIcon class="size-4 shrink-0 text-gray-400" name="lucide:map" />
         <div class="flex-1 min-w-0">
@@ -111,10 +71,7 @@ onMounted(() => {
         />
       </div>
     </div>
-    <div
-      v-if="study.description"
-      class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
-    >
+    <div v-if="study.description" class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
       <div class="flex items-center gap-2 mb-2.5">
         <UIcon class="size-4 text-gray-400" name="lucide:file-text" />
         <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
@@ -200,64 +157,8 @@ onMounted(() => {
         </li>
       </ul>
     </div>
-    <div
-      v-if="study.sources?.length"
-      class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
-    >
-      <div class="flex items-center gap-2 p-4 sm:p-6 border-b border-gray-200">
-        <UIcon class="size-4 text-gray-400" name="lucide:book-open" />
-        <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-          Sources
-        </p>
-        <span class="text-xs font-mono text-gray-400">
-          {{ study.sources.length }}
-        </span>
-      </div>
-      <ul class="divide-y divide-gray-200 bg-white">
-        <li v-for="(s, i) in study.sources" :key="i">
-          <a
-            class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
-            rel="nofollow noopener noreferrer"
-            target="_blank"
-            :href="s.url"
-          >
-            <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:external-link" />
-            <span class="truncate text-sm text-primary-700">
-              {{ s.title || s.url }}
-            </span>
-          </a>
-        </li>
-      </ul>
-    </div>
-    <div
-      v-if="study.links?.length"
-      class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
-    >
-      <div class="flex items-center gap-2 p-4 sm:p-6 border-b border-gray-200">
-        <UIcon class="size-4 text-gray-400" name="lucide:paperclip" />
-        <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-          Links
-        </p>
-        <span class="text-xs font-mono text-gray-400">
-          {{ study.links.length }}
-        </span>
-      </div>
-      <ul class="divide-y divide-gray-200 bg-white">
-        <li v-for="(l, i) in study.links" :key="i">
-          <a
-            class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
-            rel="nofollow noopener noreferrer"
-            target="_blank"
-            :href="l.url"
-          >
-            <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:external-link" />
-            <span class="truncate text-sm text-primary-700">
-              {{ l.title || l.url }}
-            </span>
-          </a>
-        </li>
-      </ul>
-    </div>
+    <CaseStudyLinkCard icon="lucide:book-open" label="Sources" :items="study.sources ?? []" />
+    <CaseStudyLinkCard icon="lucide:paperclip" label="Links" :items="study.links ?? []" />
     <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6 flex items-center justify-between gap-3 flex-wrap">
       <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
         Documented
@@ -273,6 +174,6 @@ onMounted(() => {
     </div>
     <!-- Quiet meta links — who maintains the study and how it changed over time.
     Deliberately at the very bottom: useful, but not what the page is about. -->
-    <NodeMetaLinks :base="`/case-study/${id}`" kind="case_study" />
+    <NodeMetaLinks kind="case_study" :base="`/case-study/${id}`" />
   </div>
 </template>

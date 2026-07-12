@@ -11,7 +11,7 @@ const study = inject<Ref<{ id: number } | null>>('caseStudy')
 
 <template>
   <div class="mt-3 space-y-4">
-    <NodeBackLink :to="`/case-study/${id}`" label="Back to case study" />
+    <NodeBackLink label="Back to case study" :to="`/case-study/${id}`" />
     <NodeMembers v-if="study" always-show :kind="'case_study'" :node-id="study.id" />
   </div>
 </template>
