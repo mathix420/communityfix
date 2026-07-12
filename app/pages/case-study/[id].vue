@@ -24,7 +24,6 @@ const ogOutcomeLabel: Record<string, string> = {
 // Make the loaded row available to nested route children (index renders the
 // cards, contributors/history are quiet meta pages reached from the Overview).
 provide('caseStudy', study)
-provide('caseStudyParent', parent)
 
 // Edit / Suggest-edit + collaborative-revision history. Owner/admin edit
 // directly; other logged-in users propose a change; logged-out users go to
@@ -54,7 +53,7 @@ function openEdit() {
 // people who could act on it; the History page loads the full timeline itself.
 const { data: revisionRows, refresh: refreshPendingCount } = await useFetch<SerializedRevision[]>(
   () => `/api/case-study/${id.value}/revisions`,
-  { key: 'case-study-pending-banner', default: () => [], immediate: false },
+  { key: `case-study-pending-banner-${id.value}`, default: () => [], immediate: false },
 )
 watchEffect(() => {
   if (canApply.value && study.value) refreshPendingCount()
