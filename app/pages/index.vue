@@ -31,7 +31,13 @@ const [{ data: stats }, { data: issues }, { data: tags }, { data: results }] = a
   useFetch('/api/stats'),
   useFetch('/api/issues', { query: issuesParams, watch: [issuesParams] }),
   useFetch('/api/tags'),
-  useFetch('/api/search/quick', { query: quickParams, watch: [quickParams] }),
+  // Skip the first-paint fetch when there's nothing to search; typing (or a
+  // ?search= param) triggers it via the watch.
+  useFetch('/api/search/quick', {
+    query: quickParams,
+    watch: [quickParams],
+    immediate: Boolean(search.value.trim()),
+  }),
 ])
 
 const searching = computed(() => Boolean(search.value.trim()))

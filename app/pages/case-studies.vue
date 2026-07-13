@@ -32,6 +32,7 @@ function onQueryInput(val: string | number) {
     query.value = String(val)
   }, 400)
 }
+onUnmounted(() => clearTimeout(queryTimeout))
 
 function selectOutcome(value: string) {
   outcome.value = value
@@ -46,10 +47,14 @@ const queryParams = computed(() => {
   return params
 })
 
-const { data: studies } = await useFetch('/api/case-studies', {
+const { data } = await useFetch('/api/case-studies', {
   query: queryParams,
   watch: [queryParams],
 })
+const studies = computed(() => data.value?.items)
+// True when a semantic query was sent but embeddings were unavailable — the
+// list is then a recency fallback, not a similarity ranking.
+const degraded = computed(() => Boolean(data.value?.degraded))
 
 watch(queryParams, (params) => {
   router.replace({ query: { ...params, limit: undefined } })
@@ -125,6 +130,9 @@ useJsonLd([
         </button>
       </div>
     </div>
+    <p v-if="degraded" class="font-mono text-sm text-amber-600 mb-2">
+      Semantic search is temporarily unavailable — showing the most recent case studies instead.
+    </p>
     <p v-if="studies" class="font-mono text-sm text-gray-500 mb-4">
       Showing {{ studies.length }} case stud{{ studies.length === 1 ? 'y' : 'ies' }}
     </p>

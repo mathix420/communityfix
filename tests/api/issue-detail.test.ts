@@ -20,11 +20,15 @@ describe('Issue Detail APIs', () => {
       expect(issue).toHaveProperty('scale')
     })
 
-    it('includes moderation fields for detail view', async () => {
+    it('hides moderation fields from non-owner viewers', async () => {
       const issue = await apiFetch('/api/issue/1')
 
-      expect(issue).toHaveProperty('rejectionReason')
-      expect(issue).toHaveProperty('isSpam')
+      // Moderation state (rejection reason, spam flag, appeal status…) is
+      // only exposed when the viewer is a node owner.
+      expect(issue).not.toHaveProperty('rejectionReason')
+      expect(issue).not.toHaveProperty('isSpam')
+      expect(issue).not.toHaveProperty('appealStatus')
+      expect(issue.viewerIsOwner).toBe(false)
     })
 
     it('returns empty for non-existent issue', async () => {
@@ -82,8 +86,7 @@ describe('Issue Detail APIs', () => {
           body: JSON.stringify({ title: 'Test', description: 'Test description' }),
         })
         expect.unreachable()
-      }
-      catch (e: any) {
+      } catch (e: any) {
         expect(e.statusCode).toBe(401)
       }
     })
@@ -97,8 +100,7 @@ describe('Issue Detail APIs', () => {
           body: JSON.stringify({ reason: 'Test appeal' }),
         })
         expect.unreachable()
-      }
-      catch (e: any) {
+      } catch (e: any) {
         expect(e.statusCode).toBe(401)
       }
     })

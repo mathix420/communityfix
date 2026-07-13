@@ -42,8 +42,16 @@ describe('GET /api/issues', () => {
     }
   })
 
-  it('sorts by newest by default', async () => {
+  it('sorts by most_voted by default', async () => {
     const issues = await apiFetch('/api/issues')
+
+    for (let i = 1; i < issues.length; i++) {
+      expect(issues[i - 1].voteScore >= issues[i].voteScore).toBe(true)
+    }
+  })
+
+  it('sorts by newest when requested', async () => {
+    const issues = await apiFetch('/api/issues?sort=newest')
 
     for (let i = 1; i < issues.length; i++) {
       expect(issues[i - 1].date >= issues[i].date).toBe(true)

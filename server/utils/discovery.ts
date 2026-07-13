@@ -99,10 +99,13 @@ export async function discoverCaseStudies(q: QueryRecord) {
   const limit = clampInt(q.limit, 10, 50)
 
   // Semantic path: rank approved case studies by similarity to `query`.
+  let degraded = false
   if (query.length >= 3) {
     const ranked = await semanticCaseStudies(query, filters, limit)
-    if (ranked) return ranked
-    // ranked === null → embeddings unavailable; fall through to recency.
+    if (ranked) return { items: ranked, degraded: false }
+    // ranked === null → embeddings unavailable; fall through to recency, but
+    // flag it so the client knows the semantic query was ignored.
+    degraded = true
   }
 
   // Non-semantic path: filtered list, verified-first then most recent.
@@ -112,7 +115,7 @@ export async function discoverCaseStudies(q: QueryRecord) {
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
     limit,
   })
-  return rows.map(transformCaseStudy)
+  return { items: rows.map(transformCaseStudy), degraded }
 }
 
 // Returns ranked results, or null when embeddings can't be computed (so the

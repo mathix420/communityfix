@@ -403,32 +403,54 @@ export async function decideRevision(
     try {
       appliedSnapshot = await applyRevision(userId, revision)
     } catch (err) {
-      // Apply failed — release the claim so the proposal stays decidable.
-      await db
-        .update(revisions)
-        .set({
-          status: 'pending',
-          decidedById: null,
-          decidedByRole: null,
-          decisionReason: null,
-          decidedAt: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(revisions.id, revision.id))
+      // Apply failed — release the claim so the proposal stays decidable. The
+      // compensation can fail too (e.g. the same DB blip that broke apply); in
+      // that case the row is stranded `approved` with the node unchanged, so
+      // log it loudly with the id for manual repair instead of masking the
+      // original apply error.
+      try {
+        await db
+          .update(revisions)
+          .set({
+            status: 'pending',
+            decidedById: null,
+            decidedByRole: null,
+            decisionReason: null,
+            decidedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(revisions.id, revision.id))
+      } catch (revertErr) {
+        console.error(
+          `[revision] CRITICAL: apply failed for revision ${revision.id} and the revert to pending also failed — row is approved but the node is unchanged, repair manually:`,
+          revertErr,
+        )
+      }
       throw err
     }
-    await db
-      .update(revisions)
-      .set({ appliedSnapshot, updatedAt: new Date() })
-      .where(eq(revisions.id, revision.id))
-    await createAuditLog({
-      type: 'moderation',
-      action: 'revise',
-      issueId: revision.issueId ?? null,
-      userId,
-      reason: reason ?? null,
-      details: { revisionId: revision.id, role },
-    })
+    // Past this point the node is patched and the approval must stand — a
+    // revert to pending here would let the revision be applied twice. The
+    // ledger writes are therefore best-effort: log loudly on failure rather
+    // than fail an approval that already took effect.
+    try {
+      await db
+        .update(revisions)
+        .set({ appliedSnapshot, updatedAt: new Date() })
+        .where(eq(revisions.id, revision.id))
+      await createAuditLog({
+        type: 'moderation',
+        action: 'revise',
+        issueId: revision.issueId ?? null,
+        userId,
+        reason: reason ?? null,
+        details: { revisionId: revision.id, role },
+      })
+    } catch (ledgerErr) {
+      console.error(
+        `[revision] revision ${revision.id} was applied but recording appliedSnapshot/audit failed:`,
+        ledgerErr,
+      )
+    }
   } else {
     await db
       .update(revisions)
