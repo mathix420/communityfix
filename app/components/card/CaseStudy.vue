@@ -37,29 +37,6 @@ interface CaseStudy {
 
 const props = defineProps<{ study: CaseStudy }>()
 
-const outcomeVariant: Record<CaseStudy['outcome'], 'success' | 'default' | 'error' | 'warning'> = {
-  success: 'success',
-  partial: 'default',
-  failed: 'error',
-  inconclusive: 'default',
-  ongoing: 'warning',
-}
-const outcomeLabel: Record<CaseStudy['outcome'], string> = {
-  success: 'Success',
-  partial: 'Partial',
-  failed: 'Failed',
-  inconclusive: 'Inconclusive',
-  ongoing: 'Ongoing',
-}
-
-const scaleLabel: Record<string, string> = {
-  neighborhood: 'Neighborhood',
-  city: 'City',
-  region: 'Region',
-  national: 'National',
-  global: 'Global',
-}
-
 function yearOf(s?: string | null): string | null {
   if (!s) return null
   const m = /^(\d{4})/.exec(s)
@@ -129,8 +106,8 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
             title="Verified"
           />
         </NuxtLink>
-        <UiBadge class="shrink-0" :variant="outcomeVariant[study.outcome]">
-          {{ outcomeLabel[study.outcome] }}
+        <UiBadge class="shrink-0" :variant="outcomeBadgeVariant(study.outcome)">
+          {{ outcomeBadgeLabel(study.outcome) }}
         </UiBadge>
       </div>
       <!-- Meta: one quiet line, text only -->
@@ -139,7 +116,7 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
         class="font-mono text-xs text-gray-500 truncate -mt-1.5"
       >
         {{
-          [study.implementer, dateRange, study.scale && (scaleLabel[study.scale] ?? study.scale)]
+          [study.implementer, dateRange, study.scale && scaleBadgeLabel(study.scale)]
             .filter(Boolean)
             .join(' · ')
         }}
