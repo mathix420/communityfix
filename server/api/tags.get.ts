@@ -1,11 +1,16 @@
 import { and, eq, ne, sql } from 'drizzle-orm'
-import { issues, issueTags, tags } from '../database/schema'
+import { caseStudies, issues, issueTags, tags } from '../database/schema'
 
 export default defineEventHandler(async () => {
   const db = useDB()
   // Exclude the 1536-dim `embedding` vector — no client needs it, and it would
   // otherwise dominate the payload (notably for the public OpenAPI/GPT Action).
-  // `uses` counts approved, non-spam nodes so browse UIs can rank topics.
+  // `uses` counts every approved, non-spam node a tag reaches so browse UIs can
+  // rank topics: the tagged issues/solutions plus the case studies attached to
+  // those tagged solutions. This matches what `/tag/[slug]` lists, so the badge
+  // equals the page total. The case-study join multiplies solution rows, hence
+  // the `distinct` counts.
+  const uses = sql<number>`(count(distinct ${issues.id}) + count(distinct ${caseStudies.id}))::int`
   return db
     .select({
       id: tags.id,
@@ -13,7 +18,7 @@ export default defineEventHandler(async () => {
       name: tags.name,
       createdAt: tags.createdAt,
       updatedAt: tags.updatedAt,
-      uses: sql<number>`count(${issues.id})::int`,
+      uses,
     })
     .from(tags)
     .leftJoin(issueTags, eq(issueTags.tagId, tags.id))
@@ -21,6 +26,17 @@ export default defineEventHandler(async () => {
       issues,
       and(eq(issues.id, issueTags.issueId), eq(issues.status, 'approved'), ne(issues.isSpam, true)),
     )
+    .leftJoin(
+      caseStudies,
+      and(
+        eq(caseStudies.solutionId, issues.id),
+        eq(caseStudies.status, 'approved'),
+        ne(caseStudies.isSpam, true),
+      ),
+    )
     .groupBy(tags.id)
-    .orderBy(sql`count(${issues.id}) DESC`, tags.name)
+    .orderBy(
+      sql`(count(distinct ${issues.id}) + count(distinct ${caseStudies.id})) DESC`,
+      tags.name,
+    )
 })
