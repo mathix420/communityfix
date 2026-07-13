@@ -3,19 +3,14 @@ import { issues } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const db = useDB()
-  const id = Number(getRouterParam(event, 'id'))
+  const { session, db, id } = await requireEventContext(event)
   const body = await readBody<{ reason: string }>(event)
 
   if (!body.reason) {
     throw createError({ statusCode: 400, message: 'Rejection reason is required' })
   }
 
-  const issue = await db.query.issues.findFirst({ where: eq(issues.id, id) })
-  if (!issue) {
-    throw createError({ statusCode: 404, message: 'Issue not found' })
-  }
+  const issue = await loadIssueOr404(id)
   if (issue.status === 'rejected') {
     throw createError({ statusCode: 400, message: 'Issue is already rejected' })
   }

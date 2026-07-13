@@ -10,6 +10,7 @@ import type {
   CaseStudyLinkRow,
   CaseStudyMetricRow,
 } from '../caseStudy/CaseStudyFields.vue'
+import { cleanLinkRows } from '~/utils/link-rows'
 
 // Edit / Suggest-edit modal. Wraps the shared IssueFields / CaseStudyFields
 // groups seeded from the live node and submits to the same PATCH endpoint the
@@ -175,9 +176,7 @@ function close() {
 // every field is forwarded (the server diffs against the live node and records
 // only real changes / no-ops an empty diff).
 function buildIssueBody() {
-  const cleanedLinks = links.value
-    .map((l) => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
-    .filter((l) => l.url)
+  const cleanedLinks = cleanLinkRows(links.value)
   const body: Record<string, unknown> = {
     title: title.value.trim(),
     summary: summary.value.trim(),
@@ -199,12 +198,8 @@ function buildIssueBody() {
 // Build the case-study PATCH body. Mirrors pages/new-case-study.vue's submit
 // cleaning (sources/links/metrics trimmed + filtered, lessons rows → string[]).
 function buildCaseStudyBody() {
-  const cleanedSources = sources.value
-    .map((s) => ({ url: s.url.trim(), title: s.title.trim() || undefined }))
-    .filter((s) => s.url)
-  const cleanedLinks = csLinks.value
-    .map((l) => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
-    .filter((l) => l.url)
+  const cleanedSources = cleanLinkRows(sources.value)
+  const cleanedLinks = cleanLinkRows(csLinks.value)
   const cleanedMetrics = metrics.value
     .map((m) => ({
       label: m.label.trim(),

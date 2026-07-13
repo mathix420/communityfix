@@ -25,3 +25,21 @@ export async function assertIssueExists(issueId: number): Promise<void> {
   })
   if (!node) throw createError({ statusCode: 404, statusMessage: `Issue ${issueId} not found` })
 }
+
+// Shared preamble for the issue-mutation handlers: authenticated session, DB
+// handle, and the numeric `id` route param in one call. Handlers that need the
+// full row follow with loadIssueOr404(id).
+export async function requireEventContext(event: H3Event) {
+  const session = await requireUserSession(event)
+  const db = useDB()
+  const id = Number(getRouterParam(event, 'id'))
+  return { session, db, id }
+}
+
+// Load the full issue/solution row or 404. Unlike assertIssueExists (existence
+// only), callers here read further columns off the returned row.
+export async function loadIssueOr404(id: number) {
+  const issue = await useDB().query.issues.findFirst({ where: eq(issues.id, id) })
+  if (!issue) throw createError({ statusCode: 404, message: 'Issue not found' })
+  return issue
+}

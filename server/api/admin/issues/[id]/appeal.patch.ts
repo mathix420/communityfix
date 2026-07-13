@@ -4,9 +4,7 @@ import { createAuditLog } from '../../../../utils/audit-log'
 import { triggerModeration } from '../../../../utils/moderation-trigger'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const db = useDB()
-  const id = Number(getRouterParam(event, 'id'))
+  const { session, db, id } = await requireEventContext(event)
   const body = await readBody<{ status: 'approved' | 'denied'; reason?: string }>(event)
 
   if (!['approved', 'denied'].includes(body.status)) {

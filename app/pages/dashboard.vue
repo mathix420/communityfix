@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { InboxEntry } from '../composables/usePendingRevisions'
 import type { RevisionStatus } from '../../server/database/schema'
+import { formatRelative } from '~/utils/relative-time'
 
 const { user } = useUserSession()
 const { track } = useUmami()
@@ -49,19 +50,6 @@ function nodeLink(entry: InboxEntry) {
   return entry.node.targetKind === 'issue'
     ? `/issue/${entry.node.issueId}`
     : `/case-study/${entry.node.caseStudyId}`
-}
-
-function formatRelative(date: string | null | undefined) {
-  if (!date) return ''
-  const d = new Date(date)
-  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `${diffH}h`
-  const diffD = Math.floor(diffH / 24)
-  if (diffD < 30) return `${diffD}d`
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 // A unified, chronological recap of changes: my proposals + their decisions, and
@@ -301,7 +289,8 @@ definePageMeta({
                   {{ entry.node.label }}
                 </span>
                 <span class="block truncate text-xs text-gray-500">
-                  {{ entry.proposer?.name || 'Anonymous' }} · {{ formatRelative(entry.createdAt) }}
+                  {{ entry.proposer?.name || 'Anonymous' }} ·
+                  {{ formatRelative(entry.createdAt, { suffix: '' }) }}
                 </span>
               </span>
               <UIcon
@@ -350,7 +339,7 @@ definePageMeta({
                 </span>
               </span>
               <span class="mt-0.5 shrink-0 font-mono text-[11px] text-gray-400">
-                {{ formatRelative(a.at) }}
+                {{ formatRelative(a.at, { suffix: '' }) }}
               </span>
             </NuxtLink>
           </li>
