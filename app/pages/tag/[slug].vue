@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { track } = useUmami()
 const route = useRoute()
-const tagSlug = computed(() => route.params.slug)
+const tagSlug = computed(() => route.params.slug as string)
 
 const sort = ref((route.query.sort as string) || 'newest')
 const search = ref((route.query.search as string) || '')
@@ -14,35 +14,39 @@ const sortOptions = [
 ]
 
 const queryParams = computed(() => {
-  const params: Record<string, string> = { tag: tagSlug.value as string }
+  const params: Record<string, string> = {}
   if (sort.value) params.sort = sort.value
   if (search.value.trim()) params.search = search.value.trim()
   return params
 })
 
-const { data: issues } = await useFetch('/api/issues', {
+const { data } = await useFetch(() => `/api/tag/${tagSlug.value}`, {
   query: queryParams,
   watch: [queryParams],
 })
 
-let searchTimeout: ReturnType<typeof setTimeout>
-function onSearchInput(val: string) {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    search.value = val
-  }, 300)
-}
+const nodes = computed(() => data.value?.nodes ?? [])
+// The tag page lists every kind of node related to the tag. Tags attach to the
+// issues table, which holds issues (top-level or sub-issue) and solutions;
+// split by `type` so each kind gets its own section. Case studies carry no tags
+// themselves — the API surfaces those attached to a tagged solution.
+const issueNodes = computed(() => nodes.value.filter((n) => n.type !== 'solution'))
+const solutionNodes = computed(() => nodes.value.filter((n) => n.type === 'solution'))
+const caseStudyNodes = computed(() => data.value?.caseStudies ?? [])
+const total = computed(() => nodes.value.length + caseStudyNodes.value.length)
+
+const hasSearch = computed(() => Boolean(search.value.trim()))
 
 // SEO Meta tags
 useSeoMeta({
   title: () => `${tagSlug.value} - CommunityFix Tags`,
   description: () =>
-    `Explore community issues tagged with #${tagSlug.value}. Find ${issues.value?.length || 0} issues related to ${tagSlug.value} and join the discussion.`,
+    `Explore issues, solutions, and case studies for #${tagSlug.value} on CommunityFix. Browse ${total.value} node${total.value === 1 ? '' : 's'} related to ${tagSlug.value} and join the discussion.`,
   keywords: () =>
-    `${tagSlug.value}, community issues, community fix, ${tagSlug.value} problems, local solutions, collaborative problem solving`,
-  ogTitle: () => `#${tagSlug.value} - Community Issues`,
+    `${tagSlug.value}, community issues, community solutions, community fix, ${tagSlug.value} problems, local solutions, collaborative problem solving`,
+  ogTitle: () => `#${tagSlug.value} - Community Issues & Solutions`,
   ogDescription: () =>
-    `Browse ${issues.value?.length || 0} community issues tagged with #${tagSlug.value} on CommunityFix.`,
+    `Browse ${total.value} issue${total.value === 1 ? '' : 's'} and solutions tagged #${tagSlug.value} on CommunityFix.`,
   ogType: 'website',
   twitterCard: 'summary',
   twitterTitle: () => `#${tagSlug.value} - CommunityFix`,
@@ -54,7 +58,7 @@ defineOgImage('Community', {
   kind: 'Tag',
 })
 
-const tagName = computed(() => tagSlug.value as string)
+const tagName = computed(() => tagSlug.value)
 const tagUrl = computed(() => `${SITE_URL}/tag/${tagSlug.value}`)
 
 useJsonLd([
@@ -71,13 +75,11 @@ useJsonLd([
 ])
 
 const allTags = computed(() => {
-  if (!issues.value) return []
+  const tagMap = new Map<string, number>()
 
-  const tagMap = new Map()
-
-  issues.value.forEach((issue) => {
-    if (issue.tags && Array.isArray(issue.tags)) {
-      issue.tags.forEach((tag) => {
+  nodes.value.forEach((node) => {
+    if (node.tags && Array.isArray(node.tags)) {
+      node.tags.forEach((tag) => {
         if (tag && tag !== tagSlug.value) {
           tagMap.set(tag, (tagMap.get(tag) || 0) + 1)
         }
@@ -98,31 +100,29 @@ const allTags = computed(() => {
         #{{ tagSlug }}
       </h1>
       <p class="text-lg sm:text-2xl font-title text-primary-950">
-        Issues tagged with {{ tagSlug }}
+        Issues, solutions, and case studies for {{ tagSlug }}
       </p>
     </div>
     <p
-      v-if="issues && issues.length > 0"
+      v-if="total > 0"
       class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8"
     >
-      Found {{ issues.length }} issue{{ issues.length === 1 ? '' : 's' }} with this tag:
+      Found {{ total }} node{{ total === 1 ? '' : 's' }} with this tag:
+      <span class="font-mono text-base text-primary-700">
+        {{ issueNodes.length }} issue{{ issueNodes.length === 1 ? '' : 's' }}
+        · {{ solutionNodes.length }} solution{{ solutionNodes.length === 1 ? '' : 's' }}
+        <template v-if="caseStudyNodes.length">
+          · {{ caseStudyNodes.length }} case stud{{ caseStudyNodes.length === 1 ? 'y' : 'ies' }}
+        </template>
+      </span>
     </p>
     <!-- Filter bar -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-3xl mx-auto mb-6">
-      <UInput
-        class="flex-1"
-        icon="i-lucide-search"
-        placeholder="Search issues..."
-        size="md"
-        :model-value="search"
-        @update:model-value="onSearchInput"
-      />
-      <USelectMenu
-        v-model="sort"
-        class="w-full sm:w-44"
-        size="md"
-        value-key="value"
-        :items="sortOptions"
+    <div class="max-w-3xl mx-auto mb-6">
+      <UiSearchAndSortBar
+        v-model:search="search"
+        v-model:sort="sort"
+        placeholder="Search this topic..."
+        :sort-options="sortOptions"
       />
     </div>
     <div v-if="allTags.length > 0" class="max-w-3xl mx-auto mb-12">
@@ -151,13 +151,50 @@ const allTags = computed(() => {
         </NuxtLink>
       </div>
     </div>
-    <div v-if="issues && issues.length > 0" class="flex flex-col max-w-3xl mx-auto gap-6">
-      <CardIssue v-for="issue in issues" :key="issue.id" :issue="issue" />
+    <div v-if="total > 0" class="flex flex-col max-w-3xl mx-auto gap-10">
+      <section v-if="issueNodes.length > 0" aria-label="Issues" class="flex flex-col gap-6">
+        <UiSectionTitle>
+          Issues
+          <span class="text-gray-400 font-normal">
+            {{ issueNodes.length }}
+          </span>
+        </UiSectionTitle>
+        <CardIssue v-for="node in issueNodes" :key="node.id" :issue="node" />
+      </section>
+      <section v-if="solutionNodes.length > 0" aria-label="Solutions" class="flex flex-col gap-6">
+        <UiSectionTitle>
+          Solutions
+          <span class="text-gray-400 font-normal">
+            {{ solutionNodes.length }}
+          </span>
+        </UiSectionTitle>
+        <CardIssue v-for="node in solutionNodes" :key="node.id" :issue="node" />
+      </section>
+      <section
+        v-if="caseStudyNodes.length > 0"
+        aria-label="Case studies"
+        class="flex flex-col gap-6"
+      >
+        <UiSectionTitle>
+          Case studies
+          <span class="text-gray-400 font-normal">
+            {{ caseStudyNodes.length }}
+          </span>
+        </UiSectionTitle>
+        <CardCaseStudy v-for="study in caseStudyNodes" :key="study.id" :study="study" />
+      </section>
     </div>
-    <div v-else class="text-center text-lg text-toned mt-12">
-      <p>
-        No issues found with tag "{{ tagSlug }}"
-      </p>
-    </div>
+    <UiEmptyState
+      v-else-if="hasSearch"
+      description="Try a different search term."
+      icon="lucide:search-x"
+      :title="`No nodes match your search in #${tagSlug}`"
+    />
+    <UiEmptyState
+      v-else
+      description="Nothing has been tagged with this topic yet."
+      icon="lucide:tag"
+      :title="`No nodes found tagged #${tagSlug}`"
+    />
   </AppContainer>
 </template>
