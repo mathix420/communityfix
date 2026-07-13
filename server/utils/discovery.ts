@@ -9,8 +9,8 @@
 // hydration are each their own helper.
 import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import { caseStudies, issueSdgs, issueTags, issues, tags as tagsTable } from '../database/schema'
-import type { CaseStudyOutcome, IssueType, LocationScale } from '../database/schema'
-import { CASE_STUDY_OUTCOMES, LOCATION_SCALES } from '../database/schema'
+import type { CaseStudyOutcome, HelpLabel, IssueType, LocationScale } from '../database/schema'
+import { CASE_STUDY_OUTCOMES, HELP_LABELS, LOCATION_SCALES } from '../database/schema'
 import { findSimilar, generateEmbedding } from './embeddings'
 import { issueWithRelations, transformIssue } from './transform-issue'
 import { transformCaseStudy } from './case-study-write'
@@ -96,13 +96,16 @@ function caseStudyWhereSql(f: CaseStudyFilters): SQL {
 export async function discoverCaseStudies(q: QueryRecord) {
   const filters = parseCaseStudyFilters(q)
   const query = ((q.query as string) || '').trim()
-  const limit = clampInt(q.limit, 10, 25)
+  const limit = clampInt(q.limit, 10, 50)
 
   // Semantic path: rank approved case studies by similarity to `query`.
+  let degraded = false
   if (query.length >= 3) {
     const ranked = await semanticCaseStudies(query, filters, limit)
-    if (ranked) return ranked
-    // ranked === null → embeddings unavailable; fall through to recency.
+    if (ranked) return { items: ranked, degraded: false }
+    // ranked === null → embeddings unavailable; fall through to recency, but
+    // flag it so the client knows the semantic query was ignored.
+    degraded = true
   }
 
   // Non-semantic path: filtered list, verified-first then most recent.
@@ -112,7 +115,7 @@ export async function discoverCaseStudies(q: QueryRecord) {
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
     limit,
   })
-  return rows.map(transformCaseStudy)
+  return { items: rows.map(transformCaseStudy), degraded }
 }
 
 // Returns ranked results, or null when embeddings can't be computed (so the
@@ -371,4 +374,80 @@ export async function listNodesByTaxonomy(q: QueryRecord) {
     limit: f.limit,
   })
   return results.map((i) => transformIssue(i))
+}
+
+// ── /api/contribute: nodes carrying help-wanted labels ──────────────
+// Backs the contribute view. Help labels live only here (never on a node card),
+// so users come to this surface specifically to find and close evidence gaps.
+
+type HelpRow = { label: string; count: number }
+
+/** Per-label counts across issues/solutions and case studies, for the facets. */
+export async function getHelpLabelCounts(): Promise<Record<HelpLabel, number>> {
+  const db = useDB()
+  const counts = Object.fromEntries(HELP_LABELS.map((l) => [l, 0])) as Record<HelpLabel, number>
+  const [issueRows, csRows] = await Promise.all([
+    db.execute<HelpRow>(sql`
+      SELECT unnest(help_labels) AS label, COUNT(*)::int AS count
+      FROM issues WHERE status = 'approved' AND cardinality(help_labels) > 0
+      GROUP BY 1`),
+    db.execute<HelpRow>(sql`
+      SELECT unnest(help_labels) AS label, COUNT(*)::int AS count
+      FROM case_studies WHERE status = 'approved' AND cardinality(help_labels) > 0
+      GROUP BY 1`),
+  ])
+  for (const r of [...issueRows, ...csRows]) {
+    if (r.label in counts) counts[r.label as HelpLabel] += Number(r.count)
+  }
+  return counts
+}
+
+/**
+ * List nodes that need contribution. `label` narrows to one help label (else any
+ * node carrying at least one). `kind` selects issue/solution/case_study/any.
+ */
+export async function listNodesNeedingHelp(q: QueryRecord) {
+  const db = useDB()
+  const label = oneOf(q.label, HELP_LABELS)
+  const kind = oneOf(q.kind, ['issue', 'solution', 'case_study', 'any'] as const) ?? 'any'
+  const limit = clampInt(q.limit, 50, 100)
+
+  const wantIssues = kind === 'issue' || kind === 'solution' || kind === 'any'
+  const wantCaseStudies = kind === 'case_study' || kind === 'any'
+
+  const issueLabelFilter = label
+    ? sql`${issues.helpLabels} @> ARRAY[${label}]::text[]`
+    : sql`cardinality(${issues.helpLabels}) > 0`
+  const csLabelFilter = label
+    ? sql`${caseStudies.helpLabels} @> ARRAY[${label}]::text[]`
+    : sql`cardinality(${caseStudies.helpLabels}) > 0`
+
+  const [issueRows, csRows] = await Promise.all([
+    wantIssues
+      ? db.query.issues.findMany({
+          where: and(
+            eq(issues.status, 'approved'),
+            kind === 'issue' || kind === 'solution' ? eq(issues.type, kind) : undefined,
+            issueLabelFilter,
+          ),
+          with: issueWithRelations,
+          orderBy: nodeOrder('most_voted'),
+          limit,
+        })
+      : Promise.resolve([]),
+    wantCaseStudies
+      ? db.query.caseStudies.findMany({
+          where: and(eq(caseStudies.status, 'approved'), csLabelFilter),
+          with: caseStudyWith,
+          orderBy: desc(caseStudies.createdAt),
+          limit,
+        })
+      : Promise.resolve([]),
+  ])
+
+  return {
+    counts: await getHelpLabelCounts(),
+    issues: issueRows.map((i) => transformIssue(i)),
+    caseStudies: csRows.map((c) => transformCaseStudy(c)),
+  }
 }

@@ -8,11 +8,7 @@ import { getIsAdmin } from '../../../utils/is-admin'
 import { isNodeOwner } from '../../../utils/node-members'
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid case study ID' })
-  }
-  const caseStudyId = parseInt(id, 10)
+  const caseStudyId = requireIdParam(event, { label: 'case study' })
 
   const db = useDB()
   const node = await db.query.caseStudies.findFirst({

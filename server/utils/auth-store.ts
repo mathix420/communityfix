@@ -121,5 +121,5 @@ export async function handleOAuthLogin(
     loggedInAt: Date.now(),
   })
 
-  return { isNew: !existing }
+  return { isNew: !existing, user: dbUser }
 }

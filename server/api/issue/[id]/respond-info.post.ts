@@ -3,19 +3,14 @@ import { issues } from '../../../database/schema'
 import { triggerModeration } from '../../../utils/moderation-trigger'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const db = useDB()
-  const id = Number(getRouterParam(event, 'id'))
+  const { session, db, id } = await requireEventContext(event)
   const body = await readBody<{ response: string }>(event)
 
   if (!body.response?.trim()) {
     throw createError({ statusCode: 400, message: 'Response is required' })
   }
 
-  const issue = await db.query.issues.findFirst({ where: eq(issues.id, id) })
-  if (!issue) {
-    throw createError({ statusCode: 404, message: 'Issue not found' })
-  }
+  const issue = await loadIssueOr404(id)
   if (issue.authorId !== session.user.id) {
     throw createError({ statusCode: 403, message: 'Only the author can respond' })
   }

@@ -48,7 +48,11 @@ const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutio
 - a **solution** — a proposed way to address its parent issue. Solutions are leaves in the tree: they cannot have sub-solutions.
 - a **case study** — a structured record of one real-world implementation of a solution (where it was tried, by whom, what happened, metrics, sources, lessons). Case studies attach to a solution and are NOT part of the issue/solution tree.
 
-Read \`get_whitepaper\` first if you need the platform's mission, principles, and how the catalog is meant to be used. Before authoring anything, read the relevant authoring guide via \`get_guide\` (call it with no \`slug\` to list guides, then fetch one — e.g. \`get_guide({ slug: "writing" })\` covers how to write good issues, solutions, and case studies, choose tags, and scope nodes).
+Read \`get_whitepaper\` first if you need the platform's mission, principles, and how the catalog is meant to be used. Before authoring anything, read the authoring guide via \`get_guide({ slug: "authoring" })\` (call with no \`slug\` to list available guides). It covers how to write and scope issues, solutions, and case studies, the evidence standard, and the writing rules for AI agents.
+
+RULES FOR AI CLIENTS:
+- Pass your exact model id in the optional \`model\` field on every create_*/update_*/propose_edit call.
+- Do not use the em dash character (\`—\`) in generated content. Write sentences that never need it; use a period, a comma, a colon, or parentheses instead.
 
 Tools come in matched groups by node kind:
 - create_issue / update_issue — for problems (top-level or sub-issue under any parent)
@@ -168,6 +172,11 @@ const links = {
 const summaryDesc =
   'Required short plaintext snippet of THIS node only — a real, standalone synopsis (≤280 chars), NOT the first 280 characters of `description`. Distill the description into a complete sentence or two that make sense on their own. Stay strictly in scope.'
 
+const model = {
+  type: 'string',
+  description: 'AI clients: the exact id of the model generating this content.',
+}
+
 const TOOLS = [
   {
     name: 'search_issues_solutions',
@@ -225,6 +234,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
+        model,
         title: { type: 'string', description: 'One-line statement of the problem.' },
         summary: {
           type: 'string',
@@ -258,6 +268,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
+        model,
         title: { type: 'string', description: 'One-line statement of the proposed approach.' },
         summary: {
           type: 'string',
@@ -297,6 +308,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
+        model,
         id: { type: 'integer' },
         title: { type: 'string', description: 'One-line statement of the problem.' },
         summary: { type: 'string', description: summaryDesc },
@@ -332,6 +344,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
+        model,
         id: { type: 'integer' },
         title: { type: 'string', description: 'One-line statement of the proposed approach.' },
         summary: { type: 'string', description: summaryDesc },
@@ -443,6 +456,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
+        model,
         solutionId: {
           type: 'integer',
           description:
@@ -539,6 +553,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
+        model,
         id: { type: 'integer' },
         outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES] },
         locationName: { type: 'string' },
@@ -641,14 +656,14 @@ const TOOLS = [
     name: 'get_guide',
     title: 'Get authoring guide',
     description:
-      'Read the authoring guides for contributing high-quality content (how to write a good issue, solution, or case study; how to choose tags; how to scope nodes). Call with no `slug` to list available guides; pass a `slug` (e.g. "writing") to get the full markdown. CONSULT THE RELEVANT GUIDE BEFORE create_issue / create_solution / create_case_study.',
+      'Read the authoring guide for contributing high-quality content (how to write and scope issues, solutions, and case studies; the evidence standard; the writing rules for AI agents). Call with no `slug` to list available guides; pass a `slug` (e.g. "authoring") to get the full markdown. CONSULT IT BEFORE create_issue / create_solution / create_case_study.',
     annotations: READ,
     inputSchema: {
       type: 'object',
       properties: {
         slug: {
           type: 'string',
-          description: 'Guide slug to fetch (e.g. "writing"). Omit to list all available guides.',
+          description: 'Guide slug to fetch (e.g. "authoring"). Omit to list all available guides.',
         },
       },
     },
@@ -674,6 +689,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
+        model,
         kind: {
           type: 'string',
           enum: ['issue', 'solution', 'case_study'],
@@ -812,7 +828,7 @@ interface ToolCtx {
   event: H3Event
 }
 
-function auditWrite(tool: string, ctx: ToolCtx, data: unknown) {
+function auditWrite(tool: string, ctx: ToolCtx, data: unknown, model?: unknown) {
   const d = data as { id?: number; status?: string }
   console.log(
     '[mcp.audit]',
@@ -820,6 +836,7 @@ function auditWrite(tool: string, ctx: ToolCtx, data: unknown) {
       tool,
       userId: ctx.userId,
       clientId: ctx.clientId,
+      model: typeof model === 'string' ? model : null,
       id: d?.id ?? null,
       status: d?.status ?? 'ok',
     }),
@@ -890,28 +907,28 @@ async function callTool(
         const limited = await overToolRate('mcp_write', userId, RATE.write)
         if (limited) return wrapErr(limited)
         const data = await createIssueAs(userId, args)
-        auditWrite('create_issue', ctx, data)
+        auditWrite('create_issue', ctx, data, args.model)
         return wrap(data)
       }
       case 'create_solution': {
         const limited = await overToolRate('mcp_write', userId, RATE.write)
         if (limited) return wrapErr(limited)
         const data = await createSolutionAs(userId, args)
-        auditWrite('create_solution', ctx, data)
+        auditWrite('create_solution', ctx, data, args.model)
         return wrap(data)
       }
       case 'update_issue': {
         const limited = await overToolRate('mcp_write', userId, RATE.write)
         if (limited) return wrapErr(limited)
         const data = await updateIssueAs(userId, args)
-        auditWrite('update_issue', ctx, data)
+        auditWrite('update_issue', ctx, data, args.model)
         return wrap(data)
       }
       case 'update_solution': {
         const limited = await overToolRate('mcp_write', userId, RATE.write)
         if (limited) return wrapErr(limited)
         const data = await updateSolutionAs(userId, args)
-        auditWrite('update_solution', ctx, data)
+        auditWrite('update_solution', ctx, data, args.model)
         return wrap(data)
       }
       case 'suggest_more': {
@@ -944,14 +961,14 @@ async function callTool(
         const limited = await overToolRate('mcp_write', userId, RATE.write)
         if (limited) return wrapErr(limited)
         const data = await createCaseStudyAs(userId, args)
-        auditWrite('create_case_study', ctx, data)
+        auditWrite('create_case_study', ctx, data, args.model)
         return wrap(data)
       }
       case 'update_case_study': {
         const limited = await overToolRate('mcp_write', userId, RATE.write)
         if (limited) return wrapErr(limited)
         const data = await updateCaseStudyAs(userId, args)
-        auditWrite('update_case_study', ctx, data)
+        auditWrite('update_case_study', ctx, data, args.model)
         return wrap(data)
       }
       case 'get_whitepaper': {
@@ -974,7 +991,9 @@ async function callTool(
           return wrapErr('kind must be one of "issue", "solution", or "case_study"')
         }
         if (!Number.isInteger(args?.id)) return wrapErr('id must be an integer')
-        return wrap(await proposeEditAs(userId, args))
+        const data = await proposeEditAs(userId, args)
+        auditWrite('propose_edit', ctx, data, args.model)
+        return wrap(data)
       }
       case 'list_revisions': {
         if (args?.kind !== 'issue' && args?.kind !== 'solution' && args?.kind !== 'case_study') {
@@ -1071,7 +1090,11 @@ export default defineEventHandler(async (event) => {
   }
 
   // Per-user request guard (throws 429 with Retry-After when exhausted).
-  await assertRateLimit(event, { bucket: 'mcp_global', identifier: authed.user.id, ...RATE.global })
+  await assertRateLimit(event, {
+    bucket: 'mcp_global',
+    identifier: authed.user.id,
+    ...RATE.global,
+  })
 
   setHeader(event, 'content-type', 'application/json')
   setHeader(event, 'cache-control', 'no-store')

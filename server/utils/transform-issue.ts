@@ -52,6 +52,7 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
       : null,
     scale: issue.scale,
     links: issue.links ?? null,
+    helpLabels: issue.helpLabels ?? [],
     ...(includeModeration && {
       rejectionReason: issue.rejectionReason,
       rejectedAt: issue.rejectedAt,

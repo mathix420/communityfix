@@ -93,7 +93,7 @@ const allTags = computed(() => {
 
 <template>
   <AppContainer class="container overflow-x-clip h-fit mx-auto p-4">
-    <div class="w-full my-28 gap-4 sm:gap-6 text-center flex flex-col items-center justify-center">
+    <div class="w-full my-12 sm:my-28 gap-4 sm:gap-6 text-center flex flex-col items-center justify-center">
       <h1 class="font-mono text-4xl sm:text-5xl underline decoration-primary">
         #{{ tagSlug }}
       </h1>

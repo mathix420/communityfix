@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { safeUrl } from '~/utils/safeUrl'
+
 const { track } = useUmami()
 const route = useRoute()
 const issueId = route.params.issueId as string
@@ -57,31 +59,6 @@ const subIssueTotal = computed(() => subIssuesPreview.value?.length ?? 0)
 const solutionTotal = computed(() => solutionsPreview.value?.length ?? 0)
 const caseStudyTotal = computed(() => caseStudiesPreview.value?.length ?? 0)
 
-function outcomeLabel(o: string) {
-  return (
-    {
-      success: 'Success',
-      partial: 'Partial',
-      failed: 'Failed',
-      inconclusive: 'Inconclusive',
-      ongoing: 'Ongoing',
-    }[o] ?? o
-  )
-}
-function outcomeVariant(o: string): 'success' | 'default' | 'error' | 'warning' {
-  return (
-    (
-      {
-        success: 'success',
-        partial: 'default',
-        failed: 'error',
-        inconclusive: 'default',
-        ongoing: 'warning',
-      } as const
-    )[o as 'success'] ?? 'default'
-  )
-}
-
 const infoResponseText = ref('')
 const infoSubmitting = ref(false)
 
@@ -120,7 +97,7 @@ async function submitAppeal() {
       method: 'POST',
       body: { reason: appealReason.value },
     })
-    umami.track('Issue appeal submitted', { issueId: Number(issueId) })
+    track('Issue appeal submitted', { issueId: Number(issueId) })
     toast.add({
       title: 'Appeal submitted',
       description: 'Your appeal is under review.',
@@ -223,7 +200,6 @@ async function submitAppeal() {
           />
           <UButton
             color="primary"
-            data-umami-event="Appeal rejected issue"
             size="sm"
             type="submit"
             :disabled="!appealReason.trim()"
@@ -343,6 +319,7 @@ async function submitAppeal() {
         </div>
         <UiMarkdown class="prose-sm text-gray-700" :value="issue.description" />
       </div>
+      <IssueWantedSkills :author-id="issue.authorId" :issue-id="issue.id" :title="issue.title" />
       <div
         v-if="isSolution && issue.links?.length"
         class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
@@ -362,7 +339,7 @@ async function submitAppeal() {
               class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
               rel="nofollow noopener noreferrer"
               target="_blank"
-              :href="l.url"
+              :href="safeUrl(l.url)"
               @click="track('Solution link click', { issueId: Number(issueId) })"
             >
               <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:external-link" />
@@ -529,8 +506,8 @@ async function submitAppeal() {
               <UiBadge v-if="cs.verified" variant="success">
                 Verified
               </UiBadge>
-              <UiBadge :variant="outcomeVariant(cs.outcome)">
-                {{ outcomeLabel(cs.outcome) }}
+              <UiBadge :variant="outcomeBadgeVariant(cs.outcome)">
+                {{ outcomeBadgeLabel(cs.outcome) }}
               </UiBadge>
             </NuxtLink>
           </li>
@@ -582,27 +559,7 @@ async function submitAppeal() {
       </div>
       <!-- Quiet meta links — who maintains the node and how it changed over time.
       Deliberately at the very bottom: useful, but not what the page is about. -->
-      <div class="flex items-center justify-center gap-4 pt-1 text-xs font-mono text-gray-400">
-        <NuxtLink
-          class="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors"
-          :to="`/issue/${issueId}/contributors`"
-          @click="track('Overview meta link', { tab: 'contributors' })"
-        >
-          <UIcon class="size-3.5" name="lucide:users" />
-          Contributors
-        </NuxtLink>
-        <span class="text-gray-300">
-          ·
-        </span>
-        <NuxtLink
-          class="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors"
-          :to="`/issue/${issueId}/history`"
-          @click="track('Overview meta link', { tab: 'history' })"
-        >
-          <UIcon class="size-3.5" name="lucide:history" />
-          History
-        </NuxtLink>
-      </div>
+      <NodeMetaLinks :base="`/issue/${issueId}`" />
     </div>
   </div>
   <div v-else class="mt-3 bg-white rounded-2xl p-6 text-center">

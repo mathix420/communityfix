@@ -12,10 +12,17 @@ import {
   index,
   numeric,
   date,
+  vector,
+  geometry,
 } from 'drizzle-orm/pg-core'
-import { vector } from 'drizzle-orm/pg-core'
-import { geometry } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
+
+// Standard audit pair, spread into every table that tracks both. Drizzle
+// builds a fresh column per table from the shared builders, so reuse is safe.
+const timestamps = {
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}
 
 export const PROVIDERS = ['google', 'apple', 'passkey'] as const
 export type Provider = (typeof PROVIDERS)[number]
@@ -51,6 +58,20 @@ export const CASE_STUDY_OUTCOMES = [
 ] as const
 export type CaseStudyOutcome = (typeof CASE_STUDY_OUTCOMES)[number]
 
+// System-managed "help wanted" labels the moderation pipeline attaches to a node
+// when it has a structural evidence/quality gap. They are NOT shown on the node
+// itself — they surface only on the contribute view, where users filter by them
+// to find nodes worth improving. Distinct from topic tags (which describe what a
+// node is about); help labels describe what a node still needs.
+export const HELP_LABELS = [
+  'needs-evidence',
+  'needs-baseline',
+  'needs-sources',
+  'needs-cost',
+  'needs-location',
+] as const
+export type HelpLabel = (typeof HELP_LABELS)[number]
+
 export const AUDIT_LOG_TYPES = [
   'moderation',
   'structure',
@@ -81,6 +102,7 @@ export const AUDIT_LOG_ACTIONS = [
   'remod',
   'relocate',
   'curate',
+  'label',
   // Collaborative revisions: a user proposes an edit, the owner/admin
   // accepts/rejects, or the proposer withdraws it.
   'propose',
@@ -148,8 +170,10 @@ export const users = pgTable('users', {
   banAppealReason: text('ban_appeal_reason'),
   trustScore: integer('trust_score').notNull().default(0),
   trustScoreUpdatedAt: timestamp('trust_score_updated_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  // When the user completed (or skipped) the onboarding flow. Null = the
+  // onboarding page has not been seen yet; post-login redirects send them there.
+  onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
+  ...timestamps,
 })
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -158,6 +182,62 @@ export const usersRelations = relations(users, ({ many }) => ({
   votes: many(votes),
   qualifications: many(qualifications),
   endorsementsGiven: many(qualificationEndorsements),
+  interests: many(userInterests),
+}))
+
+// Free-text topics a user cares about, deliberately NOT a foreign key to tags:
+// users can declare interests the catalog does not cover yet ("beekeeping",
+// "youth mental health"). Matching happens semantically via the embedding, so
+// the vector is the meaning, not a tag id. Uniqueness per user is
+// case-insensitive via a unique index on (user_id, lower(label)) in custom
+// migration 0008, which also adds the HNSW index on the embedding.
+export const userInterests = pgTable('user_interests', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  // Display case as typed, e.g. "Youth mental health".
+  label: text('label').notNull(),
+  // Null when the embedding call failed at insert time; adding an interest
+  // must never block on OpenAI availability.
+  embedding: vector('embedding', { dimensions: 1536 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const userInterestsRelations = relations(userInterests, ({ one }) => ({
+  user: one(users, { fields: [userInterests.userId], references: [users.id] }),
+}))
+
+export const NEWSLETTER_FREQUENCIES = ['weekly', 'monthly'] as const
+export type NewsletterFrequency = (typeof NEWSLETTER_FREQUENCIES)[number]
+
+// Which content blocks the user wants in their newsletter.
+export interface NewsletterContent {
+  goodNews: boolean
+  skillMatches: boolean
+  topicMatches: boolean
+  helpWanted: boolean
+  productUpdates: boolean
+}
+
+// Newsletter consent + preferences. One row per user, upserted from
+// onboarding and settings. The sending side (digest assembly, templates,
+// cron tasks) lives in server/utils/newsletter-*.ts + server/tasks/newsletter/.
+export const newsletterPrefs = pgTable('newsletter_prefs', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  enabled: boolean('enabled').notNull().default(false),
+  frequency: text('frequency').notNull().default('monthly').$type<NewsletterFrequency>(),
+  content: jsonb('content').$type<NewsletterContent>(),
+  // Set after each successful digest send; guards cron retries/overlaps from
+  // double-sending (see MIN_RESEND_DAYS in server/utils/newsletter-send.ts).
+  lastSentAt: timestamp('last_sent_at', { withTimezone: true }),
+  ...timestamps,
+})
+
+export const newsletterPrefsRelations = relations(newsletterPrefs, ({ one }) => ({
+  user: one(users, { fields: [newsletterPrefs.userId], references: [users.id] }),
 }))
 
 export const credentials = pgTable('credentials', {
@@ -169,8 +249,7 @@ export const credentials = pgTable('credentials', {
   counter: integer('counter').notNull().default(0),
   backedUp: boolean('backed_up').notNull().default(false),
   transports: jsonb('transports').$type<string[]>().notNull().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const credentialsRelations = relations(credentials, ({ one }) => ({
@@ -182,8 +261,7 @@ export const sdgs = pgTable('sdgs', {
   name: text('name').notNull(),
   iconUrl: text('icon_url').notNull(),
   link: text('link').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const tags = pgTable('tags', {
@@ -191,8 +269,7 @@ export const tags = pgTable('tags', {
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   embedding: vector('embedding', { dimensions: 1536 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const issues = pgTable('issues', {
@@ -218,6 +295,13 @@ export const issues = pgTable('issues', {
   scale: text('scale').$type<LocationScale>(),
   // GeoJSON area for the location; `location` above is the centroid.
   area: jsonb('area').$type<GeoJsonGeometry>(),
+  // System-managed help-wanted labels (see HELP_LABELS). Written only by the
+  // moderation pipeline; surfaced on the contribute view, never on the node card.
+  helpLabels: text('help_labels')
+    .array()
+    .$type<HelpLabel[]>()
+    .notNull()
+    .default(sql`'{}'::text[]`),
   // Only meaningful when type='solution'.
   solutionStatus: text('solution_status').$type<SolutionStatus>(),
   // External resources — only surfaced for solutions.
@@ -227,8 +311,7 @@ export const issues = pgTable('issues', {
   infoResponse: text('info_response'),
   infoRespondedAt: timestamp('info_responded_at', { withTimezone: true }),
   embedding: vector('embedding', { dimensions: 1536 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const issuesRelations = relations(issues, ({ one, many }) => ({
@@ -243,6 +326,7 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
   issueSdgs: many(issueSdgs),
   votes: many(votes),
   caseStudies: many(caseStudies),
+  wantedSkills: many(wantedSkills),
 }))
 
 export const votes = pgTable(
@@ -257,8 +341,7 @@ export const votes = pgTable(
       .references(() => issues.id, { onDelete: 'cascade' }),
     value: integer('value').notNull(), // +1 or -1
     weight: integer('weight').notNull().default(1), // derived from voter's trust score
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [unique().on(t.userId, t.issueId)],
 )
@@ -321,8 +404,7 @@ export const qualifications = pgTable(
     area: text('area').notNull(),
     // Optional longer context — how, where, when, proof links.
     detail: text('detail'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [index('qualifications_user_id_idx').on(t.userId)],
 )
@@ -377,6 +459,30 @@ export const qualificationEndorsementsRelations = relations(
     }),
   }),
 )
+
+// Demand side of skill matching: skills a node (issue/solution) is looking
+// for. The supply side is `qualifications` above (what users can do). Any
+// logged-in user can add one; uniqueness per node is case-insensitive via a
+// unique index on (issue_id, lower(skill)) in custom migration 0007.
+export const wantedSkills = pgTable(
+  'wanted_skills',
+  {
+    id: serial('id').primaryKey(),
+    issueId: integer('issue_id')
+      .notNull()
+      .references(() => issues.id, { onDelete: 'cascade' }),
+    // Display case as typed, e.g. "Structural engineering".
+    skill: text('skill').notNull(),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('wanted_skills_issue_id_idx').on(t.issueId)],
+)
+
+export const wantedSkillsRelations = relations(wantedSkills, ({ one }) => ({
+  issue: one(issues, { fields: [wantedSkills.issueId], references: [issues.id] }),
+  creator: one(users, { fields: [wantedSkills.createdBy], references: [users.id] }),
+}))
 
 export const oauthClients = pgTable('oauth_clients', {
   id: text('id').primaryKey(),
@@ -435,6 +541,13 @@ export const caseStudies = pgTable(
     area: jsonb('area').$type<GeoJsonGeometry>(),
     // Admin-set: lets us mark a case study as independently verified.
     verified: boolean('verified').notNull().default(false),
+    // System-managed help-wanted labels (see HELP_LABELS). Written only by the
+    // moderation pipeline; surfaced on the contribute view, never on the card.
+    helpLabels: text('help_labels')
+      .array()
+      .$type<HelpLabel[]>()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     implementer: text('implementer'),
     startDate: date('start_date', { mode: 'string' }),
     endDate: date('end_date', { mode: 'string' }),
@@ -453,8 +566,7 @@ export const caseStudies = pgTable(
     // which is reserved for citations backing the claims.
     links: jsonb('links').$type<Array<{ url: string; title?: string }>>(),
     embedding: vector('embedding', { dimensions: 1536 }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [index('case_studies_solution_idx').on(t.solutionId)],
 )
@@ -559,8 +671,7 @@ export const revisions = pgTable(
     decidedByRole: text('decided_by_role').$type<RevisionDecidedByRole>(),
     decisionReason: text('decision_reason'),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [
     index('revisions_issue_id_idx').on(t.issueId),
@@ -605,8 +716,7 @@ export const nodeMembers = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     role: text('role').notNull().$type<NodeMemberRole>(),
     source: text('source').$type<NodeMemberSource>(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [
     index('node_members_issue_id_idx').on(t.issueId),

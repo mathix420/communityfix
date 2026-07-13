@@ -51,13 +51,22 @@ export default defineEventHandler((event) => {
       { name: 'get_tree', description: 'Return the full descendant tree of an issue or solution.' },
       { name: 'create_issue', description: 'Create a new issue (top-level or sub-issue).' },
       { name: 'create_solution', description: 'Propose a solution for an existing issue.' },
-      { name: 'update_issue', description: 'Edit an issue you authored.' },
-      { name: 'update_solution', description: 'Edit a solution you authored.' },
+      {
+        name: 'update_issue',
+        description: 'Edit an issue (applies live if you own it, else queued as a proposal).',
+      },
+      {
+        name: 'update_solution',
+        description: 'Edit a solution (applies live if you own it, else queued as a proposal).',
+      },
       {
         name: 'create_case_study',
         description: 'Document a real-world implementation of a solution.',
       },
-      { name: 'update_case_study', description: 'Edit a case study you authored.' },
+      {
+        name: 'update_case_study',
+        description: 'Edit a case study (applies live if you own it, else queued as a proposal).',
+      },
       { name: 'get_case_study', description: 'Fetch a single case study by id.' },
       { name: 'list_case_studies', description: 'List case studies for a given solution.' },
       { name: 'suggest_more', description: 'Get semantically similar issues or solutions.' },
@@ -70,7 +79,20 @@ export default defineEventHandler((event) => {
       },
       {
         name: 'get_guide',
-        description: 'Read authoring guides for writing good issues, solutions, and case studies.',
+        description:
+          'Read the authoring guide for writing good issues, solutions, and case studies.',
+      },
+      {
+        name: 'propose_edit',
+        description: 'Propose a change to any issue, solution, or case study in one tool.',
+      },
+      {
+        name: 'list_revisions',
+        description: 'List a node revision history and pending proposals.',
+      },
+      {
+        name: 'review_revision',
+        description: 'Approve or reject a pending revision proposal on a node you own.',
       },
     ],
     contact: {

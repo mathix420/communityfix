@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { LocationScale } from '../../server/database/schema'
+import { cleanLinkRows } from '~/utils/link-rows'
 
 const route = useRoute()
 const toast = useToast()
@@ -80,9 +81,7 @@ watch([title, summary], () => {
 async function submit() {
   submitting.value = true
   try {
-    const cleanedLinks = links.value
-      .map((l) => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
-      .filter((l) => l.url)
+    const cleanedLinks = cleanLinkRows(links.value)
     const issue = await $fetch('/api/issue', {
       method: 'POST',
       body: {

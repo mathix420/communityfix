@@ -247,7 +247,21 @@ export default defineEventHandler((event) => {
               description: 'Matching case studies.',
               content: {
                 'application/json': {
-                  schema: { type: 'array', items: { $ref: '#/components/schemas/CaseStudy' } },
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      items: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/CaseStudy' },
+                      },
+                      degraded: {
+                        type: 'boolean',
+                        description:
+                          'True when a semantic `query` was supplied but embeddings were unavailable, so `items` is a recency-ordered fallback rather than a similarity ranking.',
+                      },
+                    },
+                    required: ['items', 'degraded'],
+                  },
                 },
               },
             },

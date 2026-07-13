@@ -1,0 +1,1 @@
+ALTER TABLE "newsletter_prefs" ADD COLUMN "last_sent_at" timestamp with time zone;

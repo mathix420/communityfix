@@ -13,13 +13,14 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const { track } = useUmami()
 const submitting = ref(false)
 
 async function submitAppeal() {
   submitting.value = true
   try {
     await $fetch('/api/user/ban-appeal', { method: 'POST' })
-    umami.track('Ban appeal submitted')
+    track('Ban appeal submitted')
     toast.add({
       title: 'Appeal submitted',
       description: 'Your appeal is under review.',
@@ -60,13 +61,7 @@ async function submitAppeal() {
       </p>
     </div>
     <div v-else-if="!banStatus.appealStatus">
-      <UButton
-        color="primary"
-        data-umami-event="Appeal ban"
-        size="sm"
-        :loading="submitting"
-        @click="submitAppeal"
-      >
+      <UButton color="primary" size="sm" :loading="submitting" @click="submitAppeal">
         Appeal this ban
       </UButton>
     </div>

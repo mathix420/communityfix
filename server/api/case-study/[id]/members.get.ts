@@ -6,11 +6,7 @@ import { membersWithViewer } from '../../../utils/node-members'
 import { getIsAdmin } from '../../../utils/is-admin'
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid case study ID' })
-  }
-  const caseStudyId = parseInt(id, 10)
+  const caseStudyId = requireIdParam(event, { label: 'case study' })
 
   const node = await useDB().query.caseStudies.findFirst({
     where: eq(caseStudies.id, caseStudyId),

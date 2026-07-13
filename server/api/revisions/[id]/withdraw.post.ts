@@ -5,11 +5,8 @@ import { withdrawRevision, serializeRevision } from '../../../utils/revision-wri
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid revision ID' })
-  }
+  const revisionId = requireIdParam(event, { label: 'revision' })
 
-  const revision = await withdrawRevision(session.user.id, parseInt(id, 10))
+  const revision = await withdrawRevision(session.user.id, revisionId)
   return { success: true, revision: revision ? serializeRevision(revision) : null }
 })

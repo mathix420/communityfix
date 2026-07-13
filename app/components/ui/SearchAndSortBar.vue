@@ -21,6 +21,7 @@ function onSearchInput(val: string | number) {
     search.value = String(val)
   }, props.debounce)
 }
+onUnmounted(() => clearTimeout(searchTimeout))
 </script>
 
 <template>

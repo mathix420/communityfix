@@ -20,5 +20,17 @@ export default defineConfig({
     tabWidth: 2,
     trailingComma: 'all',
   },
-  ignores: ['.nuxt', '.nitro', '.output', '.data', '.wrangler', 'dist', 'node_modules'],
+  ignores: [
+    '.nuxt',
+    '.nitro',
+    '.output',
+    '.data',
+    '.wrangler',
+    'dist',
+    'node_modules',
+    // Drizzle owns these snapshot/journal JSON files and rewrites them in its
+    // own format on every db:generate — leave them alone so a new migration
+    // doesn't trip fmt --check.
+    'server/database/migrations',
+  ],
 })

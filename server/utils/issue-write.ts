@@ -1,7 +1,7 @@
 // Shared write-side logic for issues. Both /api/issue/index.post.ts (REST)
 // and the MCP create_issue tool call into here so input sanitization,
 // counter bumps, and the moderation trigger stay in one place.
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { issues, users } from '../database/schema'
 import type { IssueType, LocationScale, SolutionStatus } from '../database/schema'
 import { assertNotBanned } from './check-ban'
@@ -41,13 +41,28 @@ export function sanitizeSummary(input: string): string {
 
 export type Link = { url: string; title?: string }
 
+// Schemes allowed for user-provided link/source URLs. Anything else — notably
+// javascript:, data:, vbscript: — is dropped so a stored link can't execute
+// script when later rendered as an <a href> (these fields bypass the markdown
+// sanitizer; they're bound straight onto :href). Relative/scheme-less strings
+// fail `new URL()` and are dropped too: external references must be absolute.
+const SAFE_LINK_SCHEMES = new Set(['http:', 'https:', 'mailto:'])
+
+export function isSafeLinkUrl(url: string): boolean {
+  try {
+    return SAFE_LINK_SCHEMES.has(new URL(url).protocol)
+  } catch {
+    return false
+  }
+}
+
 export function sanitizeLinks(input: unknown): Link[] | null {
   if (!Array.isArray(input)) return null
   const cleaned = input
     .map((raw) => {
       if (!raw || typeof raw !== 'object') return null
       const url = String((raw as { url?: unknown }).url ?? '').trim()
-      if (!url) return null
+      if (!url || !isSafeLinkUrl(url)) return null
       const title = String((raw as { title?: unknown }).title ?? '').trim()
       return title ? { url, title } : { url }
     })
@@ -123,13 +138,7 @@ export async function createIssue(authorId: string, input: CreateIssueInput) {
     .returning()
   const created = rows[0]!
 
-  if (input.parentId) {
-    const counter =
-      type === 'solution'
-        ? { solutionCount: sql`${issues.solutionCount} + 1` }
-        : { subIssueCount: sql`${issues.subIssueCount} + 1` }
-    await db.update(issues).set(counter).where(eq(issues.id, input.parentId))
-  }
+  await adjustParentCounter(db, { parentId: input.parentId, type }, 1)
 
   // Bootstrap version history: a born-approved "Created" revision whose
   // before-snapshot is the origin ({}) and after-snapshot is the new node.
@@ -327,25 +336,6 @@ export async function updateIssue(
     const rows = await tx.update(issues).set(patch).where(eq(issues.id, input.id)).returning()
     const updated = rows[0]!
 
-    const inc = (parentId: number) =>
-      tx
-        .update(issues)
-        .set(
-          existing.type === 'solution'
-            ? { solutionCount: sql`${issues.solutionCount} + 1` }
-            : { subIssueCount: sql`${issues.subIssueCount} + 1` },
-        )
-        .where(eq(issues.id, parentId))
-    const dec = (parentId: number) =>
-      tx
-        .update(issues)
-        .set(
-          existing.type === 'solution'
-            ? { solutionCount: sql`${issues.solutionCount} - 1` }
-            : { subIssueCount: sql`${issues.subIssueCount} - 1` },
-        )
-        .where(eq(issues.id, parentId))
-
     if (parentChanged) {
       // Move the counter off the old parent and onto the new one, mirroring
       // createIssue's bookkeeping. A node counts toward its parent unless it's
@@ -355,12 +345,14 @@ export async function updateIssue(
       // edit elsewhere never decrements the parent.
       const wasCounted = existing.status !== 'rejected'
       const isCounted = existing.status !== 'rejected' || contentChanged
-      if (wasCounted && existing.parentId) await dec(existing.parentId)
-      if (isCounted && newParentId) await inc(newParentId)
-    } else if (rejectedToPending && existing.parentId) {
+      if (wasCounted) await adjustParentCounter(tx, existing, -1)
+      if (isCounted) {
+        await adjustParentCounter(tx, { parentId: newParentId, type: existing.type }, 1)
+      }
+    } else if (rejectedToPending) {
       // Same-parent rejection reversal: re-bump the parent the node still lives
       // under (rejection had decremented it).
-      await inc(existing.parentId)
+      await adjustParentCounter(tx, existing, 1)
     }
 
     return updated

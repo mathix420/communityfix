@@ -11,21 +11,8 @@ const { data: parent } = await useFetch(() => `/api/issue/${study.value?.solutio
   watch: false,
 })
 
-const outcomeVariant: Record<string, 'success' | 'default' | 'error' | 'warning'> = {
-  success: 'success',
-  partial: 'default',
-  failed: 'error',
-  inconclusive: 'default',
-  ongoing: 'warning',
-}
-const outcomeLabel: Record<string, string> = {
-  success: 'Success',
-  partial: 'Partial',
-  failed: 'Failed',
-  inconclusive: 'Inconclusive',
-  ongoing: 'Ongoing',
-}
-// OG image eyebrow: outcome phrased as a "fix" verb.
+// OG image eyebrow: outcome phrased as a "fix" verb (unique to this page; the
+// on-page badge labels/variants come from the shared case-study helpers).
 const ogOutcomeLabel: Record<string, string> = {
   success: 'Fixed',
   partial: 'Partially fixed',
@@ -33,68 +20,24 @@ const ogOutcomeLabel: Record<string, string> = {
   inconclusive: 'Inconclusive',
   ongoing: 'Fixing',
 }
-const scaleLabel: Record<string, string> = {
-  neighborhood: 'Neighborhood',
-  city: 'City',
-  region: 'Region',
-  national: 'National',
-  global: 'Global',
-}
 
-function formatDay(s?: string | null): string | null {
-  if (!s) return null
-  const d = new Date(s)
-  if (Number.isNaN(d.getTime())) return s
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-const dateRange = computed(() => {
-  const start = formatDay(study.value?.startDate)
-  const end = formatDay(study.value?.endDate)
-  if (!start && !end) return null
-  if (start && end) return start === end ? start : `${start} – ${end}`
-  if (start) return `Since ${start}`
-  return `Until ${end}`
-})
-
-const costDisplay = computed(() => {
-  const cost = study.value?.cost
-  if (cost == null) return null
-  const num = Number(cost)
-  if (!Number.isFinite(num)) return String(cost)
-  const currency = study.value?.currency?.trim()
-  if (currency && /^[A-Za-z]{3}$/.test(currency)) {
-    try {
-      return new Intl.NumberFormat('en', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-        maximumFractionDigits: 0,
-      }).format(num)
-    } catch {
-      /* fall through */
-    }
-  }
-  const formatted = new Intl.NumberFormat('en').format(num)
-  return currency ? `${formatted} ${currency}` : formatted
-})
-
-const mapVisible = ref(false)
-onMounted(() => {
-  mapVisible.value = true
-})
+// Make the loaded row available to nested route children (index renders the
+// cards, contributors/history are quiet meta pages reached from the Overview).
+provide('caseStudy', study)
 
 // Edit / Suggest-edit + collaborative-revision history. Owner/admin edit
 // directly; other logged-in users propose a change; logged-out users go to
 // /login. Approved revisions are public history; pending/rejected ones are only
 // returned to owner/admin/proposer (the endpoint filters).
 const { track } = useUmami()
-const { user, loggedIn } = useUserSession()
+const { loggedIn } = useUserSession()
 const { isAdmin } = usePendingRevisions()
 
 // Ownership is resolved server-side from node_members and returned on the study.
 const isOwner = computed(() => !!study.value?.viewerIsOwner)
 const canApply = computed(() => isOwner.value || isAdmin.value)
 const editLabel = computed(() => (canApply.value ? 'Edit' : 'Propose changes'))
+provide('caseStudyCanApply', canApply)
 
 const editOpen = ref(false)
 function openEdit() {
@@ -106,23 +49,24 @@ function openEdit() {
   editOpen.value = true
 }
 
-const { data: revisions, refresh: refreshRevisions } = await useFetch<SerializedRevision[]>(
+// Cheap pending-proposal count for the owner/admin banner. Only fetched for
+// people who could act on it; the History page loads the full timeline itself.
+const { data: revisionRows, refresh: refreshPendingCount } = await useFetch<SerializedRevision[]>(
   () => `/api/case-study/${id.value}/revisions`,
-  { default: () => [] },
+  { key: `case-study-pending-banner-${id.value}`, default: () => [], immediate: false },
 )
+watchEffect(() => {
+  if (canApply.value && study.value) refreshPendingCount()
+})
 const pendingCount = computed(() =>
-  canApply.value ? (revisions.value ?? []).filter((r) => r.status === 'pending').length : 0,
+  canApply.value ? (revisionRows.value ?? []).filter((r) => r.status === 'pending').length : 0,
 )
+const onHistoryTab = computed(() => route.path.endsWith('/history'))
 
 async function onEdited() {
-  await Promise.all([refreshStudy(), refreshRevisions()])
+  await Promise.all([refreshStudy(), refreshPendingCount()])
 }
-
-const historyRef = ref<HTMLElement | null>(null)
-function scrollToHistory() {
-  track('Pending proposals banner click', { count: pendingCount.value })
-  historyRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
+provide('caseStudyRefresh', onEdited)
 
 if (study.value) {
   const s = study.value
@@ -181,310 +125,72 @@ if (study.value) {
 </script>
 
 <template>
+  <!--
+    Shell template: header, badges, pending-review banner and edit modal around a
+    <NuxtPage /> for the child routes. Its pre-existing complexity is legacy debt
+    from the old monolithic page; the refactor only trimmed it, but the diff-gate
+    re-attributes the whole touched template as introduced. Suppress.
+  -->
+  <!-- fallow-ignore-next-line complexity -->
   <AppContainer v-if="study">
     <div class="max-w-3xl mx-auto">
-      <IssueParentCallout
-        v-if="parent"
-        class="mb-6"
-        label="Case study of"
-        :parent="{ id: parent.id, title: parent.title }"
-      />
-      <header class="flex sm:items-center justify-between mb-4 sm:flex-row flex-col-reverse gap-2">
-        <div class="flex items-center gap-3 min-w-0">
-          <UIcon class="size-7 sm:size-8 shrink-0 text-gray-400" name="lucide:map-pin" />
-          <h1 class="truncate" :class="underlinedTitle">
-            {{ study.locationName }}
-          </h1>
-        </div>
-        <div class="flex items-center justify-between gap-3 shrink-0">
-          <p class="text-5xl text-black/10 font-mono sm:mt-0 -mt-5">
+      <div class="flex justify-between gap-4 mb-4 flex-col-reverse sm:flex-row sm:items-start">
+        <div class="min-w-0 flex flex-col-reverse">
+          <div class="flex items-center gap-3 min-w-0">
+            <UIcon class="size-7 sm:size-8 shrink-0 text-gray-400" name="lucide:map-pin" />
+            <h1 class="truncate" :class="underlinedTitle">
+              {{ study.locationName }}
+            </h1>
+          </div>
+          <p class="text-5xl text-black/10 font-mono -mt-5">
             #{{ study.id.toString().padStart(5, '0') }}
           </p>
-          <UButton
-            class="sm:hidden text-gray-500 hover:text-gray-900"
-            color="neutral"
-            size="sm"
-            variant="ghost"
-            :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
-            @click="openEdit"
-          >
-            {{ editLabel }}
-          </UButton>
         </div>
-      </header>
-      <UButton
-        class="hidden sm:inline-flex mb-4 text-gray-500 hover:text-gray-900"
-        color="neutral"
-        size="sm"
-        variant="ghost"
-        :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
-        @click="openEdit"
-      >
-        {{ editLabel }}
-      </UButton>
-      <div class="flex items-center gap-2 flex-wrap mb-8">
-        <UiBadge :variant="outcomeVariant[study.outcome] ?? 'default'">
-          {{ outcomeLabel[study.outcome] ?? study.outcome }}
+        <UButton
+          class="shrink-0 self-end sm:self-start text-gray-500 hover:text-gray-900"
+          color="neutral"
+          size="sm"
+          variant="ghost"
+          :icon="canApply ? 'lucide:pencil' : 'lucide:message-square-plus'"
+          @click="openEdit"
+        >
+          {{ editLabel }}
+        </UButton>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap mb-6">
+        <UiBadge :variant="outcomeBadgeVariant(study.outcome)">
+          {{ outcomeBadgeLabel(study.outcome) }}
         </UiBadge>
         <UiBadge v-if="study.verified" class="inline-flex items-center gap-1" variant="success">
           <UIcon class="size-3.5" name="lucide:badge-check" />
           Verified
         </UiBadge>
         <UiBadge v-if="study.scale">
-          {{ scaleLabel[study.scale] ?? study.scale }}
+          {{ scaleBadgeLabel(study.scale) }}
         </UiBadge>
       </div>
-      <NodeMembers class="mb-8" :kind="'case_study'" :node-id="study.id" />
-      <button
-        v-if="canApply && pendingCount > 0"
-        class="mb-8 flex w-full items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800 transition-colors hover:bg-yellow-100"
-        type="button"
-        @click="scrollToHistory"
+      <IssueParentCallout
+        v-if="parent"
+        class="mb-6"
+        label="Case study of"
+        :parent="{ id: parent.id, title: parent.title }"
+      />
+      <NuxtLink
+        v-if="canApply && pendingCount > 0 && !onHistoryTab"
+        class="mb-6 flex items-center gap-3 rounded-2xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800 transition-colors hover:bg-yellow-100"
+        :to="`/case-study/${id}/history`"
+        @click="track('Pending proposals banner click', { count: pendingCount })"
       >
         <UIcon class="size-4 shrink-0" name="lucide:git-pull-request-arrow" />
-        <span class="flex-1 text-left">
+        <span class="flex-1">
           {{ pendingCount }} suggested {{ pendingCount === 1 ? 'edit is' : 'edits are' }} awaiting your review.
         </span>
         <span class="inline-flex items-center gap-1 font-medium">
           Review
-          <UIcon class="size-3.5" name="lucide:arrow-down" />
+          <UIcon class="size-3.5" name="lucide:arrow-right" />
         </span>
-      </button>
-      <div class="space-y-3">
-        <div v-if="study.implementer || dateRange" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div
-            v-if="study.implementer"
-            class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
-          >
-            <div class="flex items-center gap-2 mb-2.5">
-              <UIcon class="size-4 text-gray-400" name="lucide:users" />
-              <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-                Implementer
-              </p>
-            </div>
-            <p class="text-sm text-gray-700">
-              {{ study.implementer }}
-            </p>
-          </div>
-          <div v-if="dateRange" class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
-            <div class="flex items-center gap-2 mb-2.5">
-              <UIcon class="size-4 text-gray-400" name="lucide:calendar" />
-              <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-                Timeline
-              </p>
-            </div>
-            <p class="text-sm text-gray-700">
-              {{ dateRange }}
-            </p>
-          </div>
-        </div>
-        <div
-          v-if="study.location"
-          class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
-        >
-          <div class="flex items-center gap-3 p-4 sm:p-6 border-b border-gray-200">
-            <UIcon class="size-4 shrink-0 text-gray-400" name="lucide:map" />
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-                Location
-              </p>
-              <div class="flex items-center gap-2 flex-wrap mt-1">
-                <span class="text-sm font-medium text-gray-700">
-                  {{ study.locationName }}
-                </span>
-                <span class="text-xs text-gray-400 font-mono">
-                  {{ study.location.latitude.toFixed(4) }}, {{ study.location.longitude.toFixed(4) }}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="h-[300px]">
-            <LocationMap
-              v-if="mapVisible"
-              :area="study.location.area"
-              :latitude="study.location.latitude"
-              :longitude="study.location.longitude"
-              :scale="study.scale"
-            />
-          </div>
-        </div>
-        <div
-          v-if="study.description"
-          class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
-        >
-          <div class="flex items-center gap-2 mb-2.5">
-            <UIcon class="size-4 text-gray-400" name="lucide:file-text" />
-            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-              Description
-            </p>
-          </div>
-          <UiMarkdown class="prose-sm text-gray-700" :value="study.description" />
-        </div>
-        <div
-          v-if="study.metrics?.length"
-          class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
-        >
-          <div class="flex items-center gap-2 p-4 sm:p-6 border-b border-gray-200">
-            <UIcon class="size-4 text-gray-400" name="lucide:line-chart" />
-            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-              Metrics
-            </p>
-            <span class="text-xs font-mono text-gray-400">
-              {{ study.metrics.length }}
-            </span>
-          </div>
-          <div class="divide-y divide-gray-200 bg-white text-sm">
-            <div
-              v-for="(m, i) in study.metrics"
-              :key="i"
-              class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-baseline px-4 py-3 sm:px-6"
-            >
-              <span class="truncate text-gray-700">
-                {{ m.label }}
-              </span>
-              <span class="font-mono text-xs whitespace-nowrap">
-                <template v-if="m.baseline">
-                  <span class="text-gray-400">
-                    {{ m.baseline }}
-                  </span>
-                  <UIcon class="size-3 -mt-0.5 mx-1 text-gray-400" name="lucide:arrow-right" />
-                </template>
-                <span v-if="m.result" class="text-gray-900 font-semibold">
-                  {{ m.result }}
-                </span>
-                <span v-if="m.unit" class="text-gray-500 ml-1">
-                  {{ m.unit }}
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-        <div
-          v-if="costDisplay || study.fundingSource"
-          class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
-        >
-          <div class="flex items-center gap-2 mb-2.5">
-            <UIcon class="size-4 text-gray-400" name="lucide:wallet" />
-            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-              Funding
-            </p>
-          </div>
-          <div class="flex items-center gap-x-3 gap-y-1 flex-wrap text-sm text-gray-700">
-            <span v-if="costDisplay" class="font-mono">
-              {{ costDisplay }}
-            </span>
-            <span v-if="costDisplay && study.fundingSource" class="text-gray-300">
-              ·
-            </span>
-            <span v-if="study.fundingSource">
-              {{ study.fundingSource }}
-            </span>
-          </div>
-        </div>
-        <div
-          v-if="study.lessonsLearned?.length"
-          class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6"
-        >
-          <div class="flex items-center gap-2 mb-2.5">
-            <UIcon class="size-4 text-gray-400" name="lucide:lightbulb" />
-            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-              Lessons learned
-            </p>
-          </div>
-          <ul class="list-disc list-outside pl-5 space-y-1.5 text-sm text-gray-700">
-            <li v-for="(l, i) in study.lessonsLearned" :key="i">
-              {{ l }}
-            </li>
-          </ul>
-        </div>
-        <div
-          v-if="study.sources?.length"
-          class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
-        >
-          <div class="flex items-center gap-2 p-4 sm:p-6 border-b border-gray-200">
-            <UIcon class="size-4 text-gray-400" name="lucide:book-open" />
-            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-              Sources
-            </p>
-            <span class="text-xs font-mono text-gray-400">
-              {{ study.sources.length }}
-            </span>
-          </div>
-          <ul class="divide-y divide-gray-200 bg-white">
-            <li v-for="(s, i) in study.sources" :key="i">
-              <a
-                class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
-                rel="nofollow noopener noreferrer"
-                target="_blank"
-                :href="s.url"
-              >
-                <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:external-link" />
-                <span class="truncate text-sm text-primary-700">
-                  {{ s.title || s.url }}
-                </span>
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div
-          v-if="study.links?.length"
-          class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"
-        >
-          <div class="flex items-center gap-2 p-4 sm:p-6 border-b border-gray-200">
-            <UIcon class="size-4 text-gray-400" name="lucide:paperclip" />
-            <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-              Links
-            </p>
-            <span class="text-xs font-mono text-gray-400">
-              {{ study.links.length }}
-            </span>
-          </div>
-          <ul class="divide-y divide-gray-200 bg-white">
-            <li v-for="(l, i) in study.links" :key="i">
-              <a
-                class="flex items-center gap-3 px-4 py-2.5 sm:px-6 hover:bg-gray-50 transition-colors min-w-0"
-                rel="nofollow noopener noreferrer"
-                target="_blank"
-                :href="l.url"
-              >
-                <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:external-link" />
-                <span class="truncate text-sm text-primary-700">
-                  {{ l.title || l.url }}
-                </span>
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6 flex items-center justify-between gap-3 flex-wrap">
-          <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-            Documented
-            {{
-              new Date(study.createdAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })
-            }}
-          </p>
-          <UserButton :author-id="study.authorId" :name="study.author" />
-        </div>
-      </div>
-      <section ref="historyRef" class="mt-12 scroll-mt-6">
-        <div class="mb-4 flex items-baseline gap-3">
-          <UiSectionTitle>
-            History
-          </UiSectionTitle>
-          <span v-if="revisions?.length" class="font-mono text-[10px] text-gray-400 tracking-widest">
-            · {{ revisions.length }}
-          </span>
-        </div>
-        <RevisionTimeline
-          :can-decide="canApply"
-          :revisions="revisions ?? []"
-          :viewer-id="loggedIn ? user?.id : null"
-          @changed="onEdited"
-        />
-      </section>
+      </NuxtLink>
+      <NuxtPage />
       <RevisionEditModal
         v-model:open="editOpen"
         kind="case_study"

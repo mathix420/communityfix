@@ -5,17 +5,14 @@ import { decideRevision, serializeRevision } from '../../../utils/revision-write
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid revision ID' })
-  }
+  const revisionId = requireIdParam(event, { label: 'revision' })
   const body = await readBody<{ reason?: string | null }>(event).catch(
     () => ({}) as { reason?: string | null },
   )
 
   const revision = await decideRevision(
     session.user.id,
-    parseInt(id, 10),
+    revisionId,
     'reject',
     body?.reason ?? null,
     event,
