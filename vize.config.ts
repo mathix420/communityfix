@@ -32,5 +32,10 @@ export default defineConfig({
     // own format on every db:generate — leave them alone so a new migration
     // doesn't trip fmt --check.
     'server/database/migrations',
+    // OG image components rendered by takumi/satori, where whitespace is
+    // significant: the formatter would break tight <p>content</p> onto its own
+    // line, and the leading/trailing whitespace then renders (e.g. an
+    // underline stretched past the text). Keep these hand-tuned as authored.
+    '**/*.takumi.vue',
   ],
 })
