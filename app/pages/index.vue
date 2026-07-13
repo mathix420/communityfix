@@ -165,10 +165,7 @@ defineOgImage('Home')
 <template>
   <AppContainer class="container overflow-x-clip h-fit mx-auto p-4">
     <div class="w-full mt-10 sm:mt-24 mb-8 sm:mb-12 gap-4 sm:gap-5 text-center flex flex-col items-center justify-center">
-      <p class="font-mono text-lg sm:text-xl underline decoration-primary">
-        communityfix.org
-      </p>
-      <h1 class="font-mono font-medium text-4xl sm:text-5xl text-gray-900 max-w-2xl">
+      <h1 class="font-mono font-medium text-4xl sm:text-5xl text-neutral-700 max-w-2xl">
         Everyone's skills, put to good use.
       </h1>
       <p class="max-w-xl text-lg text-gray-600">
