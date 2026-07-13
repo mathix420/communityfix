@@ -101,6 +101,11 @@ export default defineNuxtConfig({
       '0 3 * * *': ['compute:trust-scores'],
       // Reap expired OAuth codes/tokens + stale rate-limit windows at 3:15am UTC
       '15 3 * * *': ['oauth:purge'],
+      // Newsletter digests at 8am UTC: weekly on Mondays, monthly on the 1st.
+      // Each task only mails its own frequency cohort; retried/overlapping
+      // invocations are absorbed by the per-user lastSentAt guard.
+      '0 8 * * 1': ['newsletter:weekly'],
+      '0 8 1 * *': ['newsletter:monthly'],
     },
     // Mount the `auth` namespace on the Cloudflare KV binding so the WebAuthn
     // challenge round-trip survives across requests / isolates. The default

@@ -220,9 +220,9 @@ export interface NewsletterContent {
   productUpdates: boolean
 }
 
-// Newsletter consent + preferences. Collection side only — the sending
-// pipeline reads this table but lives elsewhere. One row per user, upserted
-// from onboarding and settings.
+// Newsletter consent + preferences. One row per user, upserted from
+// onboarding and settings. The sending side (digest assembly, templates,
+// cron tasks) lives in server/utils/newsletter-*.ts + server/tasks/newsletter/.
 export const newsletterPrefs = pgTable('newsletter_prefs', {
   userId: uuid('user_id')
     .primaryKey()
@@ -230,8 +230,10 @@ export const newsletterPrefs = pgTable('newsletter_prefs', {
   enabled: boolean('enabled').notNull().default(false),
   frequency: text('frequency').notNull().default('monthly').$type<NewsletterFrequency>(),
   content: jsonb('content').$type<NewsletterContent>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  // Set after each successful digest send; guards cron retries/overlaps from
+  // double-sending (see MIN_RESEND_DAYS in server/utils/newsletter-send.ts).
+  lastSentAt: timestamp('last_sent_at', { withTimezone: true }),
+  ...timestamps,
 })
 
 export const newsletterPrefsRelations = relations(newsletterPrefs, ({ one }) => ({
