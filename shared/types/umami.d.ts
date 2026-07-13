@@ -1,7 +1,7 @@
 interface UmamiTracker {
   track: {
     (eventName: string): void
-    (eventName: string, eventData: Record<string, string | number>): void
+    (eventName: string, eventData: Record<string, string | number | boolean | undefined>): void
   }
   identify: {
     (uniqueId: string): void

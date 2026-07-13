@@ -88,10 +88,8 @@ const { data } = await useFetch('/api/contribute', {
   watch: [queryParams],
 })
 
-const counts = computed(() => data.value?.counts ?? {})
-const totalNeeding = computed(() =>
-  Object.values(counts.value).reduce((a, b) => a + (b as number), 0),
-)
+const counts = computed<Record<string, number>>(() => data.value?.counts ?? {})
+const totalNeeding = computed(() => Object.values(counts.value).reduce((a, b) => a + b, 0))
 const issues = computed(() => data.value?.issues ?? [])
 const caseStudies = computed(() => data.value?.caseStudies ?? [])
 const resultCount = computed(() => issues.value.length + caseStudies.value.length)
@@ -168,7 +166,7 @@ defineOgImage('Editorial', { title: 'Contribute', category: 'Contribute' })
       </div>
       <div class="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <p v-if="activeLabel && LABEL_META[activeLabel]" class="text-sm text-gray-600">
-          {{ LABEL_META[activeLabel].hint }}
+          {{ LABEL_META[activeLabel]?.hint }}
         </p>
         <div class="flex gap-1 flex-wrap sm:ml-auto">
           <UButton

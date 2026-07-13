@@ -8,7 +8,18 @@ export default defineEventHandler(async (event) => {
   const log = await db.query.auditLogs.findFirst({
     where: eq(auditLogs.id, id),
     with: {
-      issue: { columns: { id: true, title: true, summary: true, type: true, status: true, rejectionReason: true, appealStatus: true, appealReason: true } },
+      issue: {
+        columns: {
+          id: true,
+          title: true,
+          summary: true,
+          type: true,
+          status: true,
+          rejectionReason: true,
+          appealStatus: true,
+          appealReason: true,
+        },
+      },
       user: { columns: { id: true, name: true, email: true, trustScore: true, bannedUntil: true } },
       reviewer: { columns: { id: true, name: true } },
     },

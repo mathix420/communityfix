@@ -1,5 +1,5 @@
 export function useUmami() {
-  function track(event: string, data?: Record<string, string | number>) {
+  function track(event: string, data?: Record<string, string | number | boolean | undefined>) {
     if (typeof window === 'undefined' || typeof window.umami === 'undefined') return
     if (data) {
       window.umami.track(event, data)
