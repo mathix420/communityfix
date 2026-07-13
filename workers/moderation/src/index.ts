@@ -20,6 +20,8 @@ import {
   applyCaseStudyCurate,
   resolveLocation,
   applyLocationFix,
+  labelIssue,
+  labelCaseStudy,
   prepareRevision,
   prescreenRevision,
   applyRevisionPrescreen,
@@ -119,6 +121,9 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     if (!approved) return
 
     await this.enrichIssue(ctx, step, prep)
+    // Enrichment may have filled in a location or rewritten the body, so compute
+    // help-wanted labels from the settled state. Best-effort — never blocks.
+    await step.do('label', STEP, () => labelIssue(ctx, id))
     await this.reviewStructure(ctx, step, id)
   }
 
@@ -226,6 +231,9 @@ export class ModerationWorkflow extends WorkflowEntrypoint<Env, ModerationParams
     await step.do('finalize', STEP, () => finalizeCaseStudy(ctx, prep, moderation))
 
     await this.enrichCaseStudy(ctx, step, prep)
+    // Curate may have stripped fields; compute help-wanted labels from the
+    // settled state. Best-effort — never blocks the (already committed) approval.
+    await step.do('label', STEP, () => labelCaseStudy(ctx, id))
   }
 
   private async enrichCaseStudy(ctx: Ctx, step: WorkflowStep, prep: CaseStudyPrep) {

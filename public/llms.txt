@@ -9,7 +9,7 @@ CommunityFix exposes an MCP (Model Context Protocol) server so AI assistants can
 ## Docs
 
 - [Whitepaper](https://communityfix.org/whitepaper): Vision, problem statement, incubation model, governance, and sustainability metrics
-- [Writing Guide](https://communityfix.org/guide/writing): How to write high-quality issues, solutions, and case studies
+- [Authoring Guide](https://communityfix.org/guide/authoring): Instructions for contributing high-quality issues, solutions, and case studies, for humans and AI agents
 - [MCP Server](https://communityfix.org/mcp): How to connect Claude Desktop, Claude Code, and other AI clients via the Model Context Protocol
 - [Privacy Policy](https://communityfix.org/privacy): Data handling and privacy practices
 - [Terms of Service](https://communityfix.org/terms): Platform terms and conditions
@@ -53,7 +53,7 @@ AI clients that speak the Model Context Protocol should use the MCP endpoint —
 - get_user: Fetch a user profile
 - whoami: Get the authenticated user's profile
 - get_whitepaper: Read the platform whitepaper (mission, incubation model, governance, impact metrics)
-- get_guide: Read the authoring guides; omit the slug to list them, pass one (e.g. "writing") for the full text
+- get_guide: Read the authoring guide; omit the slug to list available guides, pass one (e.g. "authoring") for the full text
 - propose_edit: Propose a change to any issue, solution, or case study — applies live if you own it, otherwise queued as a revision proposal
 - list_revisions: List a node's revision history plus any pending proposals you may see
 - review_revision: Approve or reject a pending revision proposal on a node you own

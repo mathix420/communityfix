@@ -483,10 +483,44 @@ definePageMeta({
         Add a credential
       </UButton>
     </section>
-    <section>
+    <section class="mb-12">
       <div class="mb-4 flex items-baseline gap-3">
         <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
           03
+        </span>
+        <UiSectionTitle>
+          Interests
+        </UiSectionTitle>
+      </div>
+      <p class="text-sm text-gray-600 mb-4 max-w-2xl">
+        Topics you care about, in your own words. They can be anything, even topics the
+        catalog does not cover yet. We use them to surface issues and wins that matter to you.
+      </p>
+      <UiCard padding="lg">
+        <UserInterestsEditor />
+      </UiCard>
+    </section>
+    <section class="mb-12">
+      <div class="mb-4 flex items-baseline gap-3">
+        <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
+          04
+        </span>
+        <UiSectionTitle>
+          Newsletter
+        </UiSectionTitle>
+      </div>
+      <p class="text-sm text-gray-600 mb-4 max-w-2xl">
+        Choose whether we may email you and what to include. Nothing is sent without
+        your opt-in.
+      </p>
+      <UiCard padding="lg">
+        <UserNewsletterPrefs show-save />
+      </UiCard>
+    </section>
+    <section>
+      <div class="mb-4 flex items-baseline gap-3">
+        <span class="font-mono text-xs uppercase tracking-widest text-primary-600">
+          05
         </span>
         <UiSectionTitle>
           Session

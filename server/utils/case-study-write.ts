@@ -313,6 +313,7 @@ export function transformCaseStudy(
         }
       : null,
     verified: row.verified,
+    helpLabels: row.helpLabels ?? [],
     description: row.description,
     implementer: row.implementer,
     startDate: row.startDate,

@@ -1,10 +1,11 @@
 import { eq, isNull, and, inArray, ne, desc, asc, sql } from 'drizzle-orm'
-import { issues, tags as tagsTable, issueTags } from '../database/schema'
+import { issues, tags as tagsTable, issueTags, issueSdgs } from '../database/schema'
 
 export default defineEventHandler(async (event) => {
   const db = useDB()
   const query = getQuery(event)
   const tagFilter = query.tag as string | undefined
+  const sdgFilter = query.sdg ? parseInt(query.sdg as string, 10) : undefined
   const sortBy = (query.sort as string) || 'most_voted'
   const searchTerm = (query.search as string) || ''
   const lat = query.lat ? parseFloat(query.lat as string) : undefined
@@ -22,6 +23,20 @@ export default defineEventHandler(async (event) => {
 
     const junctionRows = await db.query.issueTags.findMany({
       where: eq(issueTags.tagId, tag.id),
+      columns: { issueId: true },
+    })
+    const issueIds = junctionRows.map((r) => r.issueId)
+    if (issueIds.length === 0) return []
+
+    conditions.push(inArray(issues.id, issueIds))
+  }
+
+  // SDG filter — moderation maps every approved node to its goals, so
+  // top-level issues always carry their own mapping (same shape as the tag
+  // filter above).
+  if (sdgFilter != null && !isNaN(sdgFilter)) {
+    const junctionRows = await db.query.issueSdgs.findMany({
+      where: eq(issueSdgs.sdgId, sdgFilter),
       columns: { issueId: true },
     })
     const issueIds = junctionRows.map((r) => r.issueId)

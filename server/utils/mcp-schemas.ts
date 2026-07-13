@@ -10,6 +10,7 @@ const proposeKind = z.enum(['issue', 'solution', 'case_study'])
 const latitude = z.number().min(-90).max(90)
 const longitude = z.number().min(-180).max(180)
 const id = z.number().int().positive()
+const model = z.string().min(1).max(200).optional()
 const link = z.object({ url: z.string().min(1), title: z.string().optional() })
 const metric = z.object({
   label: z.string().min(1),
@@ -34,6 +35,7 @@ export const mcpToolInputSchemas = {
   get_issue: z.object({ id }),
   get_tree: z.object({ id }),
   create_issue: z.object({
+    model,
     title: z.string().min(1),
     summary: z.string().min(1),
     description: z.string().optional(),
@@ -41,6 +43,7 @@ export const mcpToolInputSchemas = {
     ...locationFields,
   }),
   create_solution: z.object({
+    model,
     title: z.string().min(1),
     summary: z.string().min(1),
     description: z.string().optional(),
@@ -49,6 +52,7 @@ export const mcpToolInputSchemas = {
     ...locationFields,
   }),
   update_issue: z.object({
+    model,
     id,
     title: z.string().min(1).optional(),
     summary: z.string().min(1).optional(),
@@ -56,6 +60,7 @@ export const mcpToolInputSchemas = {
     ...locationFields,
   }),
   update_solution: z.object({
+    model,
     id,
     title: z.string().min(1).optional(),
     summary: z.string().min(1).optional(),
@@ -74,6 +79,7 @@ export const mcpToolInputSchemas = {
   get_case_study: z.object({ id }),
   list_case_studies: z.object({ id }),
   create_case_study: z.object({
+    model,
     solutionId: id,
     outcome,
     locationName: z.string().min(1),
@@ -93,6 +99,7 @@ export const mcpToolInputSchemas = {
     links: z.array(link).optional(),
   }),
   update_case_study: z.object({
+    model,
     id,
     outcome: outcome.optional(),
     locationName: z.string().min(1).optional(),
@@ -116,6 +123,7 @@ export const mcpToolInputSchemas = {
   // fields are the union of the per-kind edit fields and are validated when
   // present. The handler routes to the right update_* path by `kind`.
   propose_edit: z.object({
+    model,
     kind: proposeKind,
     id,
     note: z.string().nullish(),

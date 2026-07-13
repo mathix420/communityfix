@@ -6,9 +6,14 @@ const MAX_URLS = 45_000
 
 const STATIC_ROUTES: Array<{ loc: string; changefreq: string; priority: string }> = [
   { loc: '/', changefreq: 'daily', priority: '1.0' },
+  { loc: '/issues', changefreq: 'daily', priority: '0.9' },
+  { loc: '/solutions', changefreq: 'daily', priority: '0.9' },
+  { loc: '/case-studies', changefreq: 'daily', priority: '0.9' },
+  { loc: '/map', changefreq: 'weekly', priority: '0.6' },
+  { loc: '/tags', changefreq: 'weekly', priority: '0.6' },
   { loc: '/whitepaper', changefreq: 'monthly', priority: '0.8' },
   { loc: '/guides', changefreq: 'weekly', priority: '0.7' },
-  { loc: '/guide/writing', changefreq: 'monthly', priority: '0.6' },
+  { loc: '/guide/authoring', changefreq: 'monthly', priority: '0.6' },
   { loc: '/privacy', changefreq: 'yearly', priority: '0.3' },
   { loc: '/terms', changefreq: 'yearly', priority: '0.3' },
 ]

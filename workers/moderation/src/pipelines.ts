@@ -19,6 +19,7 @@ import {
   checkAndApplyBan,
 } from './lib'
 import { STEPS, runAgent, runStep } from './steps'
+import { computeIssueHelpLabels, computeCaseStudyHelpLabels } from './help-labels'
 import { createGeocodeTool, bboxToPolygon } from './geocode'
 import { areaSimplifyTolerance, simplifyAreaGeometry } from '../../../server/utils/simplify-geo'
 
@@ -1027,6 +1028,67 @@ export async function applyCaseStudyCurate(
     },
   })
   console.log(`[review-case-study] Case study ${caseStudyId} curated`)
+}
+
+// ── Help-wanted labelling ───────────────────────────────────────────────────
+// Deterministic, LLM-free. Runs at the tail of the pipeline, after enrichment
+// has settled the curated text and any resolved location, so the gap checks see
+// final state. Best-effort: a failure here never rolls back an approval.
+
+function sameLabels(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false
+  const set = new Set(a)
+  return b.every((x) => set.has(x))
+}
+
+export async function labelIssue(ctx: Ctx, issueId: number): Promise<void> {
+  const { db } = ctx
+  const node = await db.query.issues.findFirst({ where: eq(issues.id, issueId) })
+  if (!node || node.status !== 'approved') return
+
+  const next = computeIssueHelpLabels({
+    type: node.type,
+    description: node.description,
+    scale: node.scale,
+    location: node.location,
+    links: node.links,
+  })
+  if (sameLabels(node.helpLabels ?? [], next)) return
+
+  await db.update(issues).set({ helpLabels: next }).where(eq(issues.id, issueId))
+  await createAuditLog(db, {
+    type: 'moderation',
+    action: 'label',
+    issueId,
+    userId: node.authorId,
+    details: { helpLabels: next, previous: node.helpLabels ?? [] },
+  })
+  console.log(`[review-issue] Issue ${issueId} help-labels: [${next.join(', ')}]`)
+}
+
+export async function labelCaseStudy(ctx: Ctx, caseStudyId: number): Promise<void> {
+  const { db } = ctx
+  const cs = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, caseStudyId) })
+  if (!cs || cs.status !== 'approved') return
+
+  const next = computeCaseStudyHelpLabels({
+    outcome: cs.outcome,
+    description: cs.description,
+    metrics: cs.metrics,
+    sources: cs.sources,
+    cost: cs.cost,
+  })
+  if (sameLabels(cs.helpLabels ?? [], next)) return
+
+  await db.update(caseStudies).set({ helpLabels: next }).where(eq(caseStudies.id, caseStudyId))
+  await createAuditLog(db, {
+    type: 'moderation',
+    action: 'label',
+    issueId: cs.solutionId,
+    userId: cs.authorId,
+    details: { caseStudyId, helpLabels: next, previous: cs.helpLabels ?? [] },
+  })
+  console.log(`[review-case-study] Case study ${caseStudyId} help-labels: [${next.join(', ')}]`)
 }
 
 // ── Revision pre-screen ────────────────────────────────────────────────────

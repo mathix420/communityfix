@@ -58,7 +58,7 @@ function internalLinkPaths(): string[] {
 /**
  * Does Nuxt's file-based router have a *literal* (non-dynamic) page for these
  * segments? Dynamic `[slug]` routes are intentionally excluded: a link to a
- * concrete path like `/guide/writing` should be backed by a concrete content
+ * concrete path like `/guide/authoring` should be backed by a concrete content
  * file (checked separately), not merely satisfied by a catch-all `[slug].vue`.
  */
 function staticPageResolves(segments: string[]): boolean {
