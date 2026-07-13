@@ -3,9 +3,7 @@ import { caseStudies } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const db = useDB()
-  const id = Number(getRouterParam(event, 'id'))
+  const { session, db, id } = await requireEventContext(event)
   const body = await readBody<{ reason: string }>(event)
 
   if (!body.reason?.trim()) {

@@ -1,32 +1,22 @@
 import { eq } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
 import { issues } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  const db = useDB()
-  const id = Number(getRouterParam(event, 'id'))
+  const { session, db, id } = await requireEventContext(event)
   const body = await readBody<{ reason: string }>(event)
 
   if (!body.reason) {
     throw createError({ statusCode: 400, message: 'Rejection reason is required' })
   }
 
-  const issue = await db.query.issues.findFirst({ where: eq(issues.id, id) })
-  if (!issue) {
-    throw createError({ statusCode: 404, message: 'Issue not found' })
-  }
+  const issue = await loadIssueOr404(id)
   if (issue.status === 'rejected') {
     throw createError({ statusCode: 400, message: 'Issue is already rejected' })
   }
 
-  if (issue.parentId && issue.status === 'approved') {
-    const counter =
-      issue.type === 'solution'
-        ? { solutionCount: sql`GREATEST(${issues.solutionCount} - 1, 0)` }
-        : { subIssueCount: sql`GREATEST(${issues.subIssueCount} - 1, 0)` }
-    await db.update(issues).set(counter).where(eq(issues.id, issue.parentId))
+  if (issue.status === 'approved') {
+    await adjustParentCounter(db, issue, -1)
   }
 
   await db

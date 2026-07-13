@@ -7,13 +7,10 @@ import { transformCaseStudy } from '../../../utils/case-study-write'
 //   - issue id    → aggregated across all approved solution children
 export default defineEventHandler(async (event) => {
   const db = useDB()
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid issue ID' })
-  }
+  const issueId = requireIdParam(event)
 
   const root = await db.query.issues.findFirst({
-    where: eq(issues.id, parseInt(id, 10)),
+    where: eq(issues.id, issueId),
     columns: { id: true, type: true },
   })
   if (!root) return []

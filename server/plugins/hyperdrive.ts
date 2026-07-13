@@ -4,6 +4,7 @@
 //
 // Locally and in CI, `event.context.cloudflare` is undefined and this is a
 // no-op — the URL comes from the NUXT_DATABASE_URL env var instead.
+import { setScheduledEmailBinding } from '../utils/email-binding'
 
 function hydrateFromBinding(env: Record<string, any> | undefined) {
   const connectionString = env?.HYPERDRIVE?.connectionString
@@ -20,7 +21,10 @@ export default defineNitroPlugin((nitroApp) => {
 
   // Scheduled tasks (cron triggers) — the cloudflare preset fires this
   // before invoking `runCronTasks`, giving us access to the env bindings.
+  // Tasks have no h3 event, so the EMAIL binding is stashed for `sendEmail`
+  // to pick up (newsletter sends) alongside the DB URL hydration.
   nitroApp.hooks.hook('cloudflare:scheduled' as any, ({ env }: { env: Record<string, any> }) => {
     hydrateFromBinding(env)
+    setScheduledEmailBinding(env?.EMAIL)
   })
 })

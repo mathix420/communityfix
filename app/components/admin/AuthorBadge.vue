@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { formatRelative } from '~/utils/relative-time'
+
 // Compact author summary for queue cards — trust score + history at a glance,
 // so the moderator doesn't have to click through to the user profile.
 defineProps<{
@@ -15,19 +17,6 @@ defineProps<{
   timestampLabel?: string
   timestamp?: string | null
 }>()
-
-function formatRelative(date: string | null | undefined) {
-  if (!date) return ''
-  const d = new Date(date)
-  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `${diffH}h ago`
-  const diffD = Math.floor(diffH / 24)
-  if (diffD < 30) return `${diffD}d ago`
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 function isNewAccount(createdAt?: string) {
   if (!createdAt) return false

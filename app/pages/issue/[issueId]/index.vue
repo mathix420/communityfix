@@ -97,7 +97,7 @@ async function submitAppeal() {
       method: 'POST',
       body: { reason: appealReason.value },
     })
-    umami.track('Issue appeal submitted', { issueId: Number(issueId) })
+    track('Issue appeal submitted', { issueId: Number(issueId) })
     toast.add({
       title: 'Appeal submitted',
       description: 'Your appeal is under review.',
@@ -200,7 +200,6 @@ async function submitAppeal() {
           />
           <UButton
             color="primary"
-            data-umami-event="Appeal rejected issue"
             size="sm"
             type="submit"
             :disabled="!appealReason.trim()"
@@ -320,6 +319,7 @@ async function submitAppeal() {
         </div>
         <UiMarkdown class="prose-sm text-gray-700" :value="issue.description" />
       </div>
+      <IssueWantedSkills :author-id="issue.authorId" :issue-id="issue.id" :title="issue.title" />
       <div
         v-if="isSolution && issue.links?.length"
         class="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden"

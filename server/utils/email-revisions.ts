@@ -5,6 +5,7 @@
 // instead (see server/utils/email.ts).
 import type { H3Event } from 'h3'
 import { sendEmail } from './email'
+import { escapeHtml } from './escape-html'
 
 // Proposers below this trust score don't generate an owner notification email —
 // the AI pre-screen + in-app inbox still surface their proposal, but we don't
@@ -48,15 +49,18 @@ export async function sendProposalNotification(
   if (opts.proposerTrustScore < PROPOSAL_NOTIFY_MIN_TRUST) return
 
   const url = nodeUrl(event, opts.targetKind, opts.issueId, opts.caseStudyId)
-  const who = opts.proposerName?.trim() || 'A community member'
+  // Names, node titles, and the note are user-controlled — escape them so a
+  // proposer can't inject markup/links into the owner's inbox.
+  const who = escapeHtml(opts.proposerName?.trim() || 'A community member')
+  const label = escapeHtml(opts.nodeLabel)
   try {
     await sendEmail(event, {
       to: opts.ownerEmail,
       subject: `New suggested edit on "${opts.nodeLabel}"`,
       html: `
-        <p>Hi${opts.ownerName ? ` ${opts.ownerName}` : ''},</p>
-        <p>${who} suggested an edit to <strong>${opts.nodeLabel}</strong>.</p>
-        ${opts.note ? `<p style="color:#555;">"${opts.note}"</p>` : ''}
+        <p>Hi${opts.ownerName ? ` ${escapeHtml(opts.ownerName)}` : ''},</p>
+        <p>${who} suggested an edit to <strong>${label}</strong>.</p>
+        ${opts.note ? `<p style="color:#555;">"${escapeHtml(opts.note)}"</p>` : ''}
         <p><a href="${url}">Review the suggestion</a> to approve or reject it.</p>
       `,
     })
@@ -102,9 +106,9 @@ export async function sendDecisionNotification(
       to: opts.proposerEmail,
       subject,
       html: `
-        <p>Hi${opts.proposerName ? ` ${opts.proposerName}` : ''},</p>
-        <p>Your suggested edit to <strong>${opts.nodeLabel}</strong> was <strong>${verb}</strong>.</p>
-        ${opts.reason ? `<p style="color:#555;">"${opts.reason}"</p>` : ''}
+        <p>Hi${opts.proposerName ? ` ${escapeHtml(opts.proposerName)}` : ''},</p>
+        <p>Your suggested edit to <strong>${escapeHtml(opts.nodeLabel)}</strong> was <strong>${verb}</strong>.</p>
+        ${opts.reason ? `<p style="color:#555;">"${escapeHtml(opts.reason)}"</p>` : ''}
         <p><a href="${url}">View the node</a>.</p>
       `,
     })

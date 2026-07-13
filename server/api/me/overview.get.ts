@@ -32,7 +32,10 @@ export default defineEventHandler(async (event) => {
             ne(issues.status, 'rejected'),
           ),
         ),
-      db.select({ n: count() }).from(caseStudies).where(eq(caseStudies.authorId, userId)),
+      db
+        .select({ n: count() })
+        .from(caseStudies)
+        .where(and(eq(caseStudies.authorId, userId), ne(caseStudies.status, 'rejected'))),
       // Approved edits I proposed on nodes I did NOT author — real collaboration.
       db
         .select({ n: count() })

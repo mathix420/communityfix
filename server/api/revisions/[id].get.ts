@@ -9,11 +9,7 @@ import { getIsAdmin } from '../../utils/is-admin'
 import { resolveDecideRole, isNodeOwner } from '../../utils/node-members'
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid revision ID' })
-  }
-  const revisionId = parseInt(id, 10)
+  const revisionId = requireIdParam(event, { label: 'revision' })
 
   const db = useDB()
   const row = await db.query.revisions.findFirst({

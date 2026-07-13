@@ -17,6 +17,19 @@ DO $$ BEGIN
     CHECK (target_kind IN ('issue', 'case_study'));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Both columns are nullable (null verdict = not screened, null role = not yet
+-- decided); a CHECK evaluating to NULL passes, so these only reject bad
+-- non-null values.
+DO $$ BEGIN
+  ALTER TABLE revisions ADD CONSTRAINT revisions_ai_verdict_check
+    CHECK (ai_verdict IN ('ok', 'spam', 'vandalism'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE revisions ADD CONSTRAINT revisions_decided_by_role_check
+    CHECK (decided_by_role IN ('owner', 'admin'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- One live proposal per user per node — a proposer can't queue two competing
 -- pending edits for the same target. Partial so decided rows (approved /
 -- rejected / withdrawn / superseded) don't collide. NULLs are distinct in a

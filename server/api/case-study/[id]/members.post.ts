@@ -8,11 +8,7 @@ import { isSessionAdmin } from '../../../utils/is-admin'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid case study ID' })
-  }
-  const caseStudyId = parseInt(id, 10)
+  const caseStudyId = requireIdParam(event, { label: 'case study' })
 
   const body = await readBody<{ userId?: string; role?: string }>(event)
   if (!body?.userId || !body.role || !NODE_MEMBER_ROLES.includes(body.role as NodeMemberRole)) {

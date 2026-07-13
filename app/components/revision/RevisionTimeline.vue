@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SerializedRevision } from '../../../server/utils/revision-write'
 import type { RevisionStatus } from '../../../server/database/schema'
+import { formatRelative } from '~/utils/relative-time'
 
 // Shared revision history timeline. Renders a list of SerializedRevision rows
 // (newest first, as the endpoints return them) as AdminQueueCard rows — each
@@ -35,19 +36,6 @@ const statusVariant: Record<RevisionStatus, 'default' | 'warning' | 'success' | 
   rejected: 'error',
   withdrawn: 'default',
   superseded: 'default',
-}
-
-function formatRelative(date: string | null | undefined) {
-  if (!date) return ''
-  const d = new Date(date)
-  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `${diffH}h ago`
-  const diffD = Math.floor(diffH / 24)
-  if (diffD < 30) return `${diffD}d ago`
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 // Reject flows through the shared modal so the reviewer can pick a preset reason.

@@ -93,10 +93,9 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
 <template>
   <UiCard padding="md">
     <div class="flex flex-col gap-3 min-w-0">
-      <!-- Title row: location is the anchor, outcome+verified are right-aligned signals -->
+      <!-- Title row: location is the anchor, outcome is the only colored signal -->
       <div class="flex items-start justify-between gap-3 min-w-0">
         <NuxtLink class="flex items-center gap-2 min-w-0 group" :to="`/case-study/${study.id}`">
-          <UIcon class="size-4 shrink-0 text-gray-400" name="lucide:map-pin" />
           <h3 class="font-title text-lg text-gray-900 leading-snug truncate group-hover:underline decoration-primary">
             {{ study.locationName }}
           </h3>
@@ -111,48 +110,30 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
           {{ outcomeBadgeLabel(study.outcome) }}
         </UiBadge>
       </div>
-      <!-- Meta line: implementer · dates · scale, single greyscale row -->
-      <div
+      <!-- Meta: one quiet line, text only -->
+      <p
         v-if="study.implementer || dateRange || study.scale"
-        class="text-xs text-gray-500 font-mono flex items-center gap-1.5 flex-wrap"
+        class="font-mono text-xs text-gray-500 truncate -mt-1.5"
       >
-        <span v-if="study.implementer" class="inline-flex items-center gap-1.5">
-          <UIcon class="size-3.5 text-gray-400" name="lucide:users" />
-          <span class="text-gray-700">
-            {{ study.implementer }}
-          </span>
-        </span>
-        <span v-if="study.implementer && dateRange" class="text-gray-300">
-          ·
-        </span>
-        <span v-if="dateRange" class="inline-flex items-center gap-1.5">
-          <UIcon class="size-3.5 text-gray-400" name="lucide:calendar" />
-          {{ dateRange }}
-        </span>
-        <span v-if="(study.implementer || dateRange) && study.scale" class="text-gray-300">
-          ·
-        </span>
-        <span v-if="study.scale" class="inline-flex items-center gap-1.5">
-          <UIcon class="size-3.5 text-gray-400" name="lucide:globe" />
-          {{ scaleBadgeLabel(study.scale) }}
-        </span>
-      </div>
+        {{
+          [study.implementer, dateRange, study.scale && scaleBadgeLabel(study.scale)]
+            .filter(Boolean)
+            .join(' · ')
+        }}
+      </p>
       <UiMarkdown
         v-if="descriptionPreview"
-        class="prose-sm text-gray-700 mt-0.5"
+        class="prose-sm text-gray-700"
         :value="descriptionPreview"
       />
-      <!-- Metrics: tightened spacing, baseline → result remains the hero pattern -->
-      <div
-        v-if="topMetrics.length"
-        class="rounded-md bg-gray-50 border border-gray-200 divide-y divide-gray-200 text-sm"
-      >
+      <!-- Metrics: soft surface separates them from prose, baseline → result -->
+      <div v-if="topMetrics.length" class="rounded-lg bg-gray-100 px-3 py-2 flex flex-col gap-1.5">
         <div
           v-for="(m, i) in topMetrics"
           :key="i"
-          class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-baseline px-3 py-2"
+          class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-baseline text-sm"
         >
-          <span class="truncate text-gray-700">
+          <span class="truncate text-gray-600">
             {{ m.label }}
           </span>
           <span class="font-mono text-xs whitespace-nowrap">
@@ -160,7 +141,9 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
               <span class="text-gray-400">
                 {{ m.baseline }}
               </span>
-              <UIcon class="size-3 -mt-0.5 mx-1 text-gray-400" name="lucide:arrow-right" />
+              <span class="text-gray-400 mx-1">
+                →
+              </span>
             </template>
             <span v-if="m.result" class="text-gray-900 font-semibold">
               {{ m.result }}
@@ -171,29 +154,22 @@ const sourceCount = computed(() => props.study.sources?.length ?? 0)
           </span>
         </div>
       </div>
-      <!-- Footer: meta row (left) + author (right) on one line, no separator -->
-      <div class="flex items-center justify-between gap-3 flex-wrap pt-1 min-h-[1.75rem]">
-        <div class="flex items-center gap-1.5 text-xs font-mono text-gray-500 flex-wrap min-w-0">
-          <span v-if="costDisplay" class="inline-flex items-center gap-1.5">
-            <UIcon class="size-3.5 text-gray-400" name="lucide:wallet" />
-            <span class="text-gray-700">
-              {{ costDisplay }}
-            </span>
-          </span>
-          <span v-if="costDisplay && study.fundingSource" class="text-gray-300">
-            ·
-          </span>
-          <span v-if="study.fundingSource" class="truncate max-w-[24ch] sm:max-w-[36ch]">
-            {{ study.fundingSource }}
-          </span>
-          <span v-if="(costDisplay || study.fundingSource) && sourceCount" class="text-gray-300">
-            ·
-          </span>
-          <span v-if="sourceCount" class="inline-flex items-center gap-1.5">
-            <UIcon class="size-3.5 text-gray-400" name="lucide:book-open" />
-            {{ sourceCount }} source{{ sourceCount === 1 ? '' : 's' }}
-          </span>
-        </div>
+      <!-- Footer: cost · funding · sources, avatars right -->
+      <div
+        v-if="costDisplay || study.fundingSource || sourceCount || study.owners || study.collaborators"
+        class="flex items-center justify-between gap-3 min-w-0"
+      >
+        <p class="font-mono text-xs text-gray-500 truncate">
+          {{
+            [
+              costDisplay,
+              study.fundingSource,
+              sourceCount ? `${sourceCount} source${sourceCount === 1 ? '' : 's'}` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          }}
+        </p>
         <UserAvatarStack
           :collaborators="study.collaborators"
           :owners="study.owners ?? [{ id: study.authorId ?? null, name: study.author, changes: 0 }]"

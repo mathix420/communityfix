@@ -3,6 +3,7 @@ const { track } = useUmami()
 const props = defineProps<{
   issue: {
     id: number
+    type?: string
     title: string
     summary: string
     authorId?: string | null
@@ -152,22 +153,36 @@ async function handleShare() {
               <UIcon class="size-3.5" name="lucide:arrow-down" />
             </button>
           </div>
+          <!-- Solutions are leaves: they carry case studies, never solutions
+               or sub-issues, so those chips only make sense on issues. -->
+          <template v-if="issue.type !== 'solution'">
+            <NuxtLink
+              class="flex items-center flex-wrap gap-1 text-sm"
+              :to="`/issue/${issue.id}/solutions`"
+              @click="track('View solutions')"
+            >
+              <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
+                {{ issue.solutionCount || 0 }} Solutions
+              </span>
+            </NuxtLink>
+            <NuxtLink
+              class="flex items-center gap-1 text-sm"
+              :to="`/issue/${issue.id}/issues`"
+              @click="track('View sub-issues')"
+            >
+              <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
+                {{ issue.subIssueCount || 0 }} Sub-issues
+              </span>
+            </NuxtLink>
+          </template>
           <NuxtLink
-            class="flex items-center flex-wrap gap-1 text-sm"
-            :to="`/issue/${issue.id}/solutions`"
-            @click="track('View solutions')"
-          >
-            <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
-              {{ issue.solutionCount || 0 }} Solutions
-            </span>
-          </NuxtLink>
-          <NuxtLink
+            v-else
             class="flex items-center gap-1 text-sm"
-            :to="`/issue/${issue.id}/issues`"
-            @click="track('View sub-issues')"
+            :to="`/issue/${issue.id}/studies`"
+            @click="track('View case studies')"
           >
             <span class="px-2 py-1 bg-gray-100 hover:bg-gray-200 transition-colors whitespace-nowrap text-gray-700 font-mono rounded-md">
-              {{ issue.subIssueCount || 0 }} Sub-issues
+              Case studies
             </span>
           </NuxtLink>
         </div>

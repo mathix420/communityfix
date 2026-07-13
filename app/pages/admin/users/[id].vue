@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { formatRelative } from '~/utils/relative-time'
+
 const route = useRoute()
 const userId = computed(() => String(route.params.id))
 
@@ -68,16 +70,6 @@ function formatDate(date: string | null | undefined) {
     year: 'numeric',
   })
 }
-function formatTime(date: string) {
-  const d = new Date(date)
-  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (diffMin < 1) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `${diffH}h ago`
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
 const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'> = {
   pending: 'warning',
   approved: 'success',
@@ -264,7 +256,7 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
                 {{ i.title }}
               </span>
               <span class="text-[11px] text-toned shrink-0">
-                {{ formatTime(i.createdAt) }}
+                {{ formatRelative(i.createdAt) }}
               </span>
             </div>
             <p v-if="i.rejectionReason" class="text-xs text-red-600 mt-1 ml-14 line-clamp-1">
@@ -302,7 +294,7 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
                 on #{{ c.solution.id }} {{ c.solution.title }}
               </NuxtLink>
               <span class="text-[11px] text-toned shrink-0">
-                {{ formatTime(c.createdAt) }}
+                {{ formatRelative(c.createdAt) }}
               </span>
             </div>
             <p class="text-xs text-toned mt-0.5">
@@ -327,7 +319,7 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
           <div v-for="log in data.recentLogs" :key="log.id" class="px-4 py-2 text-sm">
             <div class="flex items-center gap-2">
               <span class="text-[11px] text-toned tabular-nums w-16">
-                {{ formatTime(log.createdAt) }}
+                {{ formatRelative(log.createdAt) }}
               </span>
               <UiBadge>
                 {{ log.action }}

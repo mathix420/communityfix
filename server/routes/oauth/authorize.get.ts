@@ -1,4 +1,5 @@
 import { getClient, issueConsentToken, mcpResource, OAUTH_SCOPE } from '../../utils/oauth'
+import { escapeHtml } from '../../utils/escape-html'
 
 const POST_LOGIN_COOKIE = 'mcp_continue'
 
@@ -13,13 +14,6 @@ function redirectError(
   u.searchParams.set('error_description', description)
   if (state) u.searchParams.set('state', state)
   return u.toString()
-}
-
-function escapeHtml(s: string) {
-  return s.replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
-  )
 }
 
 export default defineEventHandler(async (event) => {

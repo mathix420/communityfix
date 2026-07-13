@@ -175,35 +175,9 @@ defineExpose({
 </template>
 
 <style scoped>
+/* Zoom-control styling is shared in assets/css/leaflet.css */
 .location-map {
   width: 100%;
   height: 100%;
-}
-
-:deep(.leaflet-control-zoom) {
-  border: none !important;
-  border-radius: .5rem !important;
-  overflow: hidden !important;
-  box-shadow: 0 2px 8px #0000001f !important;
-}
-
-:deep(.leaflet-control-zoom a) {
-  background: #fff !important;
-  color: #6b7280 !important;
-  border: none !important;
-  border-bottom: 1px solid #f3f4f6 !important;
-  width: 32px !important;
-  height: 32px !important;
-  line-height: 32px !important;
-  font-size: 16px !important;
-}
-
-:deep(.leaflet-control-zoom a:last-child) {
-  border-bottom: none !important;
-}
-
-:deep(.leaflet-control-zoom a:hover) {
-  background: #f9fafb !important;
-  color: #374151 !important;
 }
 </style>

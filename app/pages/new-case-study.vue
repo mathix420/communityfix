@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CaseStudyOutcome, LocationScale } from '../../server/database/schema'
+import { cleanLinkRows } from '~/utils/link-rows'
 
 const route = useRoute()
 const toast = useToast()
@@ -81,12 +82,8 @@ async function submit() {
   }
   submitting.value = true
   try {
-    const cleanedSources = sources.value
-      .map((s) => ({ url: s.url.trim(), title: s.title.trim() || undefined }))
-      .filter((s) => s.url)
-    const cleanedLinks = links.value
-      .map((l) => ({ url: l.url.trim(), title: l.title.trim() || undefined }))
-      .filter((l) => l.url)
+    const cleanedSources = cleanLinkRows(sources.value)
+    const cleanedLinks = cleanLinkRows(links.value)
     const cleanedMetrics = metrics.value
       .map((m) => ({
         label: m.label.trim(),
