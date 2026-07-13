@@ -1,4 +1,4 @@
-import { eq, isNull, and, inArray, ne, desc, asc, sql } from 'drizzle-orm'
+import { eq, isNull, inArray, ne, sql } from 'drizzle-orm'
 import { issues, tags as tagsTable, issueTags, issueSdgs } from '../database/schema'
 
 export default defineEventHandler(async (event) => {
@@ -65,35 +65,5 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  // Sort
-  let orderByClause
-  switch (sortBy) {
-    case 'oldest':
-      orderByClause = asc(issues.createdAt)
-      break
-    case 'most_voted':
-      orderByClause = desc(issues.voteScore)
-      break
-    case 'trending':
-      // HN-style ranking: engagement / (age_hours + 2) ^ gravity
-      // Solutions (3x) and sub-issues (2x) weigh more than raw votes.
-      // Keep this in sync with server/api/issue/[id]/{issues,solutions}.get.ts
-      // and docs/ranking-and-trust.md.
-      orderByClause = sql`(
-        ${issues.voteScore} + ${issues.solutionCount} * 3 + ${issues.subIssueCount} * 2
-      )::float / POWER(EXTRACT(EPOCH FROM (NOW() - ${issues.createdAt})) / 3600 + 2, 1.5) DESC`
-      break
-    default:
-      orderByClause = desc(issues.createdAt)
-  }
-
-  const results = await db.query.issues.findMany({
-    where: and(...conditions),
-    with: issueWithRelations,
-    orderBy: orderByClause,
-  })
-  return withMembers(
-    'issue',
-    results.map((i) => transformIssue(i)),
-  )
+  return listIssueNodes(conditions, sortBy, 'newest')
 })

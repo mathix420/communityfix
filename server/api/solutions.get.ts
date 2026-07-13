@@ -1,4 +1,4 @@
-import { eq, ne, and, desc, asc, sql } from 'drizzle-orm'
+import { eq, ne, sql } from 'drizzle-orm'
 import { issues } from '../database/schema'
 import { SOLUTION_STATUSES } from '../database/schema'
 import type { SolutionStatus } from '../database/schema'
@@ -6,7 +6,6 @@ import type { SolutionStatus } from '../database/schema'
 // Global solutions directory: every approved solution across all issues, with
 // the same search/sort surface as /api/issues plus a solutionStatus filter.
 export default defineEventHandler(async (event) => {
-  const db = useDB()
   const query = getQuery(event)
   const sortBy = (query.sort as string) || 'most_voted'
   const searchTerm = (query.search as string) || ''
@@ -22,26 +21,5 @@ export default defineEventHandler(async (event) => {
     conditions.push(sql`search_vector @@ plainto_tsquery('english', ${searchTerm.trim()})`)
   }
 
-  let orderByClause
-  switch (sortBy) {
-    case 'oldest':
-      orderByClause = asc(issues.createdAt)
-      break
-    case 'newest':
-      orderByClause = desc(issues.createdAt)
-      break
-    default:
-      orderByClause = desc(issues.voteScore)
-  }
-
-  const results = await db.query.issues.findMany({
-    where: and(...conditions),
-    with: issueWithRelations,
-    orderBy: orderByClause,
-  })
-
-  return withMembers(
-    'issue',
-    results.map((i) => transformIssue(i)),
-  )
+  return listIssueNodes(conditions, sortBy, 'most_voted')
 })

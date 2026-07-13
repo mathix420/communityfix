@@ -12,10 +12,17 @@ import {
   index,
   numeric,
   date,
+  vector,
+  geometry,
 } from 'drizzle-orm/pg-core'
-import { vector } from 'drizzle-orm/pg-core'
-import { geometry } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
+
+// Standard audit pair, spread into every table that tracks both. Drizzle
+// builds a fresh column per table from the shared builders, so reuse is safe.
+const timestamps = {
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}
 
 export const PROVIDERS = ['google', 'apple', 'passkey'] as const
 export type Provider = (typeof PROVIDERS)[number]
@@ -166,8 +173,7 @@ export const users = pgTable('users', {
   // When the user completed (or skipped) the onboarding flow. Null = the
   // onboarding page has not been seen yet; post-login redirects send them there.
   onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -241,8 +247,7 @@ export const credentials = pgTable('credentials', {
   counter: integer('counter').notNull().default(0),
   backedUp: boolean('backed_up').notNull().default(false),
   transports: jsonb('transports').$type<string[]>().notNull().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const credentialsRelations = relations(credentials, ({ one }) => ({
@@ -254,8 +259,7 @@ export const sdgs = pgTable('sdgs', {
   name: text('name').notNull(),
   iconUrl: text('icon_url').notNull(),
   link: text('link').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const tags = pgTable('tags', {
@@ -263,8 +267,7 @@ export const tags = pgTable('tags', {
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   embedding: vector('embedding', { dimensions: 1536 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const issues = pgTable('issues', {
@@ -306,8 +309,7 @@ export const issues = pgTable('issues', {
   infoResponse: text('info_response'),
   infoRespondedAt: timestamp('info_responded_at', { withTimezone: true }),
   embedding: vector('embedding', { dimensions: 1536 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ...timestamps,
 })
 
 export const issuesRelations = relations(issues, ({ one, many }) => ({
@@ -337,8 +339,7 @@ export const votes = pgTable(
       .references(() => issues.id, { onDelete: 'cascade' }),
     value: integer('value').notNull(), // +1 or -1
     weight: integer('weight').notNull().default(1), // derived from voter's trust score
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [unique().on(t.userId, t.issueId)],
 )
@@ -401,8 +402,7 @@ export const qualifications = pgTable(
     area: text('area').notNull(),
     // Optional longer context — how, where, when, proof links.
     detail: text('detail'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [index('qualifications_user_id_idx').on(t.userId)],
 )
@@ -564,8 +564,7 @@ export const caseStudies = pgTable(
     // which is reserved for citations backing the claims.
     links: jsonb('links').$type<Array<{ url: string; title?: string }>>(),
     embedding: vector('embedding', { dimensions: 1536 }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [index('case_studies_solution_idx').on(t.solutionId)],
 )
@@ -670,8 +669,7 @@ export const revisions = pgTable(
     decidedByRole: text('decided_by_role').$type<RevisionDecidedByRole>(),
     decisionReason: text('decision_reason'),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [
     index('revisions_issue_id_idx').on(t.issueId),
@@ -716,8 +714,7 @@ export const nodeMembers = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     role: text('role').notNull().$type<NodeMemberRole>(),
     source: text('source').$type<NodeMemberSource>(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (t) => [
     index('node_members_issue_id_idx').on(t.issueId),

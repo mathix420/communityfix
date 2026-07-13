@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
 import { issues } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
 import { triggerModeration } from '../../../../utils/moderation-trigger'
@@ -31,13 +30,7 @@ export default defineEventHandler(async (event) => {
       })
       .where(eq(issues.id, id))
 
-    if (issue.parentId) {
-      const counter =
-        issue.type === 'solution'
-          ? { solutionCount: sql`${issues.solutionCount} + 1` }
-          : { subIssueCount: sql`${issues.subIssueCount} + 1` }
-      await db.update(issues).set(counter).where(eq(issues.id, issue.parentId))
-    }
+    await adjustParentCounter(db, issue, 1)
 
     await triggerModeration('structure', id)
   } else {

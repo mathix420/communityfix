@@ -9,16 +9,8 @@ import { isSessionAdmin } from '../../../../utils/is-admin'
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
 
-  const id = getRouterParam(event, 'id')
-  const skillIdParam = getRouterParam(event, 'skillId')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid issue ID' })
-  }
-  if (!skillIdParam || isNaN(parseInt(skillIdParam, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid skill ID' })
-  }
-  const issueId = parseInt(id, 10)
-  const skillId = parseInt(skillIdParam, 10)
+  const issueId = requireIdParam(event)
+  const skillId = requireIdParam(event, { name: 'skillId', label: 'skill' })
 
   const db = useDB()
   const row = await db.query.wantedSkills.findFirst({

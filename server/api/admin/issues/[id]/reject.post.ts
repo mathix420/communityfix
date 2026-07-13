@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
 import { issues } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
 
@@ -21,12 +20,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Issue is already rejected' })
   }
 
-  if (issue.parentId && issue.status === 'approved') {
-    const counter =
-      issue.type === 'solution'
-        ? { solutionCount: sql`GREATEST(${issues.solutionCount} - 1, 0)` }
-        : { subIssueCount: sql`GREATEST(${issues.subIssueCount} - 1, 0)` }
-    await db.update(issues).set(counter).where(eq(issues.id, issue.parentId))
+  if (issue.status === 'approved') {
+    await adjustParentCounter(db, issue, -1)
   }
 
   await db

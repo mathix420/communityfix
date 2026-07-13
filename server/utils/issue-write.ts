@@ -1,7 +1,7 @@
 // Shared write-side logic for issues. Both /api/issue/index.post.ts (REST)
 // and the MCP create_issue tool call into here so input sanitization,
 // counter bumps, and the moderation trigger stay in one place.
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { issues, users } from '../database/schema'
 import type { IssueType, LocationScale, SolutionStatus } from '../database/schema'
 import { assertNotBanned } from './check-ban'
@@ -138,13 +138,7 @@ export async function createIssue(authorId: string, input: CreateIssueInput) {
     .returning()
   const created = rows[0]!
 
-  if (input.parentId) {
-    const counter =
-      type === 'solution'
-        ? { solutionCount: sql`${issues.solutionCount} + 1` }
-        : { subIssueCount: sql`${issues.subIssueCount} + 1` }
-    await db.update(issues).set(counter).where(eq(issues.id, input.parentId))
-  }
+  await adjustParentCounter(db, { parentId: input.parentId, type }, 1)
 
   // Bootstrap version history: a born-approved "Created" revision whose
   // before-snapshot is the origin ({}) and after-snapshot is the new node.
@@ -342,25 +336,6 @@ export async function updateIssue(
     const rows = await tx.update(issues).set(patch).where(eq(issues.id, input.id)).returning()
     const updated = rows[0]!
 
-    const inc = (parentId: number) =>
-      tx
-        .update(issues)
-        .set(
-          existing.type === 'solution'
-            ? { solutionCount: sql`${issues.solutionCount} + 1` }
-            : { subIssueCount: sql`${issues.subIssueCount} + 1` },
-        )
-        .where(eq(issues.id, parentId))
-    const dec = (parentId: number) =>
-      tx
-        .update(issues)
-        .set(
-          existing.type === 'solution'
-            ? { solutionCount: sql`${issues.solutionCount} - 1` }
-            : { subIssueCount: sql`${issues.subIssueCount} - 1` },
-        )
-        .where(eq(issues.id, parentId))
-
     if (parentChanged) {
       // Move the counter off the old parent and onto the new one, mirroring
       // createIssue's bookkeeping. A node counts toward its parent unless it's
@@ -370,12 +345,14 @@ export async function updateIssue(
       // edit elsewhere never decrements the parent.
       const wasCounted = existing.status !== 'rejected'
       const isCounted = existing.status !== 'rejected' || contentChanged
-      if (wasCounted && existing.parentId) await dec(existing.parentId)
-      if (isCounted && newParentId) await inc(newParentId)
-    } else if (rejectedToPending && existing.parentId) {
+      if (wasCounted) await adjustParentCounter(tx, existing, -1)
+      if (isCounted) {
+        await adjustParentCounter(tx, { parentId: newParentId, type: existing.type }, 1)
+      }
+    } else if (rejectedToPending) {
       // Same-parent rejection reversal: re-bump the parent the node still lives
       // under (rejection had decremented it).
-      await inc(existing.parentId)
+      await adjustParentCounter(tx, existing, 1)
     }
 
     return updated

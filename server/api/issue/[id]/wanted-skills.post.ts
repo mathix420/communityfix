@@ -12,11 +12,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
   await assertNotBanned(session.user.id)
 
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid issue ID' })
-  }
-  const issueId = parseInt(id, 10)
+  const issueId = requireIdParam(event)
 
   const body = await readBody<{ skill?: string }>(event)
   const skill = body?.skill?.trim()

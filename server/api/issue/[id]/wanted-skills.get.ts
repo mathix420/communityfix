@@ -2,23 +2,13 @@
 // the chip label, who added it (name + id so the client can show a delete
 // affordance on own entries), and when.
 import { asc, eq } from 'drizzle-orm'
-import { issues, users, wantedSkills } from '../../../database/schema'
+import { users, wantedSkills } from '../../../database/schema'
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid issue ID' })
-  }
-  const issueId = parseInt(id, 10)
+  const issueId = requireIdParam(event)
+  await assertIssueExists(issueId)
 
-  const db = useDB()
-  const node = await db.query.issues.findFirst({
-    where: eq(issues.id, issueId),
-    columns: { id: true },
-  })
-  if (!node) throw createError({ statusCode: 404, statusMessage: `Issue ${issueId} not found` })
-
-  return db
+  return useDB()
     .select({
       id: wantedSkills.id,
       skill: wantedSkills.skill,

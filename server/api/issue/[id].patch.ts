@@ -34,11 +34,7 @@ interface IssuePatchBody {
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  const id = getRouterParam(event, 'id')
-  if (!id || isNaN(parseInt(id, 10))) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid issue ID' })
-  }
-  const issueId = parseInt(id, 10)
+  const issueId = requireIdParam(event)
 
   const { note, ...fields } = await readBody<IssuePatchBody>(event)
 

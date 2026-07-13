@@ -1,5 +1,4 @@
 import { eq, and } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
 import { issues, auditLogs, type IssueType, ISSUE_TYPES } from '../../../../database/schema'
 import { createAuditLog } from '../../../../utils/audit-log'
 import { triggerModeration } from '../../../../utils/moderation-trigger'
@@ -78,14 +77,8 @@ export default defineEventHandler(async (event) => {
 
   await db.update(issues).set(updates).where(eq(issues.id, id))
 
-  if (issue.parentId) {
-    const effectiveType = (updates.type as IssueType | undefined) ?? issue.type
-    const counter =
-      effectiveType === 'solution'
-        ? { solutionCount: sql`${issues.solutionCount} + 1` }
-        : { subIssueCount: sql`${issues.subIssueCount} + 1` }
-    await db.update(issues).set(counter).where(eq(issues.id, issue.parentId))
-  }
+  const effectiveType = (updates.type as IssueType | undefined) ?? issue.type
+  await adjustParentCounter(db, { parentId: issue.parentId, type: effectiveType }, 1)
 
   await createAuditLog({
     type: 'admin_override',
