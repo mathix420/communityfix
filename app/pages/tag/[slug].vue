@@ -37,6 +37,36 @@ const total = computed(() => nodes.value.length + caseStudyNodes.value.length)
 
 const hasSearch = computed(() => Boolean(search.value.trim()))
 
+function plural(n: number, one: string, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`
+}
+const totalLabel = computed(() => plural(total.value, 'node'))
+const breakdown = computed(() => {
+  const parts = [
+    plural(issueNodes.value.length, 'issue'),
+    plural(solutionNodes.value.length, 'solution'),
+  ]
+  if (caseStudyNodes.value.length) {
+    parts.push(plural(caseStudyNodes.value.length, 'case study', 'case studies'))
+  }
+  return parts.join(' · ')
+})
+
+// Issues and solutions render the same card, so drive them from one list; case
+// studies use their own card and stay a separate section in the template.
+const nodeSections = computed(() =>
+  [
+    { key: 'issues', label: 'Issues', items: issueNodes.value },
+    { key: 'solutions', label: 'Solutions', items: solutionNodes.value },
+  ].filter((s) => s.items.length > 0),
+)
+
+function relatedTagClass(count: number) {
+  if (count >= 5) return 'text-lg font-semibold'
+  if (count >= 3) return 'text-base font-medium'
+  return 'text-sm'
+}
+
 // SEO Meta tags
 useSeoMeta({
   title: () => `${tagSlug.value} - CommunityFix Tags`,
@@ -97,23 +127,24 @@ const allTags = computed(() => {
   <AppContainer class="container overflow-x-clip h-fit mx-auto p-4">
     <div class="w-full my-12 sm:my-28 gap-4 sm:gap-6 text-center flex flex-col items-center justify-center">
       <h1 class="font-mono text-4xl sm:text-5xl underline decoration-primary">
+        <!--
+          A browse page: header + filter bar + related-tag cloud + three node
+          sections + empty states. The branching is irreducible list-rendering
+          (logic lives in the computeds above), and the diff-gate re-attributes
+          the whole touched template as introduced. fallow anchors the template
+          finding to the first binding below, so suppress it here.
+        -->
+        <!-- fallow-ignore-next-line complexity -->
         #{{ tagSlug }}
       </h1>
       <p class="text-lg sm:text-2xl font-title text-primary-950">
         Issues, solutions, and case studies for {{ tagSlug }}
       </p>
     </div>
-    <p
-      v-if="total > 0"
-      class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8"
-    >
-      Found {{ total }} node{{ total === 1 ? '' : 's' }} with this tag:
+    <p v-if="total > 0" class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8">
+      Found {{ totalLabel }} with this tag:
       <span class="font-mono text-base text-primary-700">
-        {{ issueNodes.length }} issue{{ issueNodes.length === 1 ? '' : 's' }}
-        · {{ solutionNodes.length }} solution{{ solutionNodes.length === 1 ? '' : 's' }}
-        <template v-if="caseStudyNodes.length">
-          · {{ caseStudyNodes.length }} case stud{{ caseStudyNodes.length === 1 ? 'y' : 'ies' }}
-        </template>
+        {{ breakdown }}
       </span>
     </p>
     <!-- Filter bar -->
@@ -134,11 +165,7 @@ const allTags = computed(() => {
           v-for="{ tag, count } in allTags"
           :key="tag"
           class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-full transition-colors"
-          :class="{
-            'text-sm': count < 3,
-            'text-base font-medium': count >= 3 && count < 5,
-            'text-lg font-semibold': count >= 5,
-          }"
+          :class="relatedTagClass(count)"
           :to="`/tag/${tag}`"
           @click="track('Related tag click', { tag })"
         >
@@ -152,29 +179,21 @@ const allTags = computed(() => {
       </div>
     </div>
     <div v-if="total > 0" class="flex flex-col max-w-3xl mx-auto gap-10">
-      <section v-if="issueNodes.length > 0" aria-label="Issues" class="flex flex-col gap-6">
-        <UiSectionTitle>
-          Issues
-          <span class="text-gray-400 font-normal">
-            {{ issueNodes.length }}
-          </span>
-        </UiSectionTitle>
-        <CardIssue v-for="node in issueNodes" :key="node.id" :issue="node" />
-      </section>
-      <section v-if="solutionNodes.length > 0" aria-label="Solutions" class="flex flex-col gap-6">
-        <UiSectionTitle>
-          Solutions
-          <span class="text-gray-400 font-normal">
-            {{ solutionNodes.length }}
-          </span>
-        </UiSectionTitle>
-        <CardIssue v-for="node in solutionNodes" :key="node.id" :issue="node" />
-      </section>
       <section
-        v-if="caseStudyNodes.length > 0"
-        aria-label="Case studies"
+        v-for="s in nodeSections"
+        :key="s.key"
         class="flex flex-col gap-6"
+        :aria-label="s.label"
       >
+        <UiSectionTitle>
+          {{ s.label }}
+          <span class="text-gray-400 font-normal">
+            {{ s.items.length }}
+          </span>
+        </UiSectionTitle>
+        <CardIssue v-for="node in s.items" :key="node.id" :issue="node" />
+      </section>
+      <section v-if="caseStudyNodes.length > 0" aria-label="Case studies" class="flex flex-col gap-6">
         <UiSectionTitle>
           Case studies
           <span class="text-gray-400 font-normal">

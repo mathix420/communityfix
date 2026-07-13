@@ -1,71 +1,83 @@
+import type { H3Event } from 'h3'
 import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import { caseStudies, issues, tags as tagsTable, issueTags } from '../../database/schema'
 import { transformCaseStudy } from '../../utils/case-study-write'
 
-// Every node related to a tag, of any kind. Tags attach to the `issues` table,
-// which holds issues (type='issue', top-level or sub-issue) and solutions
-// (type='solution'). Case studies carry no tags of their own, so we surface
-// them transitively: any study attached to a solution that carries the tag.
-// Filters (approved, non-spam) match `/api/tags` so the counts here sum to the
-// `uses` badge shown on the topics index.
-export default defineEventHandler(async (event) => {
-  const db = useDB()
-  const slug = getRouterParam(event, 'slug')
-  if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing tag slug' })
+function listParams(event: H3Event) {
+  const q = getQuery(event)
+  return {
+    sortBy: (q.sort as string) || 'newest',
+    trimmed: ((q.search as string) || '').trim(),
+  }
+}
 
-  const query = getQuery(event)
-  const sortBy = (query.sort as string) || 'newest'
-  const trimmed = ((query.search as string) || '').trim()
-
-  const tag = await db.query.tags.findFirst({ where: eq(tagsTable.slug, slug) })
-  if (!tag) return { tag: null, nodes: [], caseStudies: [] }
-
-  const tagInfo = { id: tag.id, slug: tag.slug, name: tag.name }
-
-  const junctionRows = await db.query.issueTags.findMany({
-    where: eq(issueTags.tagId, tag.id),
+// The ids of every node (issue or solution) carrying a tag.
+async function taggedNodeIds(tagId: number) {
+  const rows = await useDB().query.issueTags.findMany({
+    where: eq(issueTags.tagId, tagId),
     columns: { issueId: true },
   })
-  const issueIds = junctionRows.map((r) => r.issueId)
-  if (issueIds.length === 0) return { tag: tagInfo, nodes: [], caseStudies: [] }
+  return rows.map((r) => r.issueId)
+}
 
-  // Issues + solutions carrying the tag.
-  const conditions = [
-    inArray(issues.id, issueIds),
+// Issues + solutions carrying the tag, in the caller's sort order. Filters
+// (approved, non-spam) match `/api/tags` so the counts stay in sync.
+async function tagIssueNodes(nodeIds: number[], trimmed: string, sortBy: string) {
+  if (nodeIds.length === 0) return []
+  const where = [
+    inArray(issues.id, nodeIds),
     eq(issues.status, 'approved'),
     ne(issues.isSpam, true),
   ]
-  if (trimmed) {
-    conditions.push(sql`search_vector @@ plainto_tsquery('english', ${trimmed})`)
-  }
-  const nodes = await listIssueNodes(conditions, sortBy, 'newest')
+  if (trimmed) where.push(sql`search_vector @@ plainto_tsquery('english', ${trimmed})`)
+  return listIssueNodes(where, sortBy, 'newest')
+}
 
-  // Case studies attached to any tagged solution. `solution_id` only ever
-  // points at a solution row, so intersecting with the tagged id set keeps
-  // studies whose parent solution carries the tag.
-  const csConditions = [
-    inArray(caseStudies.solutionId, issueIds),
+function caseStudyOrder(sortBy: string) {
+  if (sortBy === 'oldest') return [asc(caseStudies.createdAt)]
+  if (sortBy === 'newest') return [desc(caseStudies.createdAt)]
+  return [desc(caseStudies.verified), desc(caseStudies.createdAt)]
+}
+
+// Case studies carry no tags of their own, so we surface them transitively: any
+// study attached to a solution that carries the tag. `solution_id` only ever
+// points at a solution row, so intersecting with the tagged id set keeps
+// studies whose parent solution carries the tag.
+async function tagCaseStudies(nodeIds: number[], trimmed: string, sortBy: string) {
+  if (nodeIds.length === 0) return []
+  const where = [
+    inArray(caseStudies.solutionId, nodeIds),
     eq(caseStudies.status, 'approved'),
     ne(caseStudies.isSpam, true),
   ]
-  if (trimmed) {
-    csConditions.push(sql`search_vector @@ plainto_tsquery('english', ${trimmed})`)
-  }
-  const csOrder =
-    sortBy === 'oldest'
-      ? [asc(caseStudies.createdAt)]
-      : sortBy === 'newest'
-        ? [desc(caseStudies.createdAt)]
-        : [desc(caseStudies.verified), desc(caseStudies.createdAt)]
-  const csRows = await db.query.caseStudies.findMany({
-    where: and(...csConditions),
+  if (trimmed) where.push(sql`search_vector @@ plainto_tsquery('english', ${trimmed})`)
+  const rows = await useDB().query.caseStudies.findMany({
+    where: and(...where),
     with: {
       author: { columns: { name: true } },
       solution: { columns: { title: true, summary: true } },
     },
-    orderBy: csOrder,
+    orderBy: caseStudyOrder(sortBy),
   })
-  const studies = await withMembers('case_study', csRows.map(transformCaseStudy))
+  return withMembers('case_study', rows.map(transformCaseStudy))
+}
 
-  return { tag: tagInfo, nodes, caseStudies: studies }
+// Every node related to a tag, of any kind: the tagged issues (top-level or
+// sub-issue) and solutions, plus the case studies of any tagged solution.
+export default defineEventHandler(async (event) => {
+  const slug = getRouterParam(event, 'slug')
+  if (!slug) throw createError({ statusCode: 400, statusMessage: 'Missing tag slug' })
+
+  const { sortBy, trimmed } = listParams(event)
+
+  const tag = await useDB().query.tags.findFirst({ where: eq(tagsTable.slug, slug) })
+  if (!tag) return { tag: null, nodes: [], caseStudies: [] }
+
+  const nodeIds = await taggedNodeIds(tag.id)
+  const [nodes, studies] = await Promise.all([
+    tagIssueNodes(nodeIds, trimmed, sortBy),
+    tagCaseStudies(nodeIds, trimmed, sortBy),
+  ])
+
+  return { tag: { id: tag.id, slug: tag.slug, name: tag.name }, nodes, caseStudies: studies }
 })
