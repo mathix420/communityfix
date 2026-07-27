@@ -40,6 +40,12 @@ const [{ data: stats }, { data: issues }, { data: tags }, { data: results }] = a
   }),
 ])
 
+// The homepage is a teaser: show only the first few issues and hand the rest
+// off to /issues rather than dumping the whole directory here.
+const HOME_ISSUE_LIMIT = 10
+const visibleIssues = computed(() => (issues.value ?? []).slice(0, HOME_ISSUE_LIMIT))
+const hasMoreIssues = computed(() => (issues.value?.length ?? 0) > HOME_ISSUE_LIMIT)
+
 const searching = computed(() => Boolean(search.value.trim()))
 const resultGroups = computed(() => [
   { label: 'Issues', items: results.value?.issues ?? [], kind: 'issue' as const },
@@ -49,7 +55,7 @@ const resultGroups = computed(() => [
 const resultCount = computed(() => resultGroups.value.reduce((a, g) => a + g.items.length, 0))
 
 // /api/tags is ordered by usage — the head of the list makes a good quick-nav.
-const topTags = computed(() => (tags.value ?? []).filter((t) => t.uses > 0).slice(0, 8))
+const topTags = computed(() => (tags.value ?? []).filter((t) => t.uses > 0).slice(0, 7))
 
 watch(
   queryParams,
@@ -252,7 +258,15 @@ defineOgImage('Home')
           No issues found.
         </p>
       </div>
-      <CardIssue v-for="issue in issues" :key="issue.id" :issue="issue" />
+      <CardIssue v-for="issue in visibleIssues" :key="issue.id" :issue="issue" />
+      <NuxtLink
+        v-if="hasMoreIssues"
+        class="interactive-underline self-center font-mono text-sm text-gray-500"
+        to="/issues"
+        @click="track('Homepage view all issues')"
+      >
+        See all {{ issues?.length }} issues →
+      </NuxtLink>
     </div>
     <!-- Keep exploring: quiet hand-off to the rest of the catalog.
          6-col grid: content cards span 2 (3 per row), reading cards span 3. -->
