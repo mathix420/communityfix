@@ -103,3 +103,55 @@ UPDATE issues SET vote_score = 3 WHERE id = 15;
 UPDATE issues SET vote_score = 5 WHERE id = 20;
 UPDATE issues SET vote_score = 2 WHERE id = 25;
 UPDATE issues SET vote_score = 4 WHERE id = 39;
+
+-- Give every additional branch enough activity to exercise popularity sorting
+-- and voter state without maintaining eighty near-identical literal rows.
+WITH seed_nodes (issue_id, voter_offset) AS (
+  VALUES
+    (1001, 0), (1002, 1), (1003, 2), (1004, 3), (1005, 4), (1006, 5),
+    (1007, 6), (1008, 7), (1009, 0), (1010, 1), (1011, 2), (1012, 3),
+    (1013, 4), (1014, 5), (1015, 6), (1016, 7), (1017, 0), (1018, 1),
+    (1019, 2), (1020, 3), (1021, 4), (1022, 5), (1023, 6), (1024, 7)
+),
+seed_users (ordinal, user_id) AS (
+  VALUES
+    (1, 'a0000001-0000-4000-8000-000000000001'::uuid),
+    (2, 'a0000002-0000-4000-8000-000000000002'::uuid),
+    (3, 'a0000003-0000-4000-8000-000000000003'::uuid),
+    (4, 'a0000004-0000-4000-8000-000000000004'::uuid),
+    (5, 'a0000005-0000-4000-8000-000000000005'::uuid),
+    (6, 'a0000006-0000-4000-8000-000000000006'::uuid),
+    (7, 'a0000007-0000-4000-8000-000000000007'::uuid),
+    (8, 'a0000008-0000-4000-8000-000000000008'::uuid)
+),
+seed_votes AS (
+  SELECT
+    n.issue_id,
+    u.user_id,
+    CASE WHEN slots.slot = 3 THEN -1 ELSE 1 END AS value,
+    '2026-05-20T08:00:00.000Z'::timestamptz
+      + ((n.issue_id - 1001) * interval '6 hours')
+      + (slots.slot * interval '20 minutes') AS voted_at
+  FROM seed_nodes n
+  CROSS JOIN LATERAL generate_series(
+    0,
+    CASE WHEN n.issue_id % 3 = 0 THEN 3 ELSE 2 END
+  ) AS slots(slot)
+  JOIN seed_users u
+    ON u.ordinal = ((n.voter_offset + slots.slot) % 8) + 1
+  JOIN issues i ON i.id = n.issue_id
+)
+INSERT INTO votes (user_id, issue_id, value, created_at, updated_at)
+SELECT user_id, issue_id, value, voted_at, voted_at
+FROM seed_votes
+ON CONFLICT (user_id, issue_id) DO NOTHING;
+
+UPDATE issues i
+SET vote_score = scores.score
+FROM (
+  SELECT issue_id, SUM(value * weight)::integer AS score
+  FROM votes
+  WHERE issue_id BETWEEN 1001 AND 1024
+  GROUP BY issue_id
+) scores
+WHERE i.id = scores.issue_id;
