@@ -31,6 +31,10 @@ function onMapTransitionEnd(e: TransitionEvent) {
   }
 }
 
+function trackIssueTag(tag: string) {
+  track('Issue tag click', { tag })
+}
+
 const isSolution = computed(() => issue.value?.type === 'solution')
 
 // Preview lists for the Overview tab. Each tab still owns full rendering;
@@ -225,18 +229,7 @@ async function submitAppeal() {
               Tags
             </p>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <NuxtLink
-              v-for="tag in issue.tags"
-              :key="tag"
-              :to="`/tag/${tag}`"
-              @click="track('Issue tag click', { tag })"
-            >
-              <UiTag rounded="md">
-                {{ tag }}
-              </UiTag>
-            </NuxtLink>
-          </div>
+          <UiTagList :tags="issue.tags" @select="trackIssueTag" />
         </div>
         <div
           v-if="issue.sustainableDevelopmentGoals?.length"
