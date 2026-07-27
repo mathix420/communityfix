@@ -61,12 +61,6 @@ const nodeSections = computed(() =>
   ].filter((s) => s.items.length > 0),
 )
 
-function relatedTagClass(count: number) {
-  if (count >= 5) return 'text-lg font-semibold'
-  if (count >= 3) return 'text-base font-medium'
-  return 'text-sm'
-}
-
 // SEO Meta tags
 useSeoMeta({
   title: () => `${tagSlug.value} - CommunityFix Tags`,
@@ -164,8 +158,7 @@ const allTags = computed(() => {
         <NuxtLink
           v-for="{ tag, count } in allTags"
           :key="tag"
-          class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 rounded-full transition-colors"
-          :class="relatedTagClass(count)"
+          class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 text-sm rounded-full transition-colors"
           :to="`/tag/${tag}`"
           @click="track('Related tag click', { tag })"
         >
