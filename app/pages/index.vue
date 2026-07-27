@@ -57,6 +57,14 @@ const resultCount = computed(() => resultGroups.value.reduce((a, g) => a + g.ite
 // /api/tags is ordered by usage — the head of the list makes a good quick-nav.
 const topTags = computed(() => (tags.value ?? []).filter((t) => t.uses > 0).slice(0, 7))
 
+function trackHomepageTopic(tag: string) {
+  track('Homepage topic click', { tag })
+}
+
+function trackHomepageAllTopics() {
+  track('Homepage view all topics')
+}
+
 watch(
   queryParams,
   (params) => {
@@ -209,23 +217,14 @@ defineOgImage('Home')
       </UiActionButton>
     </div>
     <!-- Quick-nav into the most active topics -->
-    <div class="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto mb-6">
-      <NuxtLink
-        v-for="tag in topTags"
-        :key="tag.slug"
-        :to="`/tag/${tag.slug}`"
-        @click="track('Homepage topic click', { tag: tag.slug })"
-      >
-        <UiTag size="sm">
-          {{ tag.slug }}
-        </UiTag>
-      </NuxtLink>
-      <NuxtLink to="/tags" @click="track('Homepage view all topics')">
-        <UiTag size="sm">
-          all topics →
-        </UiTag>
-      </NuxtLink>
-    </div>
+    <UiTagList
+      class="max-w-3xl mx-auto mb-6"
+      justify="center"
+      show-all-link
+      :tags="topTags"
+      @select="trackHomepageTopic"
+      @view-all="trackHomepageAllTopics"
+    />
     <!-- Searching covers the whole catalog; otherwise show the issue list -->
     <div v-if="searching" class="flex flex-col max-w-3xl mx-auto gap-8">
       <section

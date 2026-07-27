@@ -37,21 +37,6 @@ const total = computed(() => nodes.value.length + caseStudyNodes.value.length)
 
 const hasSearch = computed(() => Boolean(search.value.trim()))
 
-function plural(n: number, one: string, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`
-}
-const totalLabel = computed(() => plural(total.value, 'node'))
-const breakdown = computed(() => {
-  const parts = [
-    plural(issueNodes.value.length, 'issue'),
-    plural(solutionNodes.value.length, 'solution'),
-  ]
-  if (caseStudyNodes.value.length) {
-    parts.push(plural(caseStudyNodes.value.length, 'case study', 'case studies'))
-  }
-  return parts.join(' · ')
-})
-
 // Issues and solutions render the same card, so drive them from one list; case
 // studies use their own card and stay a separate section in the template.
 const nodeSections = computed(() =>
@@ -112,9 +97,13 @@ const allTags = computed(() => {
   })
 
   return Array.from(tagMap.entries())
-    .map(([tag, count]) => ({ tag, count }))
+    .map(([slug, count]) => ({ slug, count }))
     .sort((a, b) => b.count - a.count)
 })
+
+function trackRelatedTag(tag: string) {
+  track('Related tag click', { tag })
+}
 </script>
 
 <template>
@@ -135,12 +124,6 @@ const allTags = computed(() => {
         Issues, solutions, and case studies for {{ tagSlug }}
       </p>
     </div>
-    <p v-if="total > 0" class="text-center text-lg sm:text-xl font-title text-primary-950 mb-8">
-      Found {{ totalLabel }} with this tag:
-      <span class="font-mono text-base text-primary-700">
-        {{ breakdown }}
-      </span>
-    </p>
     <!-- Filter bar -->
     <div class="max-w-3xl mx-auto mb-6">
       <UiSearchAndSortBar
@@ -154,22 +137,7 @@ const allTags = computed(() => {
       <h2 class="text-lg font-title text-primary-950 mb-4">
         Related tags:
       </h2>
-      <div class="flex flex-wrap gap-2">
-        <NuxtLink
-          v-for="{ tag, count } in allTags"
-          :key="tag"
-          class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 hover:bg-primary-200 text-primary-800 text-sm rounded-full transition-colors"
-          :to="`/tag/${tag}`"
-          @click="track('Related tag click', { tag })"
-        >
-          <span>
-            #{{ tag }}
-          </span>
-          <span class="text-xs text-primary-600">
-            ({{ count }})
-          </span>
-        </NuxtLink>
-      </div>
+      <UiTagList collapsible :tags="allTags" @select="trackRelatedTag" />
     </div>
     <div v-if="total > 0" class="flex flex-col max-w-3xl mx-auto gap-10">
       <section

@@ -46,6 +46,10 @@ const stats = computed(() => [
   { label: 'Edits merged', value: o.value.editsMerged, to: undefined, accent: true },
 ])
 
+function trackDashboardTopic(tag: string) {
+  track('Dashboard topic click', { tag })
+}
+
 function nodeLink(entry: InboxEntry) {
   return entry.node.targetKind === 'issue'
     ? `/issue/${entry.node.issueId}`
@@ -373,25 +377,7 @@ definePageMeta({
             tags you contribute to
           </span>
         </div>
-        <div v-if="o.topics.length" class="flex flex-wrap gap-2">
-          <NuxtLink
-            v-for="t in o.topics"
-            :key="t.slug"
-            class="group inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-2 text-sm transition-colors hover:border-primary-300 hover:bg-primary-50"
-            :to="`/tag/${t.slug}`"
-            @click="track('Dashboard topic click', { tag: t.slug })"
-          >
-            <span class="text-gray-700 group-hover:text-primary-700">
-              <span class="text-gray-400">
-                #
-              </span>
-              {{ t.slug }}
-            </span>
-            <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-white px-1.5 font-mono text-[11px] text-gray-500 ring-1 ring-gray-200">
-              {{ t.count }}
-            </span>
-          </NuxtLink>
-        </div>
+        <UiTagList v-if="o.topics.length" :tags="o.topics" @select="trackDashboardTopic" />
         <div v-else class="flex items-center gap-3 text-sm text-gray-500">
           <UIcon class="size-5 text-gray-300" name="lucide:compass" />
           <span>
