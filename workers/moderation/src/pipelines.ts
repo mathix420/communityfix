@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   caseStudies,
+  caseStudySolutions,
   issues,
   revisions,
   sdgs,
@@ -25,11 +26,10 @@ import { areaSimplifyTolerance, simplifyAreaGeometry } from '../../../server/uti
 import { adjustParentCounter } from '../../../server/utils/issue-counters'
 
 const DUPLICATE_THRESHOLD = 0.92
-// Case studies sit under a single solution and are thematically close by
-// construction, so a true duplicate (the same deployment re-created) scores very
-// high (~0.95+) while genuinely distinct deployments of the same intervention
-// stay well below. A slightly stricter bar than issues keeps false positives down.
-export const CASE_STUDY_DUPLICATE_THRESHOLD = 0.93
+// Case studies sharing a linked solution are thematically close by construction,
+// so a true duplicate (the same deployment re-created) scores very high (~0.95+)
+// while genuinely distinct deployments stay well below.
+export const CASE_STUDY_DUPLICATE_THRESHOLD = 0.92
 const CONFIDENCE_THRESHOLD = 0.7
 
 // Prompt-injection hardening. User-controlled submission text is fenced inside
@@ -480,7 +480,7 @@ type Metric = {
 }
 type Source = { url: string; title?: string | null }
 type LinkRow = { url: string; title?: string | null }
-type SolutionRef = { title: string; summary: string } | null
+type SolutionRef = { id: number; title: string; summary: string }
 export interface CaseStudyModeration {
   approved: boolean
   reason: string
@@ -505,9 +505,18 @@ export interface CurationResult {
 
 type CaseStudyRow = typeof caseStudies.$inferSelect
 
+async function linkedSolutionIds(db: Ctx['db'], caseStudyId: number): Promise<number[]> {
+  const links = await db.query.caseStudySolutions.findMany({
+    where: eq(caseStudySolutions.caseStudyId, caseStudyId),
+    columns: { solutionId: true },
+  })
+  return links.map((link) => link.solutionId).sort((a, b) => a - b)
+}
+
 export interface CaseStudyPrep {
   cs: CaseStudyRow
-  solution: SolutionRef
+  solutions: SolutionRef[]
+  solutionIds: number[]
   caseStudyText: string
   parentContext: string
   originalJson: string
@@ -526,15 +535,17 @@ export async function prepareCaseStudy(
   }
   if (cs.status !== 'pending') return null
 
-  const solution =
-    (await db.query.issues.findFirst({
-      where: eq(issues.id, cs.solutionId),
-      columns: { title: true, summary: true },
-    })) ?? null
+  const solutionLinks = await db.query.caseStudySolutions.findMany({
+    where: eq(caseStudySolutions.caseStudyId, cs.id),
+    with: { solution: { columns: { id: true, title: true, summary: true } } },
+  })
+  const solutions = solutionLinks.map((link) => link.solution).sort((a, b) => a.id - b.id)
+  const solutionIds = solutions.map((solution) => solution.id)
 
   const caseStudyText = stripFenceTokens(
     [
-      solution ? `Parent solution: ${solution.title}` : '',
+      `Title: ${cs.title}`,
+      ...solutions.map((solution) => `Linked solution: ${solution.title}`),
       `Location: ${cs.locationName}`,
       `Outcome: ${cs.outcome}`,
       cs.scale ? `Scale: ${cs.scale}` : '',
@@ -550,6 +561,7 @@ export async function prepareCaseStudy(
   )
 
   const original = {
+    title: cs.title,
     outcome: cs.outcome,
     locationName: cs.locationName,
     scale: cs.scale,
@@ -565,17 +577,16 @@ export async function prepareCaseStudy(
     lessonsLearned: cs.lessonsLearned,
     links: cs.links,
   }
-  const parentContext = [
-    solution?.title ? `Parent solution: ${solution.title}` : '',
-    solution?.summary ? `Parent summary: ${solution.summary}` : '',
-  ]
-    .filter(Boolean)
+  const parentContext = solutions
+    .flatMap((solution) => [
+      `Linked solution: ${solution.title}`,
+      `Solution summary: ${solution.summary}`,
+    ])
     .join('\n')
 
   // Duplicate guard: case studies had no dedup, so re-creating the same deployment
-  // under a solution slipped straight through (e.g. a seed script run twice).
-  // Mirror the issue/solution path — compare this case study's embedding against
-  // approved siblings under the SAME solution; finalize rejects a near-duplicate.
+  // under a solution slipped straight through. Compare against approved studies
+  // that share at least one linked solution; finalize rejects a near-duplicate.
   let similar: SimilarCaseStudy[] = []
   const embedding = cs.embedding as number[] | null
   if (embedding) {
@@ -583,7 +594,14 @@ export async function prepareCaseStudy(
       table: 'case_studies',
       columns: 'id, location_name AS "locationName"',
       embedding,
-      where: sql`status = 'approved' AND id <> ${cs.id} AND solution_id = ${cs.solutionId}`,
+      where: sql`status = 'approved' AND id <> ${cs.id} AND EXISTS (
+        SELECT 1
+        FROM case_study_solutions candidate_link
+        INNER JOIN case_study_solutions current_link
+          ON current_link.solution_id = candidate_link.solution_id
+        WHERE candidate_link.case_study_id = case_studies.id
+          AND current_link.case_study_id = ${cs.id}
+      )`,
       limit: 5,
       threshold: 0.8,
     })
@@ -591,7 +609,8 @@ export async function prepareCaseStudy(
 
   return {
     cs,
-    solution,
+    solutions,
+    solutionIds,
     caseStudyText,
     parentContext,
     originalJson: JSON.stringify(original, null, 2),
@@ -822,6 +841,7 @@ export async function rejectCaseStudy(
   moderation: CaseStudyModeration,
 ): Promise<void> {
   const { db } = ctx
+  const solutionIds = await linkedSolutionIds(db, cs.id)
   await db
     .update(caseStudies)
     .set({
@@ -842,7 +862,7 @@ export async function rejectCaseStudy(
     reason: moderation.reason,
     details: {
       caseStudyId: cs.id,
-      solutionId: cs.solutionId,
+      solutionIds,
       isSpam: moderation.isSpam,
       duplicateOfId: moderation.duplicateOfId ?? null,
       promptVersion: STEPS['case-study.moderate'].version,
@@ -914,7 +934,7 @@ export async function finalizeCaseStudy(
     reason: moderation.reason,
     details: {
       caseStudyId,
-      solutionId: cs.solutionId,
+      solutionIds: prep.solutionIds,
       promptVersion: STEPS['case-study.moderate'].version,
     },
   })
@@ -942,11 +962,12 @@ function cleanRows<T extends Record<string, unknown>>(
 // The text an approved+curated case study is re-embedded from.
 function curatedCaseStudyText(
   cs: CaseStudyRow,
-  solution: SolutionRef,
+  solutions: SolutionRef[],
   curated: CurationResult,
 ): string {
   return [
-    ...(solution ? [`Solution: ${solution.title}`, solution.summary] : []),
+    `Case study: ${cs.title}`,
+    ...solutions.flatMap((solution) => [`Linked solution: ${solution.title}`, solution.summary]),
     `Location: ${cs.locationName}`,
     curated.implementer && `Implementer: ${curated.implementer}`,
     `Outcome: ${cs.outcome}`,
@@ -967,12 +988,12 @@ export async function applyCaseStudyCurate(
   curated: CurationResult,
 ): Promise<void> {
   const { db } = ctx
-  const { cs, solution } = prep
+  const { cs, solutions } = prep
   const caseStudyId = cs.id
 
   let newEmbedding: number[] | null = null
   try {
-    newEmbedding = await embed(ctx.openai, curatedCaseStudyText(cs, solution, curated))
+    newEmbedding = await embed(ctx.openai, curatedCaseStudyText(cs, solutions, curated))
   } catch (err) {
     console.error(
       `[review-case-study] Re-embedding after curation failed for case study ${caseStudyId}:`,
@@ -1006,7 +1027,7 @@ export async function applyCaseStudyCurate(
     reason: curated.notes,
     details: {
       caseStudyId,
-      solutionId: cs.solutionId,
+      solutionIds: prep.solutionIds,
       strippedFields: diffStripped(cs, curated),
       notes: curated.notes,
       promptVersion: STEPS['case-study.curate'].version,
@@ -1069,9 +1090,13 @@ export async function labelCaseStudy(ctx: Ctx, caseStudyId: number): Promise<voi
   await createAuditLog(db, {
     type: 'moderation',
     action: 'label',
-    issueId: cs.solutionId,
     userId: cs.authorId,
-    details: { caseStudyId, helpLabels: next, previous: cs.helpLabels ?? [] },
+    details: {
+      caseStudyId,
+      solutionIds: await linkedSolutionIds(db, caseStudyId),
+      helpLabels: next,
+      previous: cs.helpLabels ?? [],
+    },
   })
   console.log(`[review-case-study] Case study ${caseStudyId} help-labels: [${next.join(', ')}]`)
 }

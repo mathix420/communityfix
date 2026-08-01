@@ -13,7 +13,8 @@ interface Source {
 
 interface CaseStudy {
   id: number
-  solutionId: number
+  title: string
+  solutionIds: number[]
   authorId?: string | null
   author: string
   outcome: 'success' | 'partial' | 'failed' | 'inconclusive' | 'ongoing'

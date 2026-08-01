@@ -4,7 +4,11 @@
 // — both share server/utils/revision-write.ts.
 import { eq } from 'drizzle-orm'
 import { caseStudies } from '../../database/schema'
-import { transformCaseStudy, updateCaseStudy } from '../../utils/case-study-write'
+import {
+  caseStudyWithSolutions,
+  transformCaseStudy,
+  updateCaseStudy,
+} from '../../utils/case-study-write'
 import {
   diffSnapshots,
   editableCaseStudySnapshot,
@@ -24,7 +28,10 @@ export default defineEventHandler(async (event) => {
   )
 
   const db = useDB()
-  const node = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, caseStudyId) })
+  const node = await db.query.caseStudies.findFirst({
+    where: eq(caseStudies.id, caseStudyId),
+    with: { solutionLinks: { columns: { solutionId: true } } },
+  })
   if (!node) {
     throw createError({ statusCode: 404, statusMessage: `Case study ${caseStudyId} not found` })
   }
@@ -72,7 +79,7 @@ export default defineEventHandler(async (event) => {
 
   const hydrated = await db.query.caseStudies.findFirst({
     where: eq(caseStudies.id, caseStudyId),
-    with: { author: { columns: { name: true } } },
+    with: caseStudyWithSolutions,
   })
   return { applied: true, revisionId, caseStudy: transformCaseStudy(hydrated!) }
 })

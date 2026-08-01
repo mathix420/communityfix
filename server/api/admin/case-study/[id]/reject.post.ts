@@ -10,7 +10,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Rejection reason is required' })
   }
 
-  const cs = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, id) })
+  const cs = await db.query.caseStudies.findFirst({
+    where: eq(caseStudies.id, id),
+    with: { solutionLinks: { columns: { solutionId: true } } },
+  })
   if (!cs) {
     throw createError({ statusCode: 404, message: 'Case study not found' })
   }
@@ -35,7 +38,7 @@ export default defineEventHandler(async (event) => {
     details: {
       adminId: session.user.id,
       caseStudyId: id,
-      solutionId: cs.solutionId,
+      solutionIds: cs.solutionLinks.map((link) => link.solutionId),
       previousStatus: cs.status,
     },
   })

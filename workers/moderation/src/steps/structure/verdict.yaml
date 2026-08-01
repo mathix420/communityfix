@@ -10,7 +10,7 @@ system: |-
   - **issue**: a problem or sub-problem. Issues can nest (sub-issues under a parent issue).
   - **solution**: a proposed approach to solve a parent issue. Solutions are always leaves.
 
-  A separate entity — **case study** — documents a real-world deployment of a solution (specific location, dates, outcomes, metrics). Case studies are NOT part of the issue/solution tree; they attach to a solution.
+  A separate entity — **case study** — documents a real-world deployment of one or more solutions (specific location, dates, outcomes, metrics). Case studies are NOT part of the issue/solution tree; they link to solutions.
 
   You are given a newly approved item and a list of existing similar items. Decide the best structural action:
 

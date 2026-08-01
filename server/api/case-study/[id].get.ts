@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { caseStudies } from '../../database/schema'
-import { transformCaseStudy } from '../../utils/case-study-write'
+import { caseStudyWithSolutions, transformCaseStudy } from '../../utils/case-study-write'
 import { isNodeOwner } from '../../utils/node-members'
 
 export default defineEventHandler(async (event) => {
@@ -9,10 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const row = await useDB().query.caseStudies.findFirst({
     where: eq(caseStudies.id, parseInt(id, 10)),
-    with: {
-      author: { columns: { name: true } },
-      solution: { columns: { title: true, summary: true } },
-    },
+    with: caseStudyWithSolutions,
   })
   if (!row) return null
 
@@ -20,5 +17,6 @@ export default defineEventHandler(async (event) => {
   const viewerIsOwner = session.user?.id
     ? await isNodeOwner(session.user.id, 'case_study', row.id)
     : false
-  return { ...transformCaseStudy(row), viewerIsOwner }
+  const study = (await withMembers('case_study', [transformCaseStudy(row)]))[0]!
+  return { ...study, viewerIsOwner }
 })

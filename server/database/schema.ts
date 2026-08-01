@@ -325,7 +325,7 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
   issueTags: many(issueTags),
   issueSdgs: many(issueSdgs),
   votes: many(votes),
-  caseStudies: many(caseStudies),
+  caseStudyLinks: many(caseStudySolutions),
   wantedSkills: many(wantedSkills),
 }))
 
@@ -514,66 +514,88 @@ export const oauthCodes = pgTable('oauth_codes', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-// A case study documents one real-world implementation of a solution. The
-// solution row itself stays abstract; case studies capture where it was
-// actually run, what happened, and what to learn from it.
-export const caseStudies = pgTable(
-  'case_studies',
+// A case study documents one real-world implementation of one or more
+// solutions. Its own title describes the concrete deployment; the linked
+// solution rows remain abstract approaches.
+export const caseStudies = pgTable('case_studies', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+  // Moderation state mirrors issues — pending until AI/admin review approves
+  // or rejects. Rejected studies stay hidden from public listings; isSpam
+  // additionally suppresses them from the author's own profile.
+  status: text('status').notNull().default('pending').$type<IssueStatus>(),
+  rejectionReason: text('rejection_reason'),
+  rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+  isSpam: boolean('is_spam').notNull().default(false),
+  description: text('description'),
+  outcome: text('outcome').notNull().$type<CaseStudyOutcome>(),
+  scale: text('scale').$type<LocationScale>(),
+  locationName: text('location_name').notNull(),
+  location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }).notNull(),
+  // GeoJSON area for the location (see issues.area). The point above is the centroid.
+  area: jsonb('area').$type<GeoJsonGeometry>(),
+  // Admin-set: lets us mark a case study as independently verified.
+  verified: boolean('verified').notNull().default(false),
+  // System-managed help-wanted labels (see HELP_LABELS). Written only by the
+  // moderation pipeline; surfaced on the contribute view, never on the card.
+  helpLabels: text('help_labels')
+    .array()
+    .$type<HelpLabel[]>()
+    .notNull()
+    .default(sql`'{}'::text[]`),
+  implementer: text('implementer'),
+  startDate: date('start_date', { mode: 'string' }),
+  endDate: date('end_date', { mode: 'string' }),
+  metrics:
+    jsonb('metrics').$type<
+      Array<{ label: string; baseline?: string; result?: string; unit?: string }>
+    >(),
+  cost: numeric('cost'),
+  currency: text('currency'),
+  fundingSource: text('funding_source'),
+  sources: jsonb('sources').$type<Array<{ url: string; title?: string }>>(),
+  // Each entry is one stand-alone lesson — matches the row shape of metrics
+  // and sources so the form/card render the same way.
+  lessonsLearned: jsonb('lessons_learned').$type<string[]>(),
+  // External resources documenting the deployment. Separate from `sources`,
+  // which is reserved for citations backing the claims.
+  links: jsonb('links').$type<Array<{ url: string; title?: string }>>(),
+  embedding: vector('embedding', { dimensions: 1536 }),
+  ...timestamps,
+})
+
+export const caseStudiesRelations = relations(caseStudies, ({ one, many }) => ({
+  author: one(users, { fields: [caseStudies.authorId], references: [users.id] }),
+  solutionLinks: many(caseStudySolutions),
+}))
+
+export const caseStudySolutions = pgTable(
+  'case_study_solutions',
   {
-    id: serial('id').primaryKey(),
+    caseStudyId: integer('case_study_id')
+      .notNull()
+      .references(() => caseStudies.id, { onDelete: 'cascade' }),
     solutionId: integer('solution_id')
       .notNull()
-      .references(() => issues.id, { onDelete: 'cascade' }),
-    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
-    // Moderation state mirrors issues — pending until AI/admin review approves
-    // or rejects. Rejected studies stay hidden from public listings; isSpam
-    // additionally suppresses them from the author's own profile.
-    status: text('status').notNull().default('pending').$type<IssueStatus>(),
-    rejectionReason: text('rejection_reason'),
-    rejectedAt: timestamp('rejected_at', { withTimezone: true }),
-    isSpam: boolean('is_spam').notNull().default(false),
-    description: text('description'),
-    outcome: text('outcome').notNull().$type<CaseStudyOutcome>(),
-    scale: text('scale').$type<LocationScale>(),
-    locationName: text('location_name').notNull(),
-    location: geometry('location', { type: 'point', mode: 'xy', srid: 4326 }).notNull(),
-    // GeoJSON area for the location (see issues.area). The point above is the centroid.
-    area: jsonb('area').$type<GeoJsonGeometry>(),
-    // Admin-set: lets us mark a case study as independently verified.
-    verified: boolean('verified').notNull().default(false),
-    // System-managed help-wanted labels (see HELP_LABELS). Written only by the
-    // moderation pipeline; surfaced on the contribute view, never on the card.
-    helpLabels: text('help_labels')
-      .array()
-      .$type<HelpLabel[]>()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-    implementer: text('implementer'),
-    startDate: date('start_date', { mode: 'string' }),
-    endDate: date('end_date', { mode: 'string' }),
-    metrics:
-      jsonb('metrics').$type<
-        Array<{ label: string; baseline?: string; result?: string; unit?: string }>
-      >(),
-    cost: numeric('cost'),
-    currency: text('currency'),
-    fundingSource: text('funding_source'),
-    sources: jsonb('sources').$type<Array<{ url: string; title?: string }>>(),
-    // Each entry is one stand-alone lesson — matches the row shape of metrics
-    // and sources so the form/card render the same way.
-    lessonsLearned: jsonb('lessons_learned').$type<string[]>(),
-    // External resources documenting the deployment. Separate from `sources`,
-    // which is reserved for citations backing the claims.
-    links: jsonb('links').$type<Array<{ url: string; title?: string }>>(),
-    embedding: vector('embedding', { dimensions: 1536 }),
-    ...timestamps,
+      .references(() => issues.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('case_studies_solution_idx').on(t.solutionId)],
+  (t) => [
+    primaryKey({ columns: [t.caseStudyId, t.solutionId] }),
+    index('case_study_solutions_solution_idx').on(t.solutionId),
+  ],
 )
 
-export const caseStudiesRelations = relations(caseStudies, ({ one }) => ({
-  solution: one(issues, { fields: [caseStudies.solutionId], references: [issues.id] }),
-  author: one(users, { fields: [caseStudies.authorId], references: [users.id] }),
+export const caseStudySolutionsRelations = relations(caseStudySolutions, ({ one }) => ({
+  caseStudy: one(caseStudies, {
+    fields: [caseStudySolutions.caseStudyId],
+    references: [caseStudies.id],
+  }),
+  solution: one(issues, {
+    fields: [caseStudySolutions.solutionId],
+    references: [issues.id],
+  }),
 }))
 
 export const auditLogs = pgTable(

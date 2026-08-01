@@ -80,7 +80,8 @@ export const mcpToolInputSchemas = {
   list_case_studies: z.object({ id }),
   create_case_study: z.object({
     model,
-    solutionId: id,
+    title: z.string().min(1).max(160),
+    solutionIds: z.array(id).min(1).max(20),
     outcome,
     locationName: z.string().min(1),
     latitude,
@@ -101,6 +102,8 @@ export const mcpToolInputSchemas = {
   update_case_study: z.object({
     model,
     id,
+    title: z.string().min(1).max(160).optional(),
+    solutionIds: z.array(id).min(1).max(20).optional(),
     outcome: outcome.optional(),
     locationName: z.string().min(1).optional(),
     latitude: latitude.optional(),
@@ -147,7 +150,7 @@ export const mcpToolInputSchemas = {
     lessonsLearned: z.array(z.string()).nullish(),
     links: z.array(link).nullish(),
     parentId: id.optional(),
-    solutionId: id.optional(),
+    solutionIds: z.array(id).min(1).max(20).optional(),
   }),
   list_revisions: z.object({ kind: proposeKind, id }),
   review_revision: z.object({

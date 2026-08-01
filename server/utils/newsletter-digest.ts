@@ -73,12 +73,11 @@ async function loadGoodNews(since: Date): Promise<DigestItem[]> {
       eq(caseStudies.outcome, 'success'),
       gte(caseStudies.createdAt, since),
     ),
-    with: { solution: { columns: { title: true } } },
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
     limit: SECTION_LIMIT,
   })
   return rows.map((cs) => ({
-    title: cs.solution.title,
+    title: cs.title,
     url: `${NEWSLETTER_BASE_URL}/case-study/${cs.id}`,
     summary: cs.description ? truncate(cs.description) : undefined,
     meta: [cs.locationName, cs.implementer, cs.verified ? 'verified' : undefined]

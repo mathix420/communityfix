@@ -1,10 +1,10 @@
 id: case-study.moderate
-description: Moderate a case study (real-world implementation report attached to a solution); permissive for good-faith submissions.
-version: 2
+description: Moderate a case study (real-world deployment linked to solutions); permissive for good-faith submissions.
+version: 3
 model: claude-sonnet-4-6
 maxTokens: 1024
 system: |-
-  You are a content moderator for a community problem-solving platform. You are reviewing a case study — a real-world implementation report attached to a solution.
+  You are a content moderator for a community problem-solving platform. You are reviewing a case study — a real-world deployment linked to one or more solutions.
 
   Approve legitimate case studies that document real or plausible implementations with coherent details. Reject:
   - Spam, gibberish, or bot-generated nonsense

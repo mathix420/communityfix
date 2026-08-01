@@ -36,9 +36,9 @@ export interface TreeNode {
 }
 
 // The CTE walks the issues table top-down. Case studies aren't in the
-// issues recursion (they reference solutions by `solution_id`, not the
-// shared `parent_id` chain), so they're tacked on as a second UNION
-// branch keyed on the collected solution rows — plus the root itself, so a
+// issues recursion (they link through `case_study_solutions`, not the shared
+// `parent_id` chain), so they're tacked on as a second UNION branch keyed on
+// the collected solution rows — plus the root itself, so a
 // solution page lists its own case studies (the recursion excludes the root,
 // so its case studies would otherwise be dropped). `parentId` on a returned
 // case-study row is the solution's id, so the client-side tree builder
@@ -79,13 +79,14 @@ export async function getIssueTree(rootId: number): Promise<TreeNode[]> {
     ),
     case_study_children AS (
       SELECT
-        cs.id, cs.solution_id AS parent_id, cs.location_name AS title,
+        cs.id, css.solution_id AS parent_id, cs.location_name AS title,
         'case-study'::text AS type, NULL::text AS solution_status,
         cs.outcome, 0 AS vote_score, 0 AS solution_count, 0 AS sub_issue_count,
         u.name AS author_name, sd.depth + 1 AS depth,
-        ROW_NUMBER() OVER (PARTITION BY cs.solution_id ORDER BY cs.created_at DESC, cs.id ASC) AS sibling_rank
+        ROW_NUMBER() OVER (PARTITION BY css.solution_id ORDER BY cs.created_at DESC, cs.id ASC) AS sibling_rank
       FROM case_studies cs
-      INNER JOIN solution_depths sd ON sd.id = cs.solution_id
+      INNER JOIN case_study_solutions css ON css.case_study_id = cs.id
+      INNER JOIN solution_depths sd ON sd.id = css.solution_id
       LEFT JOIN users u ON u.id = cs.author_id
       WHERE cs.status = 'approved'
     )

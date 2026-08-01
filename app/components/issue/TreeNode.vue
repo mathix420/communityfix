@@ -16,6 +16,7 @@ const props = defineProps<{
 // without prop-drilling refs through the recursion.
 const expandAllSignal = inject<Ref<number>>('tree-expand-all-signal')
 const expandAllTarget = inject<Ref<boolean>>('tree-expand-all-target')
+const horizontalScrolled = inject<Ref<boolean>>('tree-horizontal-scrolled', ref(false))
 
 const expanded = ref(props.depth < props.defaultExpandedDepth)
 
@@ -66,46 +67,48 @@ const nodeIconClass = computed(() => {
         </span>
         {{ node.title }}
       </NuxtLink>
-      <UiBadge v-if="node.solutionStatus === 'plan'" variant="default">
-        Plan
-      </UiBadge>
-      <UiBadge v-else-if="node.solutionStatus === 'in-progress'" variant="warning">
-        In progress
-      </UiBadge>
-      <UiBadge v-else-if="node.solutionStatus === 'done'" variant="success">
-        Done
-      </UiBadge>
-      <UiBadge v-if="isCaseStudy && node.outcome" :variant="outcomeBadgeVariant(node.outcome)">
-        {{ outcomeBadgeLabel(node.outcome) }}
-      </UiBadge>
       <div
-        v-if="!isCaseStudy"
-        class="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-mono text-gray-600"
+        class="sticky right-0 z-10 flex shrink-0 items-center gap-1.5 bg-white pl-2 text-xs font-mono text-gray-600 sm:static sm:bg-transparent sm:pl-0"
+        :class="horizontalScrolled && 'ml-auto'"
       >
-        <span class="px-1.5 py-0.5 bg-gray-100 rounded" :title="`${node.voteScore} votes`">
-          <UIcon class="size-3 -mt-0.5" name="lucide:arrow-up" />
-          {{ node.voteScore }}
-        </span>
-        <span
-          v-if="node.subIssueCount > 0"
-          class="px-1.5 py-0.5 bg-gray-100 rounded hidden sm:inline"
-          :title="`${node.subIssueCount} sub-issues`"
-        >
-          {{ node.subIssueCount }} i
-        </span>
-        <span
-          v-if="node.solutionCount > 0"
-          class="px-1.5 py-0.5 bg-gray-100 rounded hidden sm:inline"
-          :title="`${node.solutionCount} solutions`"
-        >
-          {{ node.solutionCount }} s
-        </span>
+        <UiBadge v-if="node.solutionStatus === 'plan'" variant="default">
+          Plan
+        </UiBadge>
+        <UiBadge v-else-if="node.solutionStatus === 'in-progress'" variant="warning">
+          In progress
+        </UiBadge>
+        <UiBadge v-else-if="node.solutionStatus === 'done'" variant="success">
+          Done
+        </UiBadge>
+        <UiBadge v-if="isCaseStudy && node.outcome" :variant="outcomeBadgeVariant(node.outcome)">
+          {{ outcomeBadgeLabel(node.outcome) }}
+        </UiBadge>
+        <template v-if="!isCaseStudy">
+          <span class="px-1.5 py-0.5 bg-gray-100 rounded" :title="`${node.voteScore} votes`">
+            <UIcon class="size-3 -mt-0.5" name="lucide:arrow-up" />
+            {{ node.voteScore }}
+          </span>
+          <span
+            v-if="node.subIssueCount > 0"
+            class="px-1.5 py-0.5 bg-gray-100 rounded hidden sm:inline"
+            :title="`${node.subIssueCount} sub-issues`"
+          >
+            {{ node.subIssueCount }} i
+          </span>
+          <span
+            v-if="node.solutionCount > 0"
+            class="px-1.5 py-0.5 bg-gray-100 rounded hidden sm:inline"
+            :title="`${node.solutionCount} solutions`"
+          >
+            {{ node.solutionCount }} s
+          </span>
+        </template>
       </div>
     </div>
     <div v-if="expanded && hasChildren" class="ml-2.5 border-l border-gray-200 pl-3">
       <IssueTreeNode
         v-for="child in node.children"
-        :key="child.id"
+        :key="`${child.type}:${child.id}:${child.parentId}`"
         :default-expanded-depth="defaultExpandedDepth"
         :depth="depth + 1"
         :node="child"

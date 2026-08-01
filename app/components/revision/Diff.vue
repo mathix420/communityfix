@@ -5,8 +5,8 @@ import { wordDiff } from '~/utils/word-diff'
 // changed field (iterating the keys of `changes`):
 //   - Long text fields → inline word-diff (removed struck-through red, added
 //     green) via the dependency-free `wordDiff` util.
-//   - parentId / solutionId → a structural "Parent: #old → #new" id row (ids
-//     only; this component stays pure and never fetches titles).
+//   - parentId → a structural id row (this component stays pure and never
+//     fetches titles); solutionIds uses the normal compact array rendering.
 //   - Arrays + scalars → a compact "old → new" before/after pair.
 // `before` / `after` / `changes` are the snapshot maps from a SerializedRevision
 // (`baseSnapshot`, `appliedSnapshot`, `changes`). Any of them may be passed; the
@@ -23,7 +23,7 @@ const props = defineProps<{
 // Fields rendered with an inline word-diff.
 const TEXT_FIELDS = new Set(['title', 'summary', 'description'])
 // Structural reparent/re-attach fields, rendered as id rows.
-const STRUCTURAL_FIELDS = new Set(['parentId', 'solutionId'])
+const STRUCTURAL_FIELDS = new Set(['parentId'])
 
 // Humanise a snapshot key into a short label. Falls back to splitting camelCase.
 const FIELD_LABELS: Record<string, string> = {
@@ -36,7 +36,7 @@ const FIELD_LABELS: Record<string, string> = {
   scale: 'Scale',
   links: 'Links',
   parentId: 'Parent',
-  solutionId: 'Solution',
+  solutionIds: 'Solutions',
   outcome: 'Outcome',
   implementer: 'Implementer',
   startDate: 'Start date',

@@ -42,7 +42,9 @@ interface IssueNode {
 }
 interface CaseStudyNode {
   id: number
-  solutionId: number
+  title: string
+  solutionIds: number[]
+  solutions: Array<{ id: number; title: string }>
   outcome: CaseStudyOutcome
   locationName: string
   location?: { latitude: number; longitude: number } | null
@@ -99,6 +101,9 @@ const solutionStatus = ref<SolutionStatus | undefined>()
 const links = ref<IssueLinkRow[]>([])
 
 // --- Case-study form state -----------------------------------------------
+const caseStudyTitle = ref('')
+const solutionIds = ref<number[]>([])
+const selectedSolutions = ref<Array<{ id: number; title: string }>>([])
 const outcome = ref<CaseStudyOutcome | undefined>()
 const csLocationName = ref('')
 const csLatitude = ref<number | undefined>()
@@ -142,6 +147,9 @@ watch(
       links.value = (n.links ?? []).map((l) => ({ url: l.url, title: l.title ?? '' }))
     } else if (isCaseStudy.value && props.caseStudy) {
       const n = props.caseStudy
+      caseStudyTitle.value = n.title
+      solutionIds.value = [...n.solutionIds]
+      selectedSolutions.value = n.solutions.map((solution) => ({ ...solution }))
       outcome.value = n.outcome
       csLocationName.value = n.locationName ?? ''
       csLatitude.value = n.location?.latitude
@@ -211,6 +219,8 @@ function buildCaseStudyBody() {
   const cleanedLessons = lessons.value.map((l) => l.text.trim()).filter(Boolean)
 
   const body: Record<string, unknown> = {
+    title: caseStudyTitle.value.trim(),
+    solutionIds: solutionIds.value,
     outcome: outcome.value,
     locationName: csLocationName.value.trim(),
     latitude: csLatitude.value ?? null,
@@ -229,7 +239,6 @@ function buildCaseStudyBody() {
     metrics: cleanedMetrics,
     note: note.value.trim() || null,
   }
-  if (newParentId.value != null) body.solutionId = newParentId.value
   return body
 }
 
@@ -248,6 +257,8 @@ async function submit() {
       })
       applied = res.applied
     } else if (isCaseStudy.value && props.caseStudy) {
+      if (!caseStudyTitle.value.trim()) throw new Error('Implementation title is required')
+      if (solutionIds.value.length === 0) throw new Error('At least one solution is required')
       if (!csLocationName.value.trim()) throw new Error('Location is required')
       if (!outcome.value) throw new Error('Outcome is required')
       const res = await $fetch(`/api/case-study/${props.caseStudy.id}`, {
@@ -340,6 +351,12 @@ async function submit() {
             v-model:scale="csScale"
             v-model:sources="sources"
             v-model:start-date="startDate"
+            v-model:title="caseStudyTitle"
+          />
+          <CaseStudySolutionPicker
+            v-if="isCaseStudy"
+            v-model="solutionIds"
+            :solutions="selectedSolutions"
           />
           <RevisionParentPicker
             v-if="!isCaseStudy && issue"
@@ -347,13 +364,6 @@ async function submit() {
             :current-node-id="issue.id"
             :current-parent-id="issue.parentId ?? null"
             :mode="isSolution ? 'solution' : 'issue'"
-          />
-          <RevisionParentPicker
-            v-else-if="isCaseStudy && caseStudy"
-            v-model="newParentId"
-            mode="case_study"
-            :current-node-id="caseStudy.id"
-            :current-parent-id="caseStudy.solutionId"
           />
           <UFormField
             label="Note"

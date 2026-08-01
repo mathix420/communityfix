@@ -26,5 +26,8 @@ export default defineEventHandler(async (event) => {
 
   // Only expose moderation fields to an owner. Anonymous/other viewers never
   // see appealStatus, isSpam, rejectionReason, etc., even on pending issues.
-  return { ...transformIssue(result, { includeModeration: viewerIsOwner }), viewerIsOwner }
+  const issue = (
+    await withMembers('issue', [transformIssue(result, { includeModeration: viewerIsOwner })])
+  )[0]!
+  return { ...issue, viewerIsOwner }
 })

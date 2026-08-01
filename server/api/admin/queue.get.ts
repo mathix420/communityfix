@@ -116,11 +116,14 @@ export default defineEventHandler(async () => {
         author: {
           columns: { id: true, name: true, email: true, trustScore: true, createdAt: true },
         },
-        solution: { columns: { id: true, title: true } },
+        solutionLinks: {
+          columns: { solutionId: true },
+          with: { solution: { columns: { id: true, title: true } } },
+        },
       },
       columns: {
         id: true,
-        solutionId: true,
+        title: true,
         status: true,
         outcome: true,
         description: true,
@@ -142,7 +145,7 @@ export default defineEventHandler(async () => {
         proposer: { columns: { id: true, name: true } },
         decidedBy: { columns: { id: true, name: true } },
         issue: { columns: { id: true, title: true } },
-        caseStudy: { columns: { id: true }, with: { solution: { columns: { title: true } } } },
+        caseStudy: { columns: { id: true, title: true } },
       },
       orderBy: desc(revisions.createdAt),
       limit: 50,
@@ -210,9 +213,7 @@ export default defineEventHandler(async () => {
             targetKind: 'case_study' as const,
             issueId: null,
             caseStudyId: r.caseStudy?.id ?? r.caseStudyId,
-            label: r.caseStudy?.solution?.title
-              ? `Case study — ${r.caseStudy.solution.title}`
-              : `Case study #${r.caseStudyId}`,
+            label: r.caseStudy?.title ?? `Case study #${r.caseStudyId}`,
           },
     })),
   }

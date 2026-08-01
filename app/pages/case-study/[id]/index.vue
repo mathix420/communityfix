@@ -29,6 +29,7 @@ onMounted(() => {
   -->
   <!-- fallow-ignore-next-line complexity -->
   <div v-if="study" class="mt-3 space-y-3">
+    <IssueParentCallout v-if="study.solutions.length" label="Implements" :parents="study.solutions" />
     <div v-if="study.implementer || dateRange" class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div v-if="study.implementer" class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
         <div class="flex items-center gap-2 mb-2.5">
@@ -168,21 +169,14 @@ onMounted(() => {
     </div>
     <CaseStudyLinkCard icon="lucide:book-open" label="Sources" :items="study.sources ?? []" />
     <CaseStudyLinkCard icon="lucide:paperclip" label="Links" :items="study.links ?? []" />
-    <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6 flex items-center justify-between gap-3 flex-wrap">
-      <p class="text-xs font-mono uppercase tracking-wide text-gray-400">
-        Documented
-        {{
-          new Date(study.createdAt).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })
-        }}
-      </p>
-      <UserButton :author-id="study.authorId" :name="study.author" />
-    </div>
-    <!-- Quiet meta links — who maintains the study and how it changed over time.
-    Deliberately at the very bottom: useful, but not what the page is about. -->
-    <NodeMetaLinks kind="case_study" :base="`/case-study/${id}`" />
+    <!-- One metadata bar, with compact controls linking to the related sub-pages. -->
+    <NodeMetaLinks
+      kind="case_study"
+      :base="`/case-study/${id}`"
+      :collaborators="study.collaborators"
+      :created-at="study.createdAt"
+      :owners="study.owners"
+      :updated-at="study.updatedAt"
+    />
   </div>
 </template>

@@ -16,25 +16,21 @@ const { data: flatNodes, pending } = await useFetch<TreeNode[]>(
 
 // Build the nested structure from the flat CTE output. Children of the
 // current page's issue are at depth=1 (the CTE excludes the root itself).
-// Case-study rows share the `issues.id` space only conceptually — a row's
-// raw id can collide with an issue id since they come from separate tables.
-// Key the lookup map by `${type}:${id}`, and resolve parents through an
-// issue-only index since a case-study's parentId points at a solution row.
+// Case-study rows can appear once under every linked solution. Keep each edge
+// as its own node and use an issue-only index to resolve solution parents.
 const rootChildren = computed<NestedNode[]>(() => {
   const rows = flatNodes.value
   if (!rows || rows.length === 0) return []
 
-  const byKey = new Map<string, NestedNode>()
   const issueById = new Map<number, NestedNode>()
-  for (const row of rows) {
-    const node: NestedNode = { ...row, children: [] }
-    byKey.set(`${row.type}:${row.id}`, node)
-    if (row.type !== 'case-study') issueById.set(row.id, node)
+  const nodes = rows.map((row): NestedNode => ({ ...row, children: [] }))
+  for (const node of nodes) {
+    if (node.type !== 'case-study') issueById.set(node.id, node)
   }
 
   const roots: NestedNode[] = []
   const rootParentId = Number(issueId.value)
-  for (const node of byKey.values()) {
+  for (const node of nodes) {
     // Direct children of the page's node sit at the root of the panel: for an
     // issue these are sub-issues/solutions, for a solution they're its own
     // case studies. Their parentId points at the (excluded) root, so there's
@@ -52,24 +48,25 @@ const rootChildren = computed<NestedNode[]>(() => {
 
 const totalNodes = computed(() => flatNodes.value?.length ?? 0)
 
-// Broadcast channel for expand-all / collapse-all. Nodes watch the signal
-// ref and set their local expanded state to `target`. Using a counter means
-// repeated clicks of the same button still trigger watchers.
+// Broadcast channel for the expand/collapse toggle. Nodes watch the signal
+// ref and set their local expanded state to `target`.
 const expandAllSignal = ref(0)
-const expandAllTarget = ref(false)
+const expandAllTarget = ref(true)
+const treeHorizontalScrolled = ref(false)
 provide('tree-expand-all-signal', expandAllSignal)
 provide('tree-expand-all-target', expandAllTarget)
+provide('tree-horizontal-scrolled', treeHorizontalScrolled)
 
-function expandAll() {
-  expandAllTarget.value = true
-  expandAllSignal.value++
-  track('Tree expand all', { issueId: Number(issueId.value) })
+function onTreeScroll(event: Event) {
+  treeHorizontalScrolled.value = (event.currentTarget as HTMLElement).scrollLeft > 0
 }
 
-function collapseAll() {
-  expandAllTarget.value = false
+function toggleAll() {
+  expandAllTarget.value = !expandAllTarget.value
   expandAllSignal.value++
-  track('Tree collapse all', { issueId: Number(issueId.value) })
+  track(expandAllTarget.value ? 'Tree expand all' : 'Tree collapse all', {
+    issueId: Number(issueId.value),
+  })
 }
 </script>
 
@@ -79,23 +76,31 @@ function collapseAll() {
       <p class="text-xs text-toned font-mono">
         {{ totalNodes }} {{ totalNodes === 1 ? 'node' : 'nodes' }}
       </p>
-      <div class="flex gap-2">
-        <UButton icon="lucide:chevrons-down" size="sm" variant="ghost" @click="expandAll">
-          Expand all
-        </UButton>
-        <UButton icon="lucide:chevrons-up" size="sm" variant="ghost" @click="collapseAll">
-          Collapse all
-        </UButton>
-      </div>
+      <UButton
+        size="sm"
+        variant="ghost"
+        :icon="expandAllTarget ? 'lucide:chevrons-up' : 'lucide:chevrons-down'"
+        @click="toggleAll"
+      >
+        {{ expandAllTarget ? 'Collapse all' : 'Expand all' }}
+      </UButton>
     </div>
-    <UiCard v-if="rootChildren.length > 0" padding="md">
-      <IssueTreeNode
-        v-for="node in rootChildren"
-        :key="node.id"
-        :default-expanded-depth="DEFAULT_EXPANDED_DEPTH"
-        :depth="1"
-        :node="node"
-      />
+    <UiCard
+      v-if="rootChildren.length > 0"
+      class="min-w-0 max-w-full overflow-hidden sm:overflow-visible"
+      padding="md"
+    >
+      <div class="w-full min-w-0 overflow-x-auto sm:overflow-visible" @scroll="onTreeScroll">
+        <div class="min-w-[36rem] sm:min-w-0">
+          <IssueTreeNode
+            v-for="node in rootChildren"
+            :key="`${node.type}:${node.id}:${node.parentId}`"
+            :default-expanded-depth="DEFAULT_EXPANDED_DEPTH"
+            :depth="1"
+            :node="node"
+          />
+        </div>
+      </div>
     </UiCard>
     <p v-else-if="!pending" class="text-toned text-center py-8">
       No children yet.

@@ -7,7 +7,7 @@ const props = withDefaults(
     title?: string
     kind?: string
     id?: number | string
-    // Optional eyebrow above the title (e.g. a case study's parent solution):
+    // Optional eyebrow above the title (e.g. a case study's location):
     // `subtitleLabel` is the small uppercase tag, `subtitle` the value.
     // `subtitleColor` is a 6-digit hex WITHOUT `#` (a `#` doesn't round-trip
     // through nuxt-og-image's prop encoding); the `#` is re-added in the template.

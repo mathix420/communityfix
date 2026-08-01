@@ -14,7 +14,13 @@ import { isAdminEmail } from './admin'
 import { issueWithRelations, transformIssue } from './transform-issue'
 import { createIssue, updateIssue } from './issue-write'
 import type { CreateIssueInput, UpdateIssueInput } from './issue-write'
-import { createCaseStudy, transformCaseStudy, updateCaseStudy } from './case-study-write'
+import {
+  caseStudyWithSolutions,
+  createCaseStudy,
+  findCaseStudyIdsForSolutions,
+  transformCaseStudy,
+  updateCaseStudy,
+} from './case-study-write'
 import type { CreateCaseStudyInput, UpdateCaseStudyInput } from './case-study-write'
 import { getIssueTree } from './issue-tree'
 import { triggerModeration } from './moderation-trigger'
@@ -238,7 +244,7 @@ function issueChangesFromInput(fields: Omit<UpdateIssueInput, 'id'>, base: Snaps
 async function hydrateCaseStudy(id: number) {
   const row = await useDB().query.caseStudies.findFirst({
     where: eq(caseStudies.id, id),
-    with: { author: { columns: { name: true } } },
+    with: caseStudyWithSolutions,
   })
   return row ? transformCaseStudy(row) : null
 }
@@ -254,7 +260,10 @@ export async function updateCaseStudyAs(
 ): Promise<AppliedCaseStudy | ProposedRevision> {
   const db = useDB()
   const { note, ...patch } = input
-  const node = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, patch.id) })
+  const node = await db.query.caseStudies.findFirst({
+    where: eq(caseStudies.id, patch.id),
+    with: { solutionLinks: { columns: { solutionId: true } } },
+  })
   if (!node)
     throw createError({ statusCode: 404, statusMessage: `Case study ${patch.id} not found` })
 
@@ -442,9 +451,12 @@ export async function listCaseStudiesFor(nodeId: number) {
   }
   if (solutionIds.length === 0) return []
 
+  const caseStudyIds = await findCaseStudyIdsForSolutions(solutionIds)
+  if (caseStudyIds.length === 0) return []
+
   const rows = await db.query.caseStudies.findMany({
-    where: and(inArray(caseStudies.solutionId, solutionIds), eq(caseStudies.status, 'approved')),
-    with: { author: { columns: { name: true } } },
+    where: and(inArray(caseStudies.id, caseStudyIds), eq(caseStudies.status, 'approved')),
+    with: caseStudyWithSolutions,
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
   })
   return rows.map(transformCaseStudy)

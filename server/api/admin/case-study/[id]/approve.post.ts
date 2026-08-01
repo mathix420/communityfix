@@ -20,7 +20,10 @@ export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
   const body = await readBody<{ reason?: string; edits?: CaseStudyEdits }>(event)
 
-  const cs = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, id) })
+  const cs = await db.query.caseStudies.findFirst({
+    where: eq(caseStudies.id, id),
+    with: { solutionLinks: { columns: { solutionId: true } } },
+  })
   if (!cs) {
     throw createError({ statusCode: 404, message: 'Case study not found' })
   }
@@ -80,7 +83,7 @@ export default defineEventHandler(async (event) => {
     details: {
       adminId: session.user.id,
       caseStudyId: id,
-      solutionId: cs.solutionId,
+      solutionIds: cs.solutionLinks.map((link) => link.solutionId),
       previousStatus: cs.status,
       ...(Object.keys(editsBefore).length ? { editsBefore, editsAfter } : {}),
     },

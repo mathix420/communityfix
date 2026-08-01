@@ -15,7 +15,7 @@ Everything on CommunityFix is one of three node types, arranged in a tree:
 
 - **Issue**: a problem worth solving. An issue can contain sub-issues (narrower facets of the problem) and solutions.
 - **Solution**: a proposed way to address one specific issue. Solutions are leaves of the tree. Their parent must be an issue, never another solution.
-- **Case study**: a structured record of one real-world attempt at a solution: where, by whom, what happened, what it cost, what was learned. Case studies attach to a solution and are not part of the issue tree.
+- **Case study**: a structured record of one real-world deployment: where, by whom, what happened, what it cost, and what was learned. A deployment can link to one or more solutions and is not part of the issue tree.
 
 ```
 Issue: Diesel buses pollute the downtown core
@@ -49,12 +49,12 @@ The fastest disambiguator: **issues describe what is wrong, solutions prescribe 
 | A narrower facet of an existing problem | Sub-issue | the broader issue |
 | A proposed way to fix an issue | Solution | the issue it addresses |
 | Another approach to the same issue | Sibling solution | the same issue |
-| A real-world attempt at a solution | Case study | the solution |
+| A real-world attempt at one or more solutions | Case study | every solution it implements |
 
 Apply these tests:
 
 - If a "problem" already contains a fix ("we need a bike lane"), it is a solution wearing an issue's clothes. Reframe it as the underlying problem ("cyclists face unsafe conditions on Route X") and add the bike lane as a solution.
-- If you are recording that a specific place tried something, that is a case study on the existing solution, not a new solution. A solution stays general and portable ("electrify the municipal bus fleet"); a case study is one concrete deployment with a real location, outcome, metrics, and cost.
+- If you are recording that a specific place tried something, that is a case study linked to the relevant existing solutions, not a new solution. A solution stays general and portable ("electrify the municipal bus fleet"); a case study is one concrete deployment with a real location, outcome, metrics, and cost.
 - Make something a sub-issue when it only makes sense as a facet of a parent problem. Make it a top-level issue when it stands on its own and could attract solutions independently.
 
 When decomposing a large issue into sub-issues, keep them mutually exclusive, independently understandable, and right-sized: narrow enough that a single solution could plausibly address each one. "Climate change" is too broad; "diesel bus emissions in the downtown core" is actionable.
@@ -67,7 +67,7 @@ Never pack any of the following into one node's body:
 
 - Sub-problems or facets: create child issues instead.
 - Alternative or competing approaches, pros/cons comparisons: create sibling solutions on the same parent issue.
-- Concrete deployments ("City X tried this"): create case studies on the solution.
+- Concrete deployments ("City X tried this"): create case studies linked to every solution used.
 - Surveys of prior attempts or "state of the art" sections: these belong nowhere in a single node; they emerge from siblings in the tree.
 
 If you catch yourself writing headings like "Alternatives", "Sub-issues", "Other approaches", or "Why X failed" inside one node, stop and create the sibling or child nodes instead. A good node reads like a focused statement of one thing.
@@ -125,7 +125,7 @@ Use the `links` field for supporting resources: research papers, technical specs
 
 ## Write a case study
 
-A case study documents one real-world implementation of a solution in one place. Failed implementations are especially valuable. Required fields: `solutionId`, `outcome`, `locationName`, `latitude`, `longitude`.
+A case study documents one real-world deployment in one place, including deployments that combine several solutions. Failed implementations are especially valuable. Required fields: `title`, `solutionIds`, `outcome`, `locationName`, `latitude`, `longitude`. The title should concisely state what was implemented; `solutionIds` must contain every catalog solution used by the deployment.
 
 **Outcome**, choose honestly:
 

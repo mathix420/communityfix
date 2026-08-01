@@ -13,7 +13,7 @@ import type { CaseStudyOutcome, HelpLabel, IssueType, LocationScale } from '../d
 import { CASE_STUDY_OUTCOMES, HELP_LABELS, LOCATION_SCALES } from '../database/schema'
 import { findSimilar, generateEmbedding } from './embeddings'
 import { issueWithRelations, transformIssue } from './transform-issue'
-import { transformCaseStudy } from './case-study-write'
+import { caseStudyWithSolutions, transformCaseStudy } from './case-study-write'
 import { searchByQuery } from './mcp-tools'
 
 // getQuery() returns loosely-typed values; the helpers cast per field.
@@ -22,13 +22,6 @@ type QueryRecord = Record<string, unknown>
 const CASE_STUDY_SIMILARITY_THRESHOLD = 0.2
 const DEFAULT_RADIUS_KM = 25
 const MAX_RADIUS_KM = 2000
-
-// Author + parent solution are needed by transformCaseStudy (author name and
-// solutionTitle).
-const caseStudyWith = {
-  author: { columns: { name: true } },
-  solution: { columns: { title: true, summary: true } },
-} as const
 
 // ── Shared query-param coercion ─────────────────────────────────────
 
@@ -111,7 +104,7 @@ export async function discoverCaseStudies(q: QueryRecord) {
   // Non-semantic path: filtered list, verified-first then most recent.
   const rows = await useDB().query.caseStudies.findMany({
     where: and(...caseStudyConditions(filters)),
-    with: caseStudyWith,
+    with: caseStudyWithSolutions,
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
     limit,
   })
@@ -144,7 +137,7 @@ async function semanticCaseStudies(query: string, filters: CaseStudyFilters, lim
       caseStudies.id,
       above.map((r) => r.id),
     ),
-    with: caseStudyWith,
+    with: caseStudyWithSolutions,
   })
   const byId = new Map(rows.map((r) => [r.id, r]))
   return above.flatMap((r) => {
@@ -239,7 +232,7 @@ function hydrateCaseStudies(hits: GeoHit[]) {
       caseStudies.id,
       hits.map((h) => h.id),
     ),
-    with: caseStudyWith,
+    with: caseStudyWithSolutions,
   })
 }
 
@@ -438,7 +431,7 @@ export async function listNodesNeedingHelp(q: QueryRecord) {
     wantCaseStudies
       ? db.query.caseStudies.findMany({
           where: and(eq(caseStudies.status, 'approved'), csLabelFilter),
-          with: caseStudyWith,
+          with: caseStudyWithSolutions,
           orderBy: desc(caseStudies.createdAt),
           limit,
         })

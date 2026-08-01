@@ -1,5 +1,5 @@
 import { and, desc, eq, ne } from 'drizzle-orm'
-import { caseStudies, issues } from '../database/schema'
+import { caseStudies, caseStudySolutions, issues } from '../database/schema'
 import { issueWithRelations, transformIssue } from './transform-issue'
 
 const CANONICAL_BASE = 'https://communityfix.org'
@@ -67,19 +67,28 @@ export async function renderIssueMarkdown(id: number): Promise<string | null> {
   }
 
   if (t.type === 'solution') {
-    const studies = await db.query.caseStudies.findMany({
-      where: and(
-        eq(caseStudies.solutionId, t.id),
-        eq(caseStudies.status, 'approved'),
-        ne(caseStudies.isSpam, true),
-      ),
-      columns: { id: true, outcome: true, locationName: true, description: true },
-      orderBy: desc(caseStudies.createdAt),
-    })
+    const studies = await db
+      .select({
+        id: caseStudies.id,
+        outcome: caseStudies.outcome,
+        title: caseStudies.title,
+        locationName: caseStudies.locationName,
+        description: caseStudies.description,
+      })
+      .from(caseStudies)
+      .innerJoin(caseStudySolutions, eq(caseStudySolutions.caseStudyId, caseStudies.id))
+      .where(
+        and(
+          eq(caseStudySolutions.solutionId, t.id),
+          eq(caseStudies.status, 'approved'),
+          ne(caseStudies.isSpam, true),
+        ),
+      )
+      .orderBy(desc(caseStudies.createdAt))
     if (studies.length) {
       lines.push('', '## Case studies', '')
       for (const cs of studies) {
-        const headline = `${cs.outcome} · ${cs.locationName}`
+        const headline = `${cs.title} · ${cs.outcome} · ${cs.locationName}`
         lines.push(
           `- [#${cs.id} — ${headline}](${CANONICAL_BASE}/case-study/${cs.id}.md)${cs.description ? ` — ${trim(cs.description, 200)}` : ''}`,
         )
@@ -95,16 +104,26 @@ export async function renderCaseStudyMarkdown(id: number): Promise<string | null
   const db = useDB()
   const row = await db.query.caseStudies.findFirst({
     where: eq(caseStudies.id, id),
-    with: { solution: { columns: { id: true, title: true } } },
+    with: {
+      solutionLinks: {
+        with: { solution: { columns: { id: true, title: true } } },
+      },
+    },
   })
   if (!row || row.status !== 'approved' || row.isSpam) return null
 
   const point = row.location as { x: number; y: number } | null
-  const lines: string[] = [`# Case study #${row.id}`, '']
-  lines.push(
-    `**Solution:** [${row.solution?.title ?? `#${row.solutionId}`}](${CANONICAL_BASE}/issue/${row.solutionId})`,
-    '',
-  )
+  const lines: string[] = [`# ${row.title}`, '']
+  if (row.solutionLinks.length) {
+    lines.push(
+      '**Solutions:**',
+      '',
+      ...row.solutionLinks.map(
+        (link) => `- [${link.solution.title}](${CANONICAL_BASE}/issue/${link.solutionId})`,
+      ),
+      '',
+    )
+  }
   lines.push(`**Outcome:** ${row.outcome}${row.verified ? ' · verified' : ''}`)
   const coords = point ? ` (${point.y.toFixed(4)}, ${point.x.toFixed(4)})` : ''
   const scale = row.scale ? ` · scale: ${row.scale}` : ''

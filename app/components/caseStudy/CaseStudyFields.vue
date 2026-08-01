@@ -22,6 +22,7 @@ export interface CaseStudyMetricRow {
   unit: string
 }
 
+const title = defineModel<string>('title', { default: '' })
 const outcome = defineModel<CaseStudyOutcome | undefined>('outcome')
 const locationName = defineModel<string>('locationName', { default: '' })
 const latitude = defineModel<number | undefined>('latitude')
@@ -78,6 +79,21 @@ function removeMetric(i: number) {
 </script>
 
 <template>
+  <UFormField
+    hint="A concise description of the concrete implementation"
+    label="What was implemented?"
+    name="title"
+    required
+  >
+    <UInput
+      v-model="title"
+      class="w-full"
+      maxlength="160"
+      placeholder="e.g. Citywide curbside composting with neighborhood hubs"
+      size="lg"
+      type="text"
+    />
+  </UFormField>
   <UFormField label="Outcome" name="outcome" required>
     <USelectMenu
       v-model="outcome"
