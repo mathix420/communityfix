@@ -1,5 +1,6 @@
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import { caseStudies, issues } from '../../database/schema'
+import { caseStudyWithSolutions } from '../../utils/case-study-write'
 
 const GROUP_LIMIT = 20
 
@@ -23,10 +24,7 @@ export default defineEventHandler(async (event) => {
 
   const studies = await db.query.caseStudies.findMany({
     where: and(eq(caseStudies.status, 'approved'), sql`search_vector @@ ${tsQuery}`),
-    with: {
-      author: { columns: { name: true } },
-      solution: { columns: { title: true, summary: true } },
-    },
+    with: caseStudyWithSolutions,
     orderBy: [sql`ts_rank(search_vector, ${tsQuery}) DESC`, desc(caseStudies.createdAt)],
     limit: GROUP_LIMIT,
   })

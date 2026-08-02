@@ -162,6 +162,13 @@
       "when": 1783938297166,
       "tag": "0022_material_tony_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1785603595370,
+      "tag": "0023_gorgeous_wasp",
+      "breakpoints": true
     }
   ]
 }

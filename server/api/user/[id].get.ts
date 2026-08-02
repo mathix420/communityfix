@@ -6,7 +6,7 @@ import {
   qualificationEndorsements,
   caseStudies,
 } from '../../database/schema'
-import { transformCaseStudy } from '../../utils/case-study-write'
+import { caseStudyWithSolutions, transformCaseStudy } from '../../utils/case-study-write'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -143,7 +143,7 @@ export default defineEventHandler(async (event) => {
     where: isOwner
       ? eq(caseStudies.authorId, user.id)
       : and(eq(caseStudies.authorId, user.id), eq(caseStudies.status, 'approved')),
-    with: { author: { columns: { name: true } } },
+    with: caseStudyWithSolutions,
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
   })
 

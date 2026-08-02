@@ -1,5 +1,5 @@
 import { and, eq, ne, sql } from 'drizzle-orm'
-import { caseStudies, issues, issueTags, tags } from '../database/schema'
+import { caseStudies, caseStudySolutions, issues, issueTags, tags } from '../database/schema'
 
 export default defineEventHandler(async () => {
   const db = useDB()
@@ -26,10 +26,11 @@ export default defineEventHandler(async () => {
       issues,
       and(eq(issues.id, issueTags.issueId), eq(issues.status, 'approved'), ne(issues.isSpam, true)),
     )
+    .leftJoin(caseStudySolutions, eq(caseStudySolutions.solutionId, issues.id))
     .leftJoin(
       caseStudies,
       and(
-        eq(caseStudies.solutionId, issues.id),
+        eq(caseStudies.id, caseStudySolutions.caseStudyId),
         eq(caseStudies.status, 'approved'),
         ne(caseStudies.isSpam, true),
       ),

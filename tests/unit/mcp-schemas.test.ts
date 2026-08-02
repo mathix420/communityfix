@@ -14,7 +14,7 @@ describe('mcp tool input schemas', () => {
 
   it('rejects out-of-range coordinates', () => {
     const r = mcpToolInputSchemas.create_case_study.safeParse({
-      solutionId: 1, outcome: 'success', locationName: 'Nowhere', latitude: 200, longitude: 0,
+      title: 'Neighborhood compost rollout', solutionIds: [1], outcome: 'success', locationName: 'Nowhere', latitude: 200, longitude: 0,
     })
     expect(r.success).toBe(false)
   })
@@ -32,13 +32,16 @@ describe('mcp tool input schemas', () => {
   })
 
   it('enforces required case-study fields and outcome enum', () => {
-    expect(mcpToolInputSchemas.create_case_study.safeParse({ solutionId: 1 }).success).toBe(false)
+    expect(mcpToolInputSchemas.create_case_study.safeParse({ solutionIds: [1] }).success).toBe(false)
     expect(mcpToolInputSchemas.create_case_study.safeParse({
-      solutionId: 1, outcome: 'maybe', locationName: 'X', latitude: 0, longitude: 0,
+      title: 'Pilot', solutionIds: [1], outcome: 'maybe', locationName: 'X', latitude: 0, longitude: 0,
     }).success).toBe(false)
     expect(mcpToolInputSchemas.create_case_study.safeParse({
-      solutionId: 1, outcome: 'partial', locationName: 'X', latitude: 0, longitude: 0,
+      title: 'Pilot', solutionIds: [1, 2], outcome: 'partial', locationName: 'X', latitude: 0, longitude: 0,
     }).success).toBe(true)
+    expect(mcpToolInputSchemas.create_case_study.safeParse({
+      title: 'Pilot', solutionIds: [], outcome: 'partial', locationName: 'X', latitude: 0, longitude: 0,
+    }).success).toBe(false)
   })
 
   it('clamps search limit to the advertised range', () => {

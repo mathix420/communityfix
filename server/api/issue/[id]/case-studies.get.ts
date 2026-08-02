@@ -1,6 +1,10 @@
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { caseStudies, issues } from '../../../database/schema'
-import { transformCaseStudy } from '../../../utils/case-study-write'
+import {
+  caseStudyWithSolutions,
+  findCaseStudyIdsForSolutions,
+  transformCaseStudy,
+} from '../../../utils/case-study-write'
 
 // List case studies under an issue or solution.
 //   - solution id → its own case studies
@@ -32,9 +36,12 @@ export default defineEventHandler(async (event) => {
 
   if (solutionIds.length === 0) return []
 
+  const caseStudyIds = await findCaseStudyIdsForSolutions(solutionIds)
+  if (caseStudyIds.length === 0) return []
+
   const rows = await db.query.caseStudies.findMany({
-    where: and(inArray(caseStudies.solutionId, solutionIds), eq(caseStudies.status, 'approved')),
-    with: { author: { columns: { name: true } } },
+    where: and(inArray(caseStudies.id, caseStudyIds), eq(caseStudies.status, 'approved')),
+    with: caseStudyWithSolutions,
     orderBy: [desc(caseStudies.verified), desc(caseStudies.createdAt)],
   })
 

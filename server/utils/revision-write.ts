@@ -38,7 +38,9 @@ import {
 export * from './revision-record'
 
 type IssueRow = typeof issues.$inferSelect
-type CaseStudyRow = typeof caseStudies.$inferSelect
+type CaseStudyRow = typeof caseStudies.$inferSelect & {
+  solutionLinks?: Array<{ solutionId: number }>
+}
 
 // ---------------------------------------------------------------------------
 // Propose
@@ -120,7 +122,7 @@ export async function proposeRevision(
 
   const node = await db.query.caseStudies.findFirst({
     where: eq(caseStudies.id, input.targetId),
-    with: { solution: { columns: { title: true } } },
+    with: { solutionLinks: { columns: { solutionId: true } } },
   })
   if (!node)
     throw createError({ statusCode: 404, statusMessage: `Case study ${input.targetId} not found` })
@@ -156,9 +158,7 @@ export async function proposeRevision(
     await notifyOwnersOfProposal(event, {
       targetKind: 'case_study',
       nodeId: node.id,
-      nodeLabel: node.solution?.title
-        ? `Case study — ${node.solution.title}`
-        : `Case study #${node.id}`,
+      nodeLabel: node.title,
       revisionIssueId: null,
       revisionCaseStudyId: node.id,
       proposerId: userId,
@@ -590,8 +590,10 @@ async function loadRevisionNode(
   }
   if (revision.targetKind === 'case_study' && revision.caseStudyId != null) {
     return (
-      (await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, revision.caseStudyId) })) ??
-      null
+      (await db.query.caseStudies.findFirst({
+        where: eq(caseStudies.id, revision.caseStudyId),
+        with: { solutionLinks: { columns: { solutionId: true } } },
+      })) ?? null
     )
   }
   return null
@@ -609,11 +611,9 @@ async function revisionNodeLabel(revision: typeof revisions.$inferSelect): Promi
   if (revision.caseStudyId != null) {
     const node = await db.query.caseStudies.findFirst({
       where: eq(caseStudies.id, revision.caseStudyId),
-      with: { solution: { columns: { title: true } } },
+      columns: { title: true },
     })
-    return node?.solution?.title
-      ? `Case study — ${node.solution.title}`
-      : `Case study #${revision.caseStudyId}`
+    return node?.title ?? `Case study #${revision.caseStudyId}`
   }
   return 'this node'
 }

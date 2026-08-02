@@ -96,19 +96,13 @@ async function buildNodeLabels(rows: { issueId: number | null; caseStudyId: numb
     caseStudyIds.length
       ? db.query.caseStudies.findMany({
           where: inArray(caseStudies.id, caseStudyIds),
-          columns: { id: true },
-          with: { solution: { columns: { title: true } } },
+          columns: { id: true, title: true },
         })
       : Promise.resolve([]),
   ])
 
   const issueLabels = new Map(issueRows.map((r) => [r.id, r.title]))
-  const caseStudyLabels = new Map(
-    caseStudyRows.map((r) => [
-      r.id,
-      r.solution?.title ? `Case study — ${r.solution.title}` : `Case study #${r.id}`,
-    ]),
-  )
+  const caseStudyLabels = new Map(caseStudyRows.map((r) => [r.id, r.title]))
   return { issueLabels, caseStudyLabels }
 }
 

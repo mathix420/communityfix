@@ -1,8 +1,8 @@
 // Shared write-side logic for case studies. Used by REST endpoints (and any
 // future MCP tool) so embedding generation, validation, and admin-only flags
 // stay in one place.
-import { and, eq } from 'drizzle-orm'
-import { caseStudies, issues, users } from '../database/schema'
+import { and, eq, inArray } from 'drizzle-orm'
+import { caseStudies, caseStudySolutions, issues, users } from '../database/schema'
 import type { CaseStudyOutcome, LocationScale } from '../database/schema'
 import { assertNotBanned } from './check-ban'
 import { isAdminEmail } from './admin'
@@ -16,7 +16,8 @@ type Metric = { label: string; baseline?: string; result?: string; unit?: string
 type Source = { url: string; title?: string }
 
 export interface CreateCaseStudyInput {
-  solutionId: number
+  title: string
+  solutionIds: number[]
   outcome: CaseStudyOutcome
   locationName: string
   latitude: number
@@ -35,30 +36,28 @@ export interface CreateCaseStudyInput {
   links?: Link[] | null
 }
 
-export interface UpdateCaseStudyInput extends Partial<Omit<CreateCaseStudyInput, 'solutionId'>> {
+export interface UpdateCaseStudyInput extends Partial<CreateCaseStudyInput> {
   id: number
   verified?: boolean
-  // Re-attach the case study to a different solution (reparent). Validated via
-  // assertSolution — the target must be an existing solution.
-  solutionId?: number
 }
 
-// Embeddings need at least one short string of context — without a title or
-// summary we stitch the structured fields together. Falls back to the parent
-// solution's title/summary so a case study with nothing but a location and an
-// outcome still gets a useful vector.
+// Embeddings combine the deployment-specific title and structured fields with
+// every linked solution's title/summary.
 async function buildEmbeddingText(
-  solutionId: number,
+  solutionIds: number[],
   input: Partial<CreateCaseStudyInput>,
 ): Promise<string> {
   const db = useDB()
-  const parent = await db.query.issues.findFirst({
-    where: eq(issues.id, solutionId),
+  const linkedSolutions = await db.query.issues.findMany({
+    where: inArray(issues.id, solutionIds),
     columns: { title: true, summary: true },
   })
   const parts = [
-    parent ? `Solution: ${parent.title}` : '',
-    parent?.summary ?? '',
+    input.title ? `Case study: ${input.title}` : '',
+    ...linkedSolutions.flatMap((solution) => [
+      `Linked solution: ${solution.title}`,
+      solution.summary,
+    ]),
     input.locationName ? `Location: ${input.locationName}` : '',
     input.implementer ? `Implementer: ${input.implementer}` : '',
     input.outcome ? `Outcome: ${input.outcome}` : '',
@@ -68,16 +67,48 @@ async function buildEmbeddingText(
   return parts.filter(Boolean).join('\n').trim()
 }
 
-async function assertSolution(solutionId: number) {
+function normalizeSolutionIds(solutionIds: number[]): number[] {
+  if (!Array.isArray(solutionIds) || solutionIds.length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'At least one solution is required' })
+  }
+  if (solutionIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'solutionIds must contain positive integers',
+    })
+  }
+  const unique = [...new Set(solutionIds)].sort((a, b) => a - b)
+  if (unique.length !== solutionIds.length) {
+    throw createError({ statusCode: 400, statusMessage: 'solutionIds must not contain duplicates' })
+  }
+  if (unique.length > 20) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'A case study can link to at most 20 solutions',
+    })
+  }
+  return unique
+}
+
+function normalizeTitle(title: string): string {
+  const normalized = title.trim()
+  if (!normalized) throw createError({ statusCode: 400, statusMessage: 'Title is required' })
+  if (normalized.length > 160) {
+    throw createError({ statusCode: 400, statusMessage: 'Title must be 160 characters or fewer' })
+  }
+  return normalized
+}
+
+async function assertSolutions(solutionIds: number[]) {
   const db = useDB()
-  const parent = await db.query.issues.findFirst({
-    where: and(eq(issues.id, solutionId), eq(issues.type, 'solution')),
+  const rows = await db.query.issues.findMany({
+    where: and(inArray(issues.id, solutionIds), eq(issues.type, 'solution')),
     columns: { id: true },
   })
-  if (!parent) {
+  if (rows.length !== solutionIds.length) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Solution not found — case studies attach to solutions only.',
+      statusMessage: 'One or more linked solutions were not found',
     })
   }
 }
@@ -90,6 +121,7 @@ async function assertSolution(solutionId: number) {
 // separate refactor.
 // fallow-ignore-next-line complexity
 export async function createCaseStudy(authorId: string, input: CreateCaseStudyInput) {
+  const title = normalizeTitle(input.title)
   if (!input.outcome) throw createError({ statusCode: 400, statusMessage: 'Outcome is required' })
   if (!input.locationName?.trim())
     throw createError({ statusCode: 400, statusMessage: 'Location name is required' })
@@ -97,51 +129,57 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
     throw createError({ statusCode: 400, statusMessage: 'Latitude and longitude are required' })
   }
   await assertNotBanned(authorId)
-  await assertSolution(input.solutionId)
+  const solutionIds = normalizeSolutionIds(input.solutionIds)
+  await assertSolutions(solutionIds)
 
   let embedding: number[] | null = null
   try {
-    embedding = await generateEmbedding(await buildEmbeddingText(input.solutionId, input))
+    embedding = await generateEmbedding(await buildEmbeddingText(solutionIds, input))
   } catch (err) {
-    console.error(
-      `[case-study:create] Embedding generation failed for solution ${input.solutionId}:`,
-      err,
-    )
+    console.error('[case-study:create] Embedding generation failed:', err)
   }
 
   const db = useDB()
-  const rows = await db
-    .insert(caseStudies)
-    .values({
-      solutionId: input.solutionId,
-      authorId,
-      status: 'pending',
-      outcome: input.outcome,
-      locationName: input.locationName.trim(),
-      location: { x: input.longitude, y: input.latitude },
-      scale: input.scale ?? null,
-      description: input.description?.toString().trim() || null,
-      implementer: input.implementer?.toString().trim() || null,
-      startDate: input.startDate || null,
-      endDate: input.endDate || null,
-      metrics: input.metrics ?? null,
-      cost: input.cost != null ? String(input.cost) : null,
-      currency: input.currency?.toString().trim() || null,
-      fundingSource: input.fundingSource?.toString().trim() || null,
-      sources: sanitizeLinks(input.sources),
-      lessonsLearned: input.lessonsLearned?.length ? input.lessonsLearned : null,
-      links: sanitizeLinks(input.links),
-      ...(embedding ? { embedding } : {}),
-    })
-    .returning()
-
-  const created = rows[0]!
+  const created = await db.transaction(async (tx) => {
+    const rows = await tx
+      .insert(caseStudies)
+      .values({
+        title,
+        authorId,
+        status: 'pending',
+        outcome: input.outcome,
+        locationName: input.locationName.trim(),
+        location: { x: input.longitude, y: input.latitude },
+        scale: input.scale ?? null,
+        description: input.description?.toString().trim() || null,
+        implementer: input.implementer?.toString().trim() || null,
+        startDate: input.startDate || null,
+        endDate: input.endDate || null,
+        metrics: input.metrics ?? null,
+        cost: input.cost != null ? String(input.cost) : null,
+        currency: input.currency?.toString().trim() || null,
+        fundingSource: input.fundingSource?.toString().trim() || null,
+        sources: sanitizeLinks(input.sources),
+        lessonsLearned: input.lessonsLearned?.length ? input.lessonsLearned : null,
+        links: sanitizeLinks(input.links),
+        ...(embedding ? { embedding } : {}),
+      })
+      .returning()
+    const row = rows[0]!
+    await tx
+      .insert(caseStudySolutions)
+      .values(solutionIds.map((solutionId) => ({ caseStudyId: row.id, solutionId })))
+    return row
+  })
   await triggerModeration('case-study', created.id)
 
   // Bootstrap version history with a born-approved "Created" revision.
   // Best-effort — recording history must never fail creation.
   try {
-    const snapshot = editableCaseStudySnapshot(created)
+    const snapshot = editableCaseStudySnapshot({
+      ...created,
+      solutionLinks: solutionIds.map((solutionId) => ({ solutionId })),
+    })
     await recordRevision({
       targetKind: 'case_study',
       issueId: null,
@@ -178,7 +216,10 @@ export async function createCaseStudy(authorId: string, input: CreateCaseStudyIn
 
 export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInput) {
   const db = useDB()
-  const existing = await db.query.caseStudies.findFirst({ where: eq(caseStudies.id, input.id) })
+  const existing = await db.query.caseStudies.findFirst({
+    where: eq(caseStudies.id, input.id),
+    with: { solutionLinks: { columns: { solutionId: true } } },
+  })
   if (!existing)
     throw createError({ statusCode: 404, statusMessage: `Case study ${input.id} not found` })
 
@@ -199,13 +240,17 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
   // Editable snapshot before any mutation — lets callers record an accurate
   // born-approved revision without a second read.
   const before = editableCaseStudySnapshot(existing)
+  const existingSolutionIds = existing.solutionLinks
+    .map((link) => link.solutionId)
+    .sort((a, b) => a - b)
+  const nextSolutionIds =
+    input.solutionIds !== undefined ? normalizeSolutionIds(input.solutionIds) : existingSolutionIds
+  const relationsChanged = JSON.stringify(nextSolutionIds) !== JSON.stringify(existingSolutionIds)
+  if (relationsChanged) await assertSolutions(nextSolutionIds)
 
   const patch: Partial<typeof caseStudies.$inferInsert> = { updatedAt: new Date() }
-  // Re-attach to a different solution (reparent). Validate the target is a
-  // real solution, exactly like createCaseStudy does.
-  if (input.solutionId !== undefined && input.solutionId !== existing.solutionId) {
-    await assertSolution(input.solutionId)
-    patch.solutionId = input.solutionId
+  if (input.title !== undefined) {
+    patch.title = normalizeTitle(input.title)
   }
   if (input.outcome !== undefined) patch.outcome = input.outcome
   if (input.scale !== undefined) patch.scale = input.scale
@@ -237,11 +282,13 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
 
   // If a field that feeds the embedding changed, regenerate.
   const textChanged =
+    patch.title !== undefined ||
     patch.description !== undefined ||
     patch.implementer !== undefined ||
     patch.locationName !== undefined ||
     patch.outcome !== undefined ||
-    patch.lessonsLearned !== undefined
+    patch.lessonsLearned !== undefined ||
+    relationsChanged
   if (textChanged) {
     patch.status = 'pending'
     patch.rejectionReason = null
@@ -249,45 +296,70 @@ export async function updateCaseStudy(userId: string, input: UpdateCaseStudyInpu
     patch.isSpam = false
     try {
       const merged: Partial<CreateCaseStudyInput> = {
+        title: patch.title ?? existing.title,
         outcome: (patch.outcome ?? existing.outcome) as CaseStudyOutcome,
         locationName: patch.locationName ?? existing.locationName,
         description: patch.description ?? existing.description ?? undefined,
         implementer: patch.implementer ?? existing.implementer ?? undefined,
         lessonsLearned: (patch.lessonsLearned ?? existing.lessonsLearned) as string[] | undefined,
       }
-      patch.embedding = await generateEmbedding(
-        await buildEmbeddingText(existing.solutionId, merged),
-      )
+      patch.embedding = await generateEmbedding(await buildEmbeddingText(nextSolutionIds, merged))
     } catch (err) {
       console.error(`[case-study:update] Embedding regeneration failed for ${input.id}:`, err)
     }
   }
 
-  const rows = await db
-    .update(caseStudies)
-    .set(patch)
-    .where(eq(caseStudies.id, input.id))
-    .returning()
+  const updated = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(caseStudies)
+      .set(patch)
+      .where(eq(caseStudies.id, input.id))
+      .returning()
+    if (relationsChanged) {
+      await tx.delete(caseStudySolutions).where(eq(caseStudySolutions.caseStudyId, input.id))
+      await tx
+        .insert(caseStudySolutions)
+        .values(nextSolutionIds.map((solutionId) => ({ caseStudyId: input.id, solutionId })))
+    }
+    return rows[0]!
+  })
   if (textChanged) {
     await triggerModeration('case-study', input.id)
   }
-  return { caseStudy: rows[0]!, before, contentChanged: textChanged }
+  return {
+    caseStudy: {
+      ...updated,
+      solutionLinks: nextSolutionIds.map((solutionId) => ({ solutionId })),
+    },
+    before,
+    contentChanged: textChanged,
+  }
 }
 
-/**
- * Re-attach a case study to a different solution. Thin wrapper over
- * updateCaseStudy's solutionId path so the revision-apply code has a clearly
- * named structural-move entry point. Returns the updated row.
- */
-export async function reparentCaseStudy(userId: string, id: number, solutionId: number) {
-  const { caseStudy } = await updateCaseStudy(userId, { id, solutionId })
-  return caseStudy
+export const caseStudyWithSolutions = {
+  author: { columns: { name: true } },
+  solutionLinks: {
+    columns: { solutionId: true },
+    with: { solution: { columns: { id: true, title: true, summary: true } } },
+  },
+} as const
+
+export async function findCaseStudyIdsForSolutions(solutionIds: number[]): Promise<number[]> {
+  if (solutionIds.length === 0) return []
+  const links = await useDB().query.caseStudySolutions.findMany({
+    where: inArray(caseStudySolutions.solutionId, solutionIds),
+    columns: { caseStudyId: true },
+  })
+  return [...new Set(links.map((link) => link.caseStudyId))]
 }
 
 export function transformCaseStudy(
   row: typeof caseStudies.$inferSelect & {
     author?: { name: string | null } | null
-    solution?: { title: string | null; summary: string | null } | null
+    solutionLinks?: Array<{
+      solutionId: number
+      solution?: { id: number; title: string; summary: string } | null
+    }>
   },
 ) {
   if (!row.createdAt) {
@@ -295,9 +367,11 @@ export function transformCaseStudy(
   }
   return {
     id: row.id,
-    solutionId: row.solutionId,
-    // Parent solution title; only set when the caller loads the `solution` relation.
-    solutionTitle: row.solution?.title || row.solution?.summary || null,
+    title: row.title,
+    solutionIds: (row.solutionLinks ?? []).map((link) => link.solutionId).sort((a, b) => a - b),
+    solutions: (row.solutionLinks ?? [])
+      .flatMap((link) => (link.solution ? [link.solution] : []))
+      .sort((a, b) => a.id - b.id),
     authorId: row.authorId,
     author: row.author?.name ?? 'Anonymous',
     status: row.status,

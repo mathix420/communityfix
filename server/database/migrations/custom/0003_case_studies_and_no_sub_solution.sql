@@ -19,9 +19,8 @@ CREATE TRIGGER trg_no_sub_solution
   FOR EACH ROW
   EXECUTE FUNCTION assert_no_sub_solution();
 
--- Case studies have no title/summary of their own — the parent solution provides
--- the name. Search weights the human-facing identity (where, who) above the
--- long-form fields so a search for "Curitiba" or "NGO X" lands on the right row.
+-- Base generated search column for case studies. Migration 0011 upgrades this
+-- expression to include the later-added deployment title.
 ALTER TABLE case_studies ADD COLUMN IF NOT EXISTS search_vector tsvector
   GENERATED ALWAYS AS (
     setweight(to_tsvector('english', coalesce(location_name, '')), 'A') ||

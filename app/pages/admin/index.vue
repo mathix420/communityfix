@@ -737,10 +737,7 @@ function detailSimilar(details: unknown): Array<{ id: number; similarity: number
           <template #header>
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-medium truncate">
-                Case study on
-                <NuxtLink v-if="cs.solution" class="hover:underline" :to="`/issue/${cs.solution.id}`">
-                  #{{ cs.solution.id }} {{ cs.solution.title }}
-                </NuxtLink>
+                {{ cs.title }}
               </span>
               <UiBadge>
                 {{ cs.outcome }}
@@ -754,6 +751,16 @@ function detailSimilar(details: unknown): Array<{ id: number; similarity: number
                 · {{ cs.implementer }}
               </span>
             </p>
+            <div class="flex flex-wrap gap-1.5 text-xs text-toned">
+              <NuxtLink
+                v-for="link in cs.solutionLinks"
+                :key="link.solutionId"
+                class="hover:underline"
+                :to="`/issue/${link.solutionId}`"
+              >
+                #{{ link.solutionId }} {{ link.solution.title }}
+              </NuxtLink>
+            </div>
             <AdminAuthorBadge :author="cs.author" :timestamp="cs.createdAt" />
           </template>
           <template #actions>

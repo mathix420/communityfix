@@ -7,12 +7,17 @@ const toast = useToast()
 const { track } = useUmami()
 const submitting = ref(false)
 
-const solutionId = computed(() => {
+const initialSolutionId = computed(() => {
   const raw = route.query.solution
   const n = Array.isArray(raw) ? Number(raw[0]) : Number(raw)
   return Number.isFinite(n) && n > 0 ? n : null
 })
 
+const title = ref('')
+const solutionIds = ref<number[]>(initialSolutionId.value ? [initialSolutionId.value] : [])
+watch(initialSolutionId, (id) => {
+  if (id && !solutionIds.value.includes(id)) solutionIds.value.push(id)
+})
 const outcome = ref<CaseStudyOutcome>()
 const locationName = ref('')
 const latitude = ref<number | undefined>()
@@ -53,19 +58,26 @@ const { data: banStatus } = await useFetch('/api/user/ban-status')
 // allowing the form to submit and 4xx on the server.
 const { data: parent } = await useAsyncData(
   'new-case-study-parent',
-  () => (solutionId.value ? $fetch(`/api/issue/${solutionId.value}`) : Promise.resolve(null)),
-  { watch: [solutionId] },
+  () =>
+    initialSolutionId.value
+      ? $fetch(`/api/issue/${initialSolutionId.value}`)
+      : Promise.resolve(null),
+  { watch: [initialSolutionId] },
 )
 
 const parentIsValid = computed(() => parent.value?.type === 'solution')
 
 async function submit() {
-  if (!solutionId.value) {
+  if (solutionIds.value.length === 0) {
     toast.add({
       title: 'Missing solution',
-      description: 'This form needs ?solution=<id> in the URL.',
+      description: 'Link at least one solution.',
       color: 'error',
     })
+    return
+  }
+  if (!title.value.trim()) {
+    toast.add({ title: 'Implementation title required', color: 'error' })
     return
   }
   if (!outcome.value) {
@@ -97,7 +109,8 @@ async function submit() {
     await $fetch('/api/case-study', {
       method: 'POST',
       body: {
-        solutionId: solutionId.value,
+        title: title.value.trim(),
+        solutionIds: solutionIds.value,
         outcome: outcome.value,
         locationName: locationName.value,
         latitude: latitude.value,
@@ -116,8 +129,8 @@ async function submit() {
         metrics: cleanedMetrics.length ? cleanedMetrics : undefined,
       },
     })
-    track('Case study submitted', { solutionId: solutionId.value })
-    await navigateTo(`/issue/${solutionId.value}/studies`)
+    track('Case study submitted', { solutionCount: solutionIds.value.length })
+    await navigateTo(`/issue/${solutionIds.value[0]}/studies`)
   } catch (error: any) {
     toast.add({
       title: 'Failed to create case study',
@@ -131,7 +144,7 @@ async function submit() {
 
 useSeoMeta({
   title: 'Document a case study - CommunityFix',
-  description: 'Record a real-world implementation of a proposed solution.',
+  description: 'Record a real-world implementation of one or more proposed solutions.',
 })
 
 definePageMeta({
@@ -143,17 +156,17 @@ definePageMeta({
   <AppContainer>
     <section class="w-full max-w-2xl mx-auto">
       <UiPageHeader
-        description="Record where this solution was actually tried, what happened, and what others can learn from it."
+        description="Record where these solutions were actually tried, what happened, and what others can learn from it."
         title="Document a case study"
       />
       <IssueParentCallout
         v-if="parent && parentIsValid"
         class="mb-6"
-        label="Case study of"
+        label="Starting solution"
         :parent="{ id: parent.id, title: parent.title }"
       />
       <UiCard
-        v-if="!solutionId || (parent && !parentIsValid)"
+        v-if="!initialSolutionId || (parent && !parentIsValid)"
         class="flex items-start gap-3"
         padding="lg"
       >
@@ -189,6 +202,11 @@ definePageMeta({
             v-model:scale="scale"
             v-model:sources="sources"
             v-model:start-date="startDate"
+            v-model:title="title"
+          />
+          <CaseStudySolutionPicker
+            v-model="solutionIds"
+            :solutions="parent && parentIsValid ? [{ id: parent.id, title: parent.title }] : []"
           />
           <UButton block color="primary" size="lg" type="submit" :loading="submitting">
             Submit case study

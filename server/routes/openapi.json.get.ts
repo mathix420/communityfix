@@ -19,7 +19,7 @@ export default defineEventHandler((event) => {
     info: {
       title: 'CommunityFix (read-only)',
       description:
-        'Read-only access to the CommunityFix catalog — a public tree of issues (problems), solutions (proposed approaches, which are leaves), and case studies (real-world deployments of a solution). Built for discovery: start from searchCatalog for natural-language questions over issues and solutions, discoverCaseStudies for "what has actually worked", and listNearby for "what has been documented near a place". All endpoints are anonymous and side-effect-free; nothing here creates or modifies data.',
+        'Read-only access to the CommunityFix catalog — a public tree of issues (problems), solutions (proposed approaches, which are leaves), and case studies (real-world deployments of one or more solutions). Built for discovery: start from searchCatalog for natural-language questions over issues and solutions, discoverCaseStudies for "what has actually worked", and listNearby for "what has been documented near a place". All endpoints are anonymous and side-effect-free; nothing here creates or modifies data.',
       version: '1.0.0',
     },
     servers: [{ url: origin }],
@@ -349,7 +349,7 @@ export default defineEventHandler((event) => {
           operationId: 'getNodeTree',
           summary: 'Get the descendant tree of a node',
           description:
-            'Return the full descendant tree rooted at the given issue/solution id: sub-issues and solutions recursively, with approved case studies attached as leaf rows under their parent solution (a case-study row carries `parentId` = the solution id and an `outcome`). Capped at depth 10, 20 children per parent, and 500 nodes total.',
+            'Return the full descendant tree rooted at the given issue/solution id: sub-issues and solutions recursively, with approved case studies shown as leaf rows under every linked solution (a case-study row carries `parentId` = that solution id and an `outcome`). Capped at depth 10, 20 children per parent, and 500 rows total.',
           parameters: [{ $ref: '#/components/parameters/NodeId' }],
           responses: {
             '200': {
@@ -424,7 +424,7 @@ export default defineEventHandler((event) => {
           operationId: 'getCaseStudy',
           summary: 'Get one case study by id',
           description:
-            'Fetch a single case study (one real-world deployment of a solution) by numeric id. Returns null if not found.',
+            'Fetch a single case study (one real-world deployment of one or more solutions) by numeric id. Returns null if not found.',
           parameters: [{ $ref: '#/components/parameters/NodeId' }],
           responses: {
             '200': {
@@ -604,16 +604,28 @@ export default defineEventHandler((event) => {
         },
         CaseStudy: {
           type: 'object',
-          description: 'One documented real-world implementation of a solution.',
+          description: 'One documented real-world deployment of one or more solutions.',
           properties: {
             id: { type: 'integer' },
-            solutionId: {
-              type: 'integer',
-              description: 'Id of the solution this case study implements.',
-            },
-            solutionTitle: {
+            title: {
               type: 'string',
-              description: 'Parent solution title; null if not loaded.',
+              description: 'Deployment-specific description of what was implemented.',
+            },
+            solutionIds: {
+              type: 'array',
+              items: { type: 'integer' },
+              description: 'Ids of every linked solution.',
+            },
+            solutions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'integer' },
+                  title: { type: 'string' },
+                  summary: { type: 'string' },
+                },
+              },
             },
             authorId: { type: 'string' },
             author: { type: 'string' },

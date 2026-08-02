@@ -18,6 +18,10 @@ describe('Issue Detail APIs', () => {
       expect(issue).toHaveProperty('locationName')
       expect(issue).toHaveProperty('location')
       expect(issue).toHaveProperty('scale')
+      expect(issue).toHaveProperty('createdAt')
+      expect(issue).toHaveProperty('updatedAt')
+      expect(Array.isArray(issue.owners)).toBe(true)
+      expect(Array.isArray(issue.collaborators)).toBe(true)
     })
 
     it('hides moderation fields from non-owner viewers', async () => {

@@ -550,9 +550,15 @@ async function submitAppeal() {
           <UIcon class="size-3.5 text-gray-400 shrink-0" name="lucide:arrow-right" />
         </NuxtLink>
       </div>
-      <!-- Quiet meta links — who maintains the node and how it changed over time.
-      Deliberately at the very bottom: useful, but not what the page is about. -->
-      <NodeMetaLinks :base="`/issue/${issueId}`" />
+      <!-- One metadata bar, with compact controls linking to the related sub-pages. -->
+      <NodeMetaLinks
+        :base="`/issue/${issueId}`"
+        :collaborators="issue.collaborators"
+        :created-at="issue.createdAt"
+        :kind="issue.type"
+        :owners="issue.owners"
+        :updated-at="issue.updatedAt"
+      />
     </div>
   </div>
   <div v-else class="mt-3 bg-white rounded-2xl p-6 text-center">

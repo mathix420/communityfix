@@ -29,6 +29,8 @@ export function transformIssue(issue: DbIssue, { includeModeration = false } = {
     authorId: issue.authorId,
     author: issue.author?.name ?? 'Anonymous',
     date: issue.createdAt.toISOString().slice(0, 10),
+    createdAt: issue.createdAt.toISOString(),
+    updatedAt: issue.updatedAt.toISOString(),
     solutionCount: issue.solutionCount,
     subIssueCount: issue.subIssueCount,
     voteScore: issue.voteScore,

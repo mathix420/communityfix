@@ -11,7 +11,10 @@ describe('GET /api/case-studies', () => {
     for (const cs of res.items) {
       expect(cs.status).toBe('approved')
       expect(cs).toHaveProperty('outcome')
-      expect(cs).toHaveProperty('solutionId')
+      expect(cs).toHaveProperty('title')
+      expect(Array.isArray(cs.solutionIds)).toBe(true)
+      expect(Array.isArray(cs.solutions)).toBe(true)
+      expect(cs).not.toHaveProperty('solutionId')
     }
   })
 
@@ -36,5 +39,23 @@ describe('GET /api/case-studies', () => {
     const res = await apiFetch('/api/case-studies?limit=1')
     expect(Array.isArray(res.items)).toBe(true)
     expect(res.items.length).toBeLessThanOrEqual(1)
+  })
+})
+
+describe('GET /api/issue/:id/case-studies', () => {
+  it('returns a shared deployment under every linked solution without duplicating it for the issue', async () => {
+    const [compostStudies, starterKitStudies, issueStudies] = await Promise.all([
+      apiFetch<any[]>('/api/issue/10/case-studies'),
+      apiFetch<any[]>('/api/issue/12/case-studies'),
+      apiFetch<any[]>('/api/issue/1/case-studies'),
+    ])
+
+    const compostDeployment = compostStudies.find((study) => study.id === 10)
+    expect(compostDeployment?.solutionIds).toEqual([10, 12])
+    expect(compostDeployment?.solutions.map((solution: { id: number }) => solution.id)).toEqual([
+      10, 12,
+    ])
+    expect(starterKitStudies.some((study) => study.id === 10)).toBe(true)
+    expect(issueStudies.filter((study) => study.id === 10)).toHaveLength(1)
   })
 })

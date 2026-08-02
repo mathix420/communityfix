@@ -107,7 +107,7 @@ describe('rendered prompts (golden)', () => {
     expect(render(step.user, { parentContext: 'PC', originalJson: '{JSON}' })).toBe(
       'PC\n\nCase study (original fields):\n{JSON}',
     )
-    // No parent solution → empty parentContext still yields the leading blank lines.
+    // No linked-solution context still yields the leading blank lines.
     expect(render(step.user, { parentContext: '', originalJson: '{JSON}' })).toBe(
       '\n\nCase study (original fields):\n{JSON}',
     )

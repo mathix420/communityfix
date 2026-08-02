@@ -286,12 +286,8 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
               <UiBadge>
                 {{ c.outcome }}
               </UiBadge>
-              <NuxtLink
-                v-if="c.solution"
-                class="text-sm hover:underline truncate flex-1"
-                :to="`/issue/${c.solution.id}`"
-              >
-                on #{{ c.solution.id }} {{ c.solution.title }}
+              <NuxtLink class="text-sm hover:underline truncate flex-1" :to="`/case-study/${c.id}`">
+                {{ c.title }}
               </NuxtLink>
               <span class="text-[11px] text-toned shrink-0">
                 {{ formatRelative(c.createdAt) }}
@@ -299,6 +295,9 @@ const statusVariant: Record<string, 'default' | 'warning' | 'success' | 'error'>
             </div>
             <p class="text-xs text-toned mt-0.5">
               {{ c.locationName }}
+            </p>
+            <p class="text-xs text-toned mt-0.5 truncate">
+              {{ c.solutionLinks.map((link) => `#${link.solutionId} ${link.solution.title}`).join(' · ') }}
             </p>
           </div>
         </div>

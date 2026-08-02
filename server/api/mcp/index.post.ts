@@ -43,10 +43,10 @@ const RATE = {
 // would let a single request bypass the per-minute guard — cap the batch size.
 const MAX_BATCH = 50
 
-const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutions, with case studies attached to solutions. Every node is one of:
+const SERVER_INSTRUCTIONS = `CommunityFix is a tree of public issues and solutions, with case studies linked to solutions. Every node is one of:
 - an **issue** — a problem worth solving, or a more specific facet of a parent issue (a "sub-issue")
 - a **solution** — a proposed way to address its parent issue. Solutions are leaves in the tree: they cannot have sub-solutions.
-- a **case study** — a structured record of one real-world implementation of a solution (where it was tried, by whom, what happened, metrics, sources, lessons). Case studies attach to a solution and are NOT part of the issue/solution tree.
+- a **case study** — a structured record of one real-world deployment that can combine one or more solutions (where it was tried, by whom, what happened, metrics, sources, lessons). Case studies link to solutions and are NOT part of the issue/solution tree.
 
 Read \`get_whitepaper\` first if you need the platform's mission, principles, and how the catalog is meant to be used. Before authoring anything, read the authoring guide via \`get_guide({ slug: "authoring" })\` (call with no \`slug\` to list available guides). It covers how to write and scope issues, solutions, and case studies, the evidence standard, and the writing rules for AI agents.
 
@@ -57,7 +57,7 @@ RULES FOR AI CLIENTS:
 Tools come in matched groups by node kind:
 - create_issue / update_issue — for problems (top-level or sub-issue under any parent)
 - create_solution / update_solution — for proposed approaches (always require parentId pointing at the issue they address; the parent must itself be an issue, not a solution)
-- create_case_study / update_case_study / get_case_study / list_case_studies — for concrete deployments of a solution (require solutionId)
+- create_case_study / update_case_study / get_case_study / list_case_studies — for concrete deployments (require a title and one or more solutionIds)
 
 ALWAYS SEARCH BEFORE YOU CREATE.
 Before calling any create_* tool, run search_issues_solutions (and search_tags) to find existing nodes that may already cover the same thing. The catalog must not fill up with near-duplicates. If a search turns up a node that already fits, use update_issue / update_solution / update_case_study (or attach a case study) instead of creating a new one. Only create when you are confident nothing existing covers it.
@@ -83,7 +83,7 @@ Do NOT stuff a single node with:
 - alternative solutions, competing approaches, or variants → create sibling solutions with create_solution on the same parent issue
 - evaluations of related work, "state of the art" surveys, lists of prior attempts → those are not part of one node's body
 - pros/cons lists comparing approaches → each approach is its own solution
-- concrete deployments of a solution (a city that did this, a pilot, an NGO program) → those are case studies — emit create_case_study against the solution
+- concrete deployments of one or more solutions (a city that did this, a pilot, an NGO program) → those are case studies — emit create_case_study with every linked solution id
 
 If you catch yourself writing headings like "Alternatives", "Sub-issues", "Why X did not work", "Other approaches", stop and emit additional create_issue / create_solution / create_case_study calls instead. A good node reads like a focused statement of one thing; a bad one reads like an essay covering the whole problem space.`
 
@@ -216,7 +216,7 @@ const TOOLS = [
     name: 'get_tree',
     title: 'Get descendant tree',
     description:
-      'Return the full descendant tree rooted at the given issue or solution id — sub-issues and solutions recursively, with approved case studies attached as leaves under their parent solutions. Each row carries a `type` of "issue", "solution", or "case-study"; case-study rows expose `parentId` = the solution id and an `outcome` field. Capped at depth 10, 20 children per parent, and 500 nodes total.',
+      'Return the full descendant tree rooted at the given issue or solution id — sub-issues and solutions recursively, with approved case studies shown as leaves under every linked solution. Each row carries a `type` of "issue", "solution", or "case-study"; a case-study row exposes `parentId` = that relationship\'s solution id and an `outcome` field. Capped at depth 10, 20 children per parent, and 500 rows total.',
     annotations: READ,
     inputSchema: {
       type: 'object',
@@ -424,7 +424,7 @@ const TOOLS = [
     name: 'get_case_study',
     title: 'Get case study',
     description:
-      'Fetch a single case study by numeric id. Case studies document one real-world implementation of a solution (outcome, location, implementer, metrics, sources, lessons learned).',
+      'Fetch a single case study by numeric id. Case studies document one real-world deployment of one or more solutions (outcome, location, implementer, metrics, sources, lessons learned).',
     annotations: READ,
     inputSchema: {
       type: 'object',
@@ -451,16 +451,24 @@ const TOOLS = [
     name: 'create_case_study',
     title: 'Create case study',
     description:
-      "Document one real-world implementation of a solution. `solutionId` is required and must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried a solution and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSEARCH FIRST: check `list_case_studies` for the solution before adding one, and update an existing study instead of adding a near-duplicate of the same deployment.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place. If a solution has been tried in three different cities, that's three separate `create_case_study` calls — do not combine them.",
+      'Document one real-world deployment of one or more solutions. `title` and a non-empty `solutionIds` array are required; every id must point at a **solution** node. Use this — not create_solution — when you want to record that a specific place tried an approach and what happened. Fields are structured (outcome, location, dates, metrics, sources, lessons learned), not free-form markdown.\n\nSEARCH FIRST: check `list_case_studies` for each solution before adding one, and update an existing study instead of adding a near-duplicate of the same deployment.\n\nSCOPE RULE: each case study covers ONE deployment in ONE place, even when that deployment combined several catalog solutions.',
     annotations: CREATE,
     inputSchema: {
       type: 'object',
       properties: {
         model,
-        solutionId: {
-          type: 'integer',
-          description:
-            'Id of the solution this case study implements. Required. Must be a solution, not an issue.',
+        title: {
+          type: 'string',
+          maxLength: 160,
+          description: 'Concise deployment-specific description of what was implemented.',
+        },
+        solutionIds: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 20,
+          uniqueItems: true,
+          items: { type: 'integer' },
+          description: 'Ids of every solution implemented by this deployment.',
         },
         outcome: {
           type: 'string',
@@ -540,7 +548,7 @@ const TOOLS = [
           },
         },
       },
-      required: ['solutionId', 'outcome', 'locationName', 'latitude', 'longitude'],
+      required: ['title', 'solutionIds', 'outcome', 'locationName', 'latitude', 'longitude'],
     },
     outputSchema: OUT_OBJECT,
   },
@@ -555,6 +563,15 @@ const TOOLS = [
       properties: {
         model,
         id: { type: 'integer' },
+        title: { type: 'string', maxLength: 160 },
+        solutionIds: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 20,
+          uniqueItems: true,
+          items: { type: 'integer' },
+          description: 'Replace the complete set of linked solutions.',
+        },
         outcome: { type: 'string', enum: [...CASE_STUDY_OUTCOMES] },
         locationName: { type: 'string' },
         latitude: { type: 'number' },
@@ -597,11 +614,6 @@ const TOOLS = [
             properties: { url: { type: 'string' }, title: { type: 'string' } },
             required: ['url'],
           },
-        },
-        solutionId: {
-          type: 'integer',
-          description:
-            'Re-attach this case study to a different solution. Must point at a solution, not an issue.',
         },
         verified: {
           type: 'boolean',
@@ -685,7 +697,7 @@ const TOOLS = [
   {
     name: 'propose_edit',
     description:
-      'Propose a change to ANY node — an issue, a solution, or a case study — regardless of who authored it. One tool for every kind: set `kind` and `id`, plus only the fields you want to change. If you authored the node (or are an admin) the change applies immediately as a live edit; otherwise it is recorded as a pending revision proposal for the owner/admin to review. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or the pending `revision`. This is equivalent to update_issue / update_solution / update_case_study but unified — prefer it when you do not want to branch on node kind. Issues/solutions also accept `parentId` (reparent), case studies accept `solutionId` (re-attach).',
+      'Propose a change to ANY node — an issue, a solution, or a case study — regardless of who authored it. One tool for every kind: set `kind` and `id`, plus only the fields you want to change. If you authored the node (or are an admin) the change applies immediately as a live edit; otherwise it is recorded as a pending revision proposal for the owner/admin to review. The response carries `applied` (true = live edit, false = proposal created) and the resulting node or the pending `revision`. This is equivalent to update_issue / update_solution / update_case_study but unified. Issues/solutions accept `parentId`; case studies accept a complete `solutionIds` replacement.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -694,7 +706,7 @@ const TOOLS = [
           type: 'string',
           enum: ['issue', 'solution', 'case_study'],
           description:
-            'What the target node is. Issues and solutions are both in the issue tree; case studies attach to a solution.',
+            'What the target node is. Issues and solutions are both in the issue tree; case studies link to solutions.',
         },
         id: { type: 'integer', description: 'Numeric id of the node to edit.' },
         note: {
@@ -772,9 +784,13 @@ const TOOLS = [
           type: 'integer',
           description: 'Issue/solution only. Move under a different parent issue (reparent).',
         },
-        solutionId: {
-          type: 'integer',
-          description: 'Case study only. Re-attach to a different solution.',
+        solutionIds: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 20,
+          uniqueItems: true,
+          items: { type: 'integer' },
+          description: 'Case study only. Replace the complete linked-solution set.',
         },
       },
       required: ['kind', 'id'],

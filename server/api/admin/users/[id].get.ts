@@ -55,10 +55,15 @@ export default defineEventHandler(async (event) => {
 
     db.query.caseStudies.findMany({
       where: eq(caseStudies.authorId, id),
-      with: { solution: { columns: { id: true, title: true } } },
+      with: {
+        solutionLinks: {
+          columns: { solutionId: true },
+          with: { solution: { columns: { id: true, title: true } } },
+        },
+      },
       columns: {
         id: true,
-        solutionId: true,
+        title: true,
         status: true,
         outcome: true,
         locationName: true,

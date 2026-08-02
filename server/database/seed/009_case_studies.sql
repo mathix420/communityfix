@@ -1,9 +1,11 @@
--- Case studies seed: real-world implementations attached to approved solutions.
+-- Case studies seed: real-world deployments linked to approved solutions.
 -- Each row covers one outcome bucket so the UI variants (badge colors, empty
 -- states, verified flag) all get exercised by the default seed.
 
+BEGIN;
+
 INSERT INTO case_studies (
-  solution_id, author_id, outcome, scale,
+  id, title, author_id, status, outcome, scale,
   location_name, location, verified,
   implementer, start_date, end_date,
   description, metrics, cost, currency, funding_source,
@@ -11,10 +13,11 @@ INSERT INTO case_studies (
 ) VALUES
 -- Composting hubs in San Francisco — success, verified
 (
-  10, 'a0000001-0000-4000-8000-000000000001', 'success', 'city',
+  10, 'Citywide compost collection with neighborhood hubs and starter kits',
+  'a0000001-0000-4000-8000-000000000001', 'approved', 'success', 'city',
   'San Francisco, CA, USA', ST_SetSRID(ST_MakePoint(-122.4194, 37.7749), 4326), true,
   'San Francisco Department of the Environment', '2009-01-01', '2018-12-31',
-  'San Francisco rolled out mandatory curbside composting alongside a network of neighborhood drop-off hubs. By 2018 the city was diverting over 80% of waste from landfill, with finished compost distributed to Bay Area farms and home gardeners.',
+  'San Francisco rolled out mandatory curbside composting alongside neighborhood drop-off hubs and household starter bins with sorting guidance. By 2018 the city was diverting over 80% of waste from landfill, with finished compost distributed to Bay Area farms and home gardeners.',
   '[
     {"label": "Landfill diversion rate", "baseline": "35%", "result": "80%", "unit": ""},
     {"label": "Annual compost produced", "baseline": "0", "result": "60,000", "unit": "tons"}
@@ -39,7 +42,8 @@ INSERT INTO case_studies (
 
 -- Deposit-return scheme in Germany — success, verified
 (
-  11, 'a0000002-0000-4000-8000-000000000002', 'success', 'national',
+  11, 'National deposit-return system for beverage packaging',
+  'a0000002-0000-4000-8000-000000000002', 'approved', 'success', 'national',
   'Germany', ST_SetSRID(ST_MakePoint(10.4515, 51.1657), 4326), true,
   'Federal Government of Germany (Pfandsystem)', '2003-01-01', NULL,
   'Germany''s Pfand deposit-return system applies a 0.08–0.25 EUR deposit to most beverage containers. Return-vending machines are installed in nearly every supermarket. Return rates exceed 98% for PET and 96% for glass — among the highest in the world.',
@@ -65,7 +69,8 @@ INSERT INTO case_studies (
 
 -- On-demand micro-transit in Innisfil — partial
 (
-  15, 'a0000003-0000-4000-8000-000000000003', 'partial', 'city',
+  15, 'Subsidized on-demand rides replacing fixed bus routes',
+  'a0000003-0000-4000-8000-000000000003', 'approved', 'partial', 'city',
   'Innisfil, Ontario, Canada', ST_SetSRID(ST_MakePoint(-79.6111, 44.3000), 4326), false,
   'Town of Innisfil partnership with Uber', '2017-05-01', '2020-04-01',
   'Innisfil partnered with Uber to provide subsidised on-demand rides instead of building a fixed bus route. The first year saw strong adoption, but ridership growth outpaced the budget; the town later capped subsidised rides per resident.',
@@ -88,7 +93,8 @@ INSERT INTO case_studies (
 
 -- Real-time transit open data in Helsinki — success
 (
-  16, 'a0000005-0000-4000-8000-000000000005', 'success', 'city',
+  16, 'Open real-time transit data with multimodal trip planning',
+  'a0000005-0000-4000-8000-000000000005', 'approved', 'success', 'city',
   'Helsinki, Finland', ST_SetSRID(ST_MakePoint(24.9384, 60.1699), 4326), true,
   'Helsinki Region Transport (HSL)', '2014-01-01', NULL,
   'HSL publishes a full real-time GTFS-RT feed and open APIs for every mode. Third-party apps like Reittiopas and the multimodal Whim service were built on top. Ridership satisfaction tracked upward each year of the deployment.',
@@ -114,7 +120,8 @@ INSERT INTO case_studies (
 
 -- Bus lanes pilot that failed politically — failed
 (
-  17, 'a0000004-0000-4000-8000-000000000004', 'failed', 'city',
+  17, 'Dedicated peak-hour bus lane pilot',
+  'a0000004-0000-4000-8000-000000000004', 'approved', 'failed', 'city',
   'Boston, MA, USA', ST_SetSRID(ST_MakePoint(-71.0589, 42.3601), 4326), false,
   'City of Boston (Washington Street pilot)', '2018-09-01', '2018-12-01',
   'A 3-month dedicated bus-lane pilot on Washington Street cut peak commute times by 20% and was popular with riders. The lane was discontinued after political pressure from drivers; the city later restored a permanent lane on a different corridor in 2020.',
@@ -138,7 +145,8 @@ INSERT INTO case_studies (
 
 -- Ceramic water filters in Cambodia — success, verified
 (
-  20, 'a0000006-0000-4000-8000-000000000006', 'success', 'region',
+  20, 'Locally manufactured ceramic household water filters',
+  'a0000006-0000-4000-8000-000000000006', 'approved', 'success', 'region',
   'Kandal Province, Cambodia', ST_SetSRID(ST_MakePoint(105.0000, 11.5000), 4326), true,
   'Hydrologic Social Enterprise (Cambodia)', '2008-01-01', NULL,
   'Locally manufactured ceramic pot filters distributed at subsidised prices across rural Cambodia. Diarrheal disease incidence in beneficiary households dropped sharply; the program is now self-funding through filter sales.',
@@ -164,7 +172,8 @@ INSERT INTO case_studies (
 
 -- Rainwater harvesting pilot — inconclusive
 (
-  21, 'a0000007-0000-4000-8000-000000000007', 'inconclusive', 'neighborhood',
+  21, 'Rooftop rainwater harvesting with groundwater recharge',
+  'a0000007-0000-4000-8000-000000000007', 'approved', 'inconclusive', 'neighborhood',
   'Mumbai, India (Powai pilot)', ST_SetSRID(ST_MakePoint(72.9081, 19.1197), 4326), false,
   'BMC ward office in partnership with local housing societies', '2019-06-01', '2021-06-01',
   'Twelve housing societies in Powai installed rooftop rainwater harvesting and recharge pits with municipal subsidy. Two consecutive weak monsoons made it impossible to measure aquifer impact; pilot results are not statistically meaningful.',
@@ -186,7 +195,8 @@ INSERT INTO case_studies (
 
 -- Community land trust in Burlington — success
 (
-  25, 'a0000008-0000-4000-8000-000000000008', 'success', 'city',
+  25, 'Community land trust with permanently affordable resale',
+  'a0000008-0000-4000-8000-000000000008', 'approved', 'success', 'city',
   'Burlington, VT, USA', ST_SetSRID(ST_MakePoint(-73.2121, 44.4759), 4326), true,
   'Champlain Housing Trust', '1984-01-01', NULL,
   'The Champlain Housing Trust stewards over 3,000 permanently affordable homes across the Burlington region. Resale formulas cap appreciation so units stay affordable to subsequent buyers, while owners still build wealth.',
@@ -211,7 +221,8 @@ INSERT INTO case_studies (
 
 -- Community solar program — ongoing
 (
-  36, 'a0000001-0000-4000-8000-000000000001', 'ongoing', 'region',
+  36, 'Regional community solar subscription gardens',
+  'a0000001-0000-4000-8000-000000000001', 'approved', 'ongoing', 'region',
   'Minnesota, USA', ST_SetSRID(ST_MakePoint(-94.6859, 46.7296), 4326), false,
   'Xcel Energy Solar*Rewards Community program', '2014-01-01', NULL,
   'Minnesota''s community solar garden program lets subscribers buy a share of an off-site solar array and receive credits on their utility bill. Over 800 MW of subscribed capacity as of 2024, with renter and low-income carve-outs.',
@@ -235,7 +246,8 @@ INSERT INTO case_studies (
 
 -- Car-free zone in Pontevedra — success, verified
 (
-  37, 'a0000002-0000-4000-8000-000000000002', 'success', 'city',
+  37, 'City-center pedestrianization with traffic rerouting',
+  'a0000002-0000-4000-8000-000000000002', 'approved', 'success', 'city',
   'Pontevedra, Galicia, Spain', ST_SetSRID(ST_MakePoint(-8.6444, 42.4310), 4326), true,
   'Concello de Pontevedra (city government)', '1999-01-01', NULL,
   'Pontevedra pedestrianised its entire historic core starting in 1999 and progressively expanded the car-free zone. CO₂ emissions in the centre dropped by 70%, traffic deaths went to zero for many consecutive years, and city-centre retail revenue grew.',
@@ -263,7 +275,8 @@ INSERT INTO case_studies (
 
 -- Retrofit accelerator pilot in NYC — partial
 (
-  50, 'a0000003-0000-4000-8000-000000000003', 'partial', 'city',
+  50, 'Building retrofit advice paired with financing',
+  'a0000003-0000-4000-8000-000000000003', 'approved', 'partial', 'city',
   'New York City, NY, USA', ST_SetSRID(ST_MakePoint(-74.0060, 40.7128), 4326), false,
   'NYC Retrofit Accelerator (Mayor''s Office of Climate)', '2015-09-01', NULL,
   'Free advisory service for building owners pursuing energy retrofits, paired with optional on-bill financing. Reached over 16,000 buildings but adoption of the on-bill financing component was lower than projected.',
@@ -286,7 +299,8 @@ INSERT INTO case_studies (
 
 -- Forest thinning pilot — ongoing
 (
-  69, 'a0000007-0000-4000-8000-000000000007', 'ongoing', 'region',
+  69, 'Selective forest thinning with soil-moisture monitoring',
+  'a0000007-0000-4000-8000-000000000007', 'approved', 'ongoing', 'region',
   'Vysočina Region, Czech Republic', ST_SetSRID(ST_MakePoint(15.6000, 49.4500), 4326), false,
   'Czech State Forests (Lesy ČR), Vysočina branch', '2022-04-01', NULL,
   'Selective thinning of dense spruce monocultures to reduce drought stress and bark-beetle outbreak severity. Three-year monitoring is underway; preliminary readings show treated stands retaining 12% higher soil moisture than controls.',
@@ -307,7 +321,32 @@ INSERT INTO case_studies (
     {"url": "https://drive.google.com/file/d/vysocina-thinning-2024-update", "title": "2024 mid-pilot update (PDF, CS)"}
   ]'::jsonb,
   '2025-10-30T14:00:00Z', '2025-10-30T14:00:00Z'
+)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO case_study_solutions (case_study_id, solution_id) VALUES
+  (10, 10),
+  (10, 12),
+  (11, 11),
+  (15, 15),
+  (16, 16),
+  (17, 17),
+  (20, 20),
+  (21, 21),
+  (25, 25),
+  (36, 36),
+  (37, 37),
+  (50, 50),
+  (69, 69)
+ON CONFLICT DO NOTHING;
+
+SELECT setval(
+  pg_get_serial_sequence('case_studies', 'id'),
+  GREATEST((SELECT MAX(id) FROM case_studies), 1),
+  true
 );
+
+COMMIT;
 
 -- Sanity check counter (mirrors the votes pattern in 006_votes.sql)
 SELECT COUNT(*) AS case_studies_seeded FROM case_studies;

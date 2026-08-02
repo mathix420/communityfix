@@ -13,7 +13,9 @@ import type { RevisionTargetKind, RevisionStatus, RevisionDecidedByRole } from '
 export type Snapshot = Record<string, unknown>
 
 type IssueRow = typeof issues.$inferSelect
-type CaseStudyRow = typeof caseStudies.$inferSelect
+type CaseStudyRow = typeof caseStudies.$inferSelect & {
+  solutionLinks?: Array<{ solutionId: number }>
+}
 
 function locationToJson(location: unknown): { latitude: number; longitude: number } | null {
   const loc = location as { x: number; y: number } | null
@@ -42,10 +44,11 @@ export function editableIssueSnapshot(row: IssueRow): Snapshot {
 
 /**
  * The proposable field subset of a case study — mirrors UpdateCaseStudyInput
- * (excluding admin-only `verified`) plus the structural `solutionId`.
+ * (excluding admin-only `verified`) plus the complete linked-solution set.
  */
 export function editableCaseStudySnapshot(row: CaseStudyRow): Snapshot {
   return {
+    title: row.title,
     outcome: row.outcome,
     scale: row.scale ?? null,
     locationName: row.locationName,
@@ -61,7 +64,7 @@ export function editableCaseStudySnapshot(row: CaseStudyRow): Snapshot {
     sources: row.sources ?? null,
     lessonsLearned: row.lessonsLearned ?? null,
     links: row.links ?? null,
-    solutionId: row.solutionId,
+    solutionIds: (row.solutionLinks ?? []).map((link) => link.solutionId).sort((a, b) => a - b),
   }
 }
 
