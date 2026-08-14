@@ -15,6 +15,11 @@ const socials = [
     url: 'https://cloud.umami.is/share/gv1yqQGUVb1AsbKy/communityfix.org',
   },
   { name: 'Bluesky', icon: 'fa6-brands:bluesky', url: 'https://bsky.app/profile/communityfix.org' },
+  {
+    name: 'Instagram',
+    icon: 'fa6-brands:instagram',
+    url: 'https://www.instagram.com/communityfix_org',
+  },
   { name: 'GitHub', icon: 'fa6-brands:github', url: 'https://github.com/mathix420/communityfix' },
 ]
 
@@ -59,7 +64,7 @@ function scrollToTop() {
         {{ link.name }}
       </UButton>
     </nav>
-    <nav class="flex gap-4 sm:justify-end justify-center items-center">
+    <nav class="flex gap-2 sm:justify-end justify-center items-center">
       <UButton
         v-for="social in socials"
         :key="social.name"
