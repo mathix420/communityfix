@@ -31,12 +31,13 @@ const [{ data: stats }, { data: issues }, { data: tags }, { data: results }] = a
   useFetch('/api/stats'),
   useFetch('/api/issues', { query: issuesParams, watch: [issuesParams] }),
   useFetch('/api/tags'),
-  // Skip the first-paint fetch when there's nothing to search; typing (or a
-  // ?search= param) triggers it via the watch.
+  // Keep this immediate even for an empty search. The endpoint returns before
+  // touching the database when `q` is blank, and initializing the async-data
+  // entry ensures later client-side query-key changes actually execute.
   useFetch('/api/search/quick', {
     query: quickParams,
     watch: [quickParams],
-    immediate: Boolean(search.value.trim()),
+    immediate: true,
   }),
 ])
 
@@ -56,6 +57,14 @@ const resultCount = computed(() => resultGroups.value.reduce((a, g) => a + g.ite
 
 // /api/tags is ordered by usage — the head of the list makes a good quick-nav.
 const topTags = computed(() => (tags.value ?? []).filter((t) => t.uses > 0).slice(0, 7))
+
+// Nuxt keeps this page mounted when client-side navigation only changes the
+// query string (for example, when the WebMCP search tool runs from `/`). Keep
+// the local controls in sync so the new query also triggers the search fetch.
+watch([() => route.query.search, () => route.query.sort], ([routeSearch, routeSort]) => {
+  search.value = typeof routeSearch === 'string' ? routeSearch : ''
+  sort.value = typeof routeSort === 'string' ? routeSort : 'most_voted'
+})
 
 function trackHomepageTopic(tag: string) {
   track('Homepage topic click', { tag })
