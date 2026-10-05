@@ -13,6 +13,7 @@ let map: any = null
 let areaLayer: any = null
 let areaBounds: any = null
 let L: any = null
+const addBasemap = useBasemap()
 
 // Pad the fitted area inside the viewport, and never zoom past street level for a
 // tiny polygon (e.g. a single block) so it still reads as a place, not a point.
@@ -58,11 +59,8 @@ async function initMap() {
     scrollWheelZoom: false,
   })
 
+  addBasemap(L, map)
   L.control.zoom({ position: 'bottomright' }).addTo(map)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    subdomains: 'abcd',
-  }).addTo(map)
 
   renderArea()
 }

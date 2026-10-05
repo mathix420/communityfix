@@ -18,6 +18,7 @@ const emit = defineEmits<{ open: [kind: MapPoint['kind']] }>()
 const mapEl = ref<HTMLElement>()
 let map: any = null
 let L: any = null
+const addBasemap = useBasemap()
 
 // Semantic palette, tuned for the light Voyager tiles: problems read as red,
 // proposals carry the brand blue, implemented work reads as green.
@@ -71,11 +72,8 @@ async function initMap() {
     worldCopyJump: true,
   })
 
+  addBasemap(L, map)
   L.control.zoom({ position: 'bottomright' }).addTo(map)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    subdomains: 'abcd',
-  }).addTo(map)
 
   renderPoints()
 }

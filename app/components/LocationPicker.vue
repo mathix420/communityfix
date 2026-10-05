@@ -110,6 +110,7 @@ let map: any = null
 let marker: any = null
 let areaLayer: any = null
 let L: any = null
+const addBasemap = useBasemap()
 const mapReady = ref(false)
 const hasLocation = computed(() => latitude.value !== undefined && longitude.value !== undefined)
 
@@ -130,11 +131,8 @@ async function initMap() {
     attributionControl: false,
   })
 
+  addBasemap(L, map)
   L.control.zoom({ position: 'bottomright' }).addTo(map)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    subdomains: 'abcd',
-  }).addTo(map)
 
   if (hasLocation.value) {
     placeMarker(latitude.value!, longitude.value!)
