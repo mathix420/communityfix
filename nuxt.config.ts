@@ -61,6 +61,12 @@ export default defineNuxtConfig({
     // <noreply@communityfix.org>"). The domain must be onboarded to
     // Cloudflare Email Sending — see `wrangler email sending enable`.
     emailFrom: '',
+    public: {
+      // CARTO Basemaps key appended to every tile URL (see useBasemap). It is
+      // public by nature (it ships in browser tile requests); abuse is limited
+      // by the referer restriction set on the key in CARTO's dashboard.
+      cartoApiKey: '',
+    },
   },
 
   routeRules: {
